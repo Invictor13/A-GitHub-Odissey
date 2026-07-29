@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Floating Islands - RPG & Weather Edition</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { width: 100vw; height: 100vh; overflow: hidden; background-color: #1e293b; color: #f8fafc; cursor: crosshair; }
+
+        /* UI Base Glassmorphism */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 24px;
+            color: #f8fafc; pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+            padding: 24px; z-index: 10;
+        }
+
+        /* HUD Rodapé (Minimalista) */
+        .hud-bottom {
+            display: flex; align-items: center; gap: 15px; padding: 12px 24px;
+            margin-bottom: 20px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%; width: 45px; height: 45px; font-size: 20px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; color: white;
+        }
+        .icon-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+
+        .time-btn {
+            background: rgba(0, 0, 0, 0.4); padding: 10px 24px; border-radius: 16px;
+            font-size: 18px; font-weight: bold; color: #fbbf24; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s;
+            min-width: 100px; text-align: center;
+        }
+        .time-btn:hover { background: rgba(0, 0, 0, 0.6); border-color: #fbbf24; }
+
+        /* Popup do Relógio */
+        #time-popup {
+            position: absolute; bottom: 100px; padding: 15px 20px;
+            display: flex; flex-direction: column; gap: 10px; width: 250px;
+            opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(20px);
+        }
+        #time-popup.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        #time-popup label { font-size: 12px; font-weight: bold; color: #a7f3d0; text-transform: uppercase; text-align: center;}
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #fbbf24; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px #fbbf24; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+        /* Modal RPG */
+        #rpg-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            z-index: 50; display: none; justify-content: center; align-items: center; pointer-events: auto;
+        }
+        .modal-content {
+            width: 400px; animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; gap: 15px; padding: 24px;
+        }
+        @keyframes modalPop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .biome-title { font-size: 22px; font-weight: bold; color: #fff; }
+        .difficulty { color: #f87171; font-weight: bold; letter-spacing: 2px;}
+        
+        .stat-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;}
+        .stat-icon { width: 24px; text-align: center; font-size: 16px; }
+        .stat-value { font-weight: bold; color: #fff; }
+
+        .btn-entrar {
+            background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; padding: 14px;
+            border-radius: 12px; color: white; font-weight: bold; font-size: 16px; text-transform: uppercase;
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); margin-top: 10px;
+        }
+        .btn-entrar:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6); }
+        .btn-fechar { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; }
+
+        /* Loading Screen */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.8s ease;
+        }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="loader"><div class="spinner"></div><h2>Forjando o Mundo...</h2></div>
+
+    <div id="ui-layer">
+        <div id="time-popup" class="glass-panel">
+            <label>Ajustar Horário</label>
+            <input type="range" id="time-slider" min="0" max="24" step="0.1" value="12">
+        </div>
+
+        <div class="glass-panel hud-bottom">
+            <button id="btn-backpack" class="icon-btn" title="Mochila">🎒</button>
+            <div id="clock-container" class="time-btn" title="Alterar Horário">
+                <span id="time-display">12:00</span>
+            </div>
+            <button id="btn-weather" class="icon-btn" title="Alterar Clima">☀️</button>
+        </div>
+    </div>
+
+    <div id="rpg-modal">
+        <div class="glass-panel modal-content">
+            <button class="btn-fechar" onclick="closeModal()">×</button>
+            <div class="modal-header">
+                <div class="biome-title" id="m-title">Floresta Anciã</div>
+                <div class="difficulty" id="m-diff">★★★☆☆</div>
+            </div>
+            
+            <div class="stat-row"><div class="stat-icon">⚔️</div> Inimigos: <span class="stat-value" id="m-enemies">Lobos, Bandidos</span></div>
+            <div class="stat-row"><div class="stat-icon">🦌</div> Caça: <span class="stat-value" id="m-animals">Cervos, Javalis</span></div>
+            <div class="stat-row"><div class="stat-icon">🐟</div> Pesca: <span class="stat-value" id="m-fishes">Truta, Salmão</span></div>
+            <div class="stat-row"><div class="stat-icon">⛏️</div> Recursos: <span class="stat-value" id="m-minerals">Madeira, Ferro</span></div>
+            
+            <button class="btn-entrar" id="btn-entrar">Explorar e Expandir</button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // === CONFIGURAÇÃO BÁSICA ===
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#38bdf8');
+        scene.fog = new THREE.FogExp2('#38bdf8', 0.0035);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(60, 70, 80);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.9; 
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1; 
+        controls.minDistance = 20;
+        controls.maxDistance = 600;
+        controls.target.set(0, 5, 0);
+
+        // === LUZ E TEMPO ===
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); 
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048; sunLight.shadow.mapSize.height = 2048;
+        const d = 300;
+        sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.camera.far = 1000; sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+        
+        const lightningLight = new THREE.PointLight(0xa5b4fc, 0, 1000);
+        lightningLight.position.set(0, 100, 0);
+        scene.add(lightningLight);
+
+        const timeColors = {
+            day: { sky: new THREE.Color('#38bdf8'), ambient: new THREE.Color('#bae6fd'), sun: new THREE.Color('#ffedd5'), intensity: 1.2 },
+            sunset: { sky: new THREE.Color('#f59e0b'), ambient: new THREE.Color('#fca5a5'), sun: new THREE.Color('#f43f5e'), intensity: 0.8 },
+            night: { sky: new THREE.Color('#020617'), ambient: new THREE.Color('#1e293b'), sun: new THREE.Color('#64748b'), intensity: 0.15 },
+            sunrise: { sky: new THREE.Color('#fbcfe8'), ambient: new THREE.Color('#fdf4ff'), sun: new THREE.Color('#fcd34d'), intensity: 0.7 },
+            storm: { sky: new THREE.Color('#1e293b'), ambient: new THREE.Color('#334155'), sun: new THREE.Color('#94a3b8'), intensity: 0.3 }
+        };
+
+        let currentHour = 12.0;
+
+        // === SISTEMA CLIMÁTICO ===
+        // Adicionado "cloudScale" para ditar o volume e largura das nuvens
+        const weathers = [
+            { id: 'clear', icon: '☀️', cloudTarget: new THREE.Color('#f8fafc'), cloudScale: 1.0 },
+            { id: 'rain', icon: '🌧️', cloudTarget: new THREE.Color('#94a3b8'), cloudScale: 2.2 }, // Cinzento denso
+            { id: 'storm', icon: '⛈️', cloudTarget: new THREE.Color('#334155'), cloudScale: 3.5 }, // Negro, nuvens gigantes e largas
+            { id: 'snow', icon: '❄️', cloudTarget: new THREE.Color('#bae6fd'), cloudScale: 1.8 }, // Azul gelo claro
+            { id: 'wind', icon: '💨', cloudTarget: new THREE.Color('#e2e8f0'), cloudScale: 1.3 }
+        ];
+        let weatherIdx = 0;
+        let currentWeather = weathers[weatherIdx];
+        let globalCloudScale = 1.0; // Controla a transição suave de escala/volume de nuvens
+        
+        const weatherCount = 8000;
+        const weatherGeo = new THREE.BufferGeometry();
+        const weatherPos = new Float32Array(weatherCount * 3);
+        const weatherVel = new Float32Array(weatherCount);
+        
+        for(let i=0; i<weatherCount; i++) {
+            weatherPos[i*3] = (Math.random() - 0.5) * 400; 
+            weatherPos[i*3+1] = Math.random() * 200 - 50;  
+            weatherPos[i*3+2] = (Math.random() - 0.5) * 400; 
+            weatherVel[i] = 1 + Math.random();
+        }
+        weatherGeo.setAttribute('position', new THREE.BufferAttribute(weatherPos, 3));
+        
+        const weatherMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0 });
+        const weatherSystem = new THREE.Points(weatherGeo, weatherMat);
+        scene.add(weatherSystem);
+
+        // === DADOS RPG E BIOMAS ===
+        const rpgData = {
+            field: { names: ["Planície dos Ventos", "Campos Verdes", "Prados Serenos"], diff: ["★☆☆☆☆", "★★☆☆☆"], enemies: ["Slimes", "Bandidos Fracos"], animals: ["Coelhos", "Ovelhas"], fishes: ["Peixe-Dourado", "Carpa"], minerals: ["Pedra", "Cobre"] },
+            forest: { names: ["Floresta Anciã", "Bosque Sombrio", "Mata Fechada"], diff: ["★★☆☆☆", "★★★☆☆"], enemies: ["Lobos Selvagens", "Ursos"], animals: ["Cervos", "Javalis"], fishes: ["Salmão", "Truta"], minerals: ["Madeira de Lei", "Ferro"] },
+            desert: { names: ["Deserto Escaldante", "Dunas Esquecidas", "Areias da Morte"], diff: ["★★★☆☆", "★★★★☆"], enemies: ["Escorpiões", "Golens de Areia"], animals: ["Lagartos", "Coiotes"], fishes: ["Peixe-de-Areia"], minerals: ["Ouro", "Quartzo"] }
+        };
+
+        const palettes = {
+            stone: 0x475569, wood: 0x451a03, bridge: 0x78350f, tent: 0xef4444,
+            biomes: {
+                field: { id: 'field', base: 0x573410, top: [0x4ade80, 0x22c55e], leaves: [0x15803d, 0x16a34a], prob: 0.5 },
+                forest: { id: 'forest', base: 0x271907, top: [0x166534, 0x14532d], leaves: [0x064e3b, 0x065f46], prob: 0.3 },
+                desert: { id: 'desert', base: 0xd97706, top: [0xfbbf24, 0xfcd34d], leaves: [0x4d7c0f], prob: 0.2 }
+            }
+        };
+
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const bridgeMat = new THREE.MeshStandardMaterial({ color: palettes.bridge, roughness: 1.0 });
+        const blankMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }); 
+
+        const islandGroups = [];
+        const bridgeGroups = [];
+        const interactableObjects = [];
+        const windObjects = []; 
+        const worldMap = new Set();
+        
+        const islandSpacing = 34; const islandRadius = 12;
+        const dummy = new THREE.Object3D();
+        const colorObj = new THREE.Color();
+
+        function pseudoNoise(x, z, seedX, seedZ) {
+            const nx = x + seedX * 100; const nz = z + seedZ * 100;
+            return (Math.sin(nx * 0.15) + Math.cos(nz * 0.15) + Math.sin((nx+nz) * 0.2)) / 3;
+        }
+
+        function getBiome() {
+            const r = Math.random();
+            if (r < palettes.biomes.forest.prob) return 'forest';
+            if (r < palettes.biomes.forest.prob + palettes.biomes.desert.prob) return 'desert';
+            return 'field';
+        }
+
+        // === CONSTRUÇÃO BLOCO A BLOCO ===
+        function spawnIsland(gridX, gridZ, parentX = null, parentZ = null, isHub = false) {
+            const key = `${gridX},${gridZ}`;
+            if (worldMap.has(key)) {
+                if (parentX !== null && parentZ !== null) createBridge(parentX, parentZ, gridX, gridZ);
+                return false; 
+            }
+            worldMap.add(key);
+
+            const islandCenter = new THREE.Vector3(gridX * islandSpacing, 0, gridZ * islandSpacing);
+            const islandWrapper = new THREE.Group();
+            islandWrapper.position.copy(islandCenter);
+            scene.add(islandWrapper);
+
+            const biomeType = isHub ? 'field' : getBiome();
+            const biome = palettes.biomes[biomeType];
+            
+            const baseData = []; const topData = [];
+            for (let x = -islandRadius; x <= islandRadius; x++) {
+                for (let z = -islandRadius; z <= islandRadius; z++) {
+                    const dist = Math.sqrt(x*x + z*z);
+                    const noise = pseudoNoise(x, z, gridX, gridZ);
+                    if (dist < (islandRadius - 2) + noise * 3) {
+                        let topHeight = 1 + Math.floor(Math.abs(noise) * 3);
+                        if (dist < 4) topHeight += isHub ? 0 : Math.floor(Math.random()*2);
+                        
+                        let depth = Math.floor((islandRadius - dist) * 1.5 + Math.abs(noise) * 2);
+                        if (depth < 1) depth = 1;
+
+                        const totalHeight = topHeight + depth;
+                        const centerY = (topHeight - depth) / 2;
+                        
+                        const animDelay = dist / islandRadius; 
+
+                        baseData.push({ pos: new THREE.Vector3(x, centerY, z), scale: new THREE.Vector3(1, totalHeight, 1), delay: animDelay });
+                        
+                        const topColorHex = biome.top[Math.floor(Math.random() * biome.top.length)];
+                        topData.push({ pos: new THREE.Vector3(x, topHeight + 0.12, z), scale: new THREE.Vector3(1.02, 0.25, 1.02), color: topColorHex, delay: animDelay });
+                    }
+                }
+            }
+
+            const baseMat = new THREE.MeshStandardMaterial({ color: biome.base, roughness: 1 });
+            const baseInstanced = new THREE.InstancedMesh(boxGeo, baseMat, baseData.length);
+            baseInstanced.castShadow = true; baseInstanced.receiveShadow = true;
+            for(let i=0; i<baseData.length; i++) {
+                dummy.position.copy(baseData[i].pos);
+                dummy.scale.setScalar(0.001); 
+                dummy.rotation.set(0, 0, 0);
+                dummy.updateMatrix();
+                baseInstanced.setMatrixAt(i, dummy.matrix);
+            }
+            islandWrapper.add(baseInstanced);
+
+            const topInstanced = new THREE.InstancedMesh(boxGeo, blankMat, topData.length);
+            topInstanced.castShadow = true; topInstanced.receiveShadow = true;
+            for(let i=0; i<topData.length; i++) {
+                dummy.position.copy(topData[i].pos);
+                dummy.scale.setScalar(0.001);
+                dummy.rotation.set(0, 0, 0);
+                dummy.updateMatrix();
+                topInstanced.setMatrixAt(i, dummy.matrix);
+                
+                colorObj.setHex(topData[i].color);
+                topInstanced.setColorAt(i, colorObj);
+            }
+            topInstanced.userData = { isClickable: !isHub, gridX, gridZ, biomeId: biome.id, center: islandCenter };
+            if (!isHub) interactableObjects.push(topInstanced);
+            islandWrapper.add(topInstanced);
+
+            const propsGroup = new THREE.Group();
+            propsGroup.scale.setScalar(0.001); 
+            islandWrapper.add(propsGroup);
+
+            topData.forEach(data => {
+                if(data.pos.x === 0 && data.pos.z === 0 && isHub) {
+                    createCamp(propsGroup, data.pos.x, data.pos.y + 0.2, data.pos.z);
+                } else if (Math.random() > 0.94 && (!isHub || Math.abs(data.pos.x) > 2 || Math.abs(data.pos.z) > 2)) {
+                    if (Math.random() > 0.6) createRock(propsGroup, data.pos.x, data.pos.y + 0.2, data.pos.z);
+                    else createVegetation(propsGroup, data.pos.x, data.pos.y + 0.2, data.pos.z, biomeType, biome);
+                }
+            });
+
+            islandGroups.push({ 
+                group: islandWrapper, 
+                baseInstanced, topInstanced, baseData, topData, propsGroup,
+                spawnTimer: 0, 
+                baseY: (Math.random() - 0.5) * 4, 
+                hoverSpeed: 0.5 + Math.random() * 0.5, hoverOffset: Math.random() * Math.PI * 2 
+            });
+
+            if (parentX !== null && parentZ !== null) createBridge(parentX, parentZ, gridX, gridZ);
+            
+            return true;
+        }
+
+        // === VEGETAÇÃO, ACAMPAMENTO E PONTES ===
+        function createCamp(parent, x, y, z) {
+            const tentMat = new THREE.MeshStandardMaterial({ color: palettes.tent, flatShading: true });
+            const tent = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.2, 1.5, 4), tentMat);
+            tent.position.set(x - 1, y + 0.6, z - 1); tent.rotation.y = Math.PI / 4; tent.castShadow = true;
+            parent.add(tent);
+
+            const fire = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+            fire.position.set(x + 1, y + 0.3, z + 1);
+            parent.add(fire);
+            
+            const fireLight = new THREE.PointLight(0xf97316, 1, 15);
+            fireLight.position.set(x + 1, y + 1, z + 1);
+            parent.add(fireLight);
+        }
+
+        function createVegetation(parent, x, y, z, type, biomeDef) {
+            if (type === 'desert') {
+                const group = new THREE.Group();
+                const main = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.4), new THREE.MeshStandardMaterial({ color: biomeDef.leaves[0] }));
+                main.position.y = 0.6; main.castShadow = true; group.add(main);
+                group.position.set(x, y, z); parent.add(group);
+            } else {
+                const group = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 0.8, 4), new THREE.MeshStandardMaterial({ color: palettes.wood }));
+                trunk.position.y = 0.4; trunk.castShadow = true; group.add(trunk);
+                const leavesGroup = new THREE.Group(); 
+                const leavesMat = new THREE.MeshStandardMaterial({ color: biomeDef.leaves[0], flatShading: true });
+                const tiers = 2 + Math.floor(Math.random() * 2);
+                for(let i=0; i<tiers; i++) {
+                    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.7 - (i*0.15), 1.2, 4), leavesMat);
+                    cone.position.y = 1.0 + (i * 0.5); cone.castShadow = true; leavesGroup.add(cone);
+                }
+                group.add(leavesGroup);
+                group.scale.setScalar(0.7 + Math.random() * 0.6); group.position.set(x + (Math.random()-0.5)*0.5, y, z + (Math.random()-0.5)*0.5);
+                parent.add(group);
+                windObjects.push({ obj: leavesGroup, speed: 1.5 + Math.random(), phase: Math.random() * 10 });
+            }
+        }
+
+        function createRock(parent, x, y, z) {
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4, 0), new THREE.MeshStandardMaterial({ color: palettes.stone, flatShading: true }));
+            rock.position.set(x, y + 0.2, z); rock.castShadow = true; parent.add(rock);
+        }
+
+        const bridgeSet = new Set();
+        function createBridge(x1, z1, x2, z2) {
+            const bridgeId = [x1, z1, x2, z2].sort().join('_');
+            if (bridgeSet.has(bridgeId)) return;
+            bridgeSet.add(bridgeId);
+            
+            const start = new THREE.Vector3(x1 * islandSpacing, 0, z1 * islandSpacing);
+            const end = new THREE.Vector3(x2 * islandSpacing, 0, z2 * islandSpacing);
+            start.y = 1; end.y = 1; 
+            
+            const steps = 12; 
+            const numPlanks = steps - 1;
+            const bridgeIM = new THREE.InstancedMesh(new THREE.BoxGeometry(2.5, 0.3, 1.2), bridgeMat, numPlanks);
+            bridgeIM.castShadow = true;
+            
+            const bridgeData = [];
+            for(let i=1; i<steps; i++) {
+                const idx = i - 1;
+                const t = i / steps;
+                const pos = start.clone().lerp(end, t);
+                pos.y -= Math.sin(t * Math.PI) * 4; 
+                bridgeData.push({ pos, lookAt: end.clone(), rotZ: (Math.random() - 0.5) * 0.2, delay: t, idx: idx });
+                
+                dummy.position.copy(pos);
+                dummy.scale.setScalar(0.001);
+                dummy.updateMatrix();
+                bridgeIM.setMatrixAt(idx, dummy.matrix);
+            }
+            scene.add(bridgeIM);
+            bridgeGroups.push({ im: bridgeIM, data: bridgeData, spawnTimer: 0 });
+        }
+
+        // === NUVENS VOLUMÉTRICAS MELHORADAS (DINÂMICAS) ===
+        const cloudSeaMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, flatShading: true, transparent: true, opacity: 0.85 });
+        const cloudGeo = new THREE.PlaneGeometry(1200, 1200, 40, 40); cloudGeo.rotateX(-Math.PI / 2);
+        const seaOfClouds = new THREE.Mesh(cloudGeo, cloudSeaMat); seaOfClouds.position.y = -35; scene.add(seaOfClouds);
+
+        // Aumentado drasticamente o número de nuvens para dar efeito de volume no mau tempo
+        const cloudCount = 300;
+        const topCloudIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(4, 0), cloudSeaMat, cloudCount);
+        const bottomCloudIM = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(4, 0), cloudSeaMat, cloudCount);
+        const topCloudData = []; const bottomCloudData = [];
+        const dummyCloud = new THREE.Object3D();
+
+        for(let i=0; i<cloudCount; i++) {
+            // Maior espalhamento (800 de raio) para cobrir o mapa quando existirem 300 nuvens ativas
+            topCloudData.push({ pos: new THREE.Vector3((Math.random()-0.5)*800, 20 + Math.random()*60, (Math.random()-0.5)*800), scale: 0.5 + Math.random()*2, speed: 0.05 + Math.random()*0.1 });
+            bottomCloudData.push({ pos: new THREE.Vector3((Math.random()-0.5)*800, -20 - Math.random()*15, (Math.random()-0.5)*800), scale: 1 + Math.random()*3, speed: 0.03 + Math.random()*0.08 });
+        }
+        scene.add(topCloudIM); scene.add(bottomCloudIM);
+
+        // === EFEITO MÁGICO ===
+        const magicRingGeo = new THREE.TorusGeometry(1, 0.1, 8, 32);
+        const magicRingMat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0, side: THREE.DoubleSide });
+        const magicRing = new THREE.Mesh(magicRingGeo, magicRingMat);
+        magicRing.rotation.x = Math.PI / 2;
+        scene.add(magicRing);
+        let ringAnim = { active: false, scale: 1, opacity: 0 };
+
+        function playCreationEffect(pos) {
+            magicRing.position.copy(pos); magicRing.position.y = 5;
+            ringAnim.active = true; ringAnim.scale = 1; ringAnim.opacity = 1;
+        }
+
+        // === INTERFACE E CONTROLES ===
+        const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+        let mouseDownTime = 0; let activeIslandData = null;
+
+        const timePopup = document.getElementById('time-popup');
+        document.getElementById('clock-container').addEventListener('click', () => {
+            timePopup.classList.toggle('active');
+        });
+        document.getElementById('time-slider').addEventListener('input', (e) => {
+            currentHour = parseFloat(e.target.value);
+            const hrs = Math.floor(currentHour); const mins = Math.floor((currentHour - hrs) * 60);
+            document.getElementById('time-display').innerText = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        });
+
+        const btnWeather = document.getElementById('btn-weather');
+        btnWeather.addEventListener('click', () => {
+            weatherIdx = (weatherIdx + 1) % weathers.length;
+            currentWeather = weathers[weatherIdx];
+            btnWeather.innerText = currentWeather.icon;
+            
+            if(currentWeather.id === 'rain' || currentWeather.id === 'storm' || currentWeather.id === 'snow') {
+                weatherMat.opacity = 0.6;
+                if(currentWeather.id === 'snow') { weatherMat.color.setHex(0xffffff); weatherMat.size = 0.6; }
+                else { weatherMat.color.setHex(0x94a3b8); weatherMat.size = 1.0; }
+            } else {
+                weatherMat.opacity = 0;
+            }
+        });
+
+        document.getElementById('btn-backpack').addEventListener('click', () => {
+            alert('Mochila vazia! O inventário será implementado em breve.');
+        });
+
+        window.addEventListener('pointerdown', () => { mouseDownTime = Date.now(); });
+        window.addEventListener('pointerup', (e) => {
+            if (Date.now() - mouseDownTime < 250 && e.target.tagName === 'CANVAS') {
+                timePopup.classList.remove('active'); 
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(interactableObjects);
+                if (intersects.length > 0) {
+                    const data = intersects[0].object.userData;
+                    if (data && data.isClickable) openModal(data);
+                }
+            }
+        });
+
+        function getRandomObj(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function openModal(data) {
+            activeIslandData = data;
+            const b = rpgData[data.biomeId];
+            document.getElementById('m-title').innerText = getRandomObj(b.names);
+            document.getElementById('m-diff').innerText = getRandomObj(b.diff);
+            document.getElementById('m-enemies').innerText = getRandomObj(b.enemies);
+            document.getElementById('m-animals').innerText = getRandomObj(b.animals);
+            document.getElementById('m-fishes').innerText = getRandomObj(b.fishes);
+            document.getElementById('m-minerals').innerText = getRandomObj(b.minerals);
+            document.getElementById('rpg-modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('rpg-modal').style.display = 'none'; }
+
+        document.getElementById('btn-entrar').addEventListener('click', () => {
+            closeModal();
+            if (activeIslandData) {
+                controls.target.copy(activeIslandData.center);
+                playCreationEffect(activeIslandData.center);
+                
+                const clickedMesh = interactableObjects.find(obj => obj.userData.gridX === activeIslandData.gridX && obj.userData.gridZ === activeIslandData.gridZ);
+                if(clickedMesh) clickedMesh.userData.isClickable = false;
+
+                setTimeout(() => {
+                    const dirs = [ {dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1} ];
+                    dirs.forEach((dir, index) => {
+                        setTimeout(() => spawnIsland(activeIslandData.gridX + dir.dx, activeIslandData.gridZ + dir.dz, activeIslandData.gridX, activeIslandData.gridZ), index * 300);
+                    });
+                }, 400);
+            }
+        });
+
+        // === COREOGRAFIA INICIAL ===
+        function initWorld() {
+            spawnIsland(0, 0, null, null, true);
+            
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 800);
+                
+                setTimeout(() => spawnIsland(1, 0, 0, 0), 1000);  
+                setTimeout(() => spawnIsland(0, 1, 0, 0), 1800);  
+                setTimeout(() => spawnIsland(-1, 0, 0, 0), 2600); 
+                setTimeout(() => spawnIsland(0, -1, 0, 0), 3400); 
+            }, 1000);
+        }
+
+        window.onload = () => {
+            initWorld();
+            animate();
+        };
+
+        // === LOOP PRINCIPAL ===
+        const clock = new THREE.Clock();
+
+        function lerpColor(c1, c2, t, target) {
+            target.r = c1.r + (c2.r - c1.r) * t; target.g = c1.g + (c2.g - c1.g) * t; target.b = c1.b + (c2.b - c1.b) * t;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1); 
+            const time = clock.getElapsedTime(); 
+            controls.update();
+
+            // Sistema de Tempo e Luz
+            const timeOfDay = currentHour / 24.0;
+            const sunAngle = (timeOfDay - 0.25) * Math.PI * 2; 
+            sunLight.position.x = Math.cos(sunAngle) * 200;
+            sunLight.position.y = Math.sin(sunAngle) * 200;
+            sunLight.position.z = Math.cos(sunAngle) * 100;
+
+            let cColors, nColors, lFactor;
+            const h = sunLight.position.y;
+            
+            if (currentWeather.id === 'storm') {
+                cColors = timeColors.storm; nColors = timeColors.storm; lFactor = 1;
+                if (Math.random() > 0.98) {
+                    lightningLight.position.set((Math.random()-0.5)*200, 100, (Math.random()-0.5)*200);
+                    lightningLight.intensity = 5;
+                } else { lightningLight.intensity = Math.max(0, lightningLight.intensity - 0.5); }
+            } else {
+                lightningLight.intensity = 0;
+                if (h > 50) { cColors = timeColors.day; nColors = timeColors.day; lFactor = 1; } 
+                else if (h > 0) { cColors = sunLight.position.x > 0 ? timeColors.sunrise : timeColors.sunset; nColors = timeColors.day; lFactor = h / 50; } 
+                else if (h > -50) { cColors = timeColors.night; nColors = sunLight.position.x > 0 ? timeColors.sunrise : timeColors.sunset; lFactor = (h + 50) / 50; } 
+                else { cColors = timeColors.night; nColors = timeColors.night; lFactor = 1; }
+            }
+
+            lerpColor(cColors.sky, nColors.sky, lFactor, scene.background);
+            lerpColor(cColors.sky, nColors.sky, lFactor, scene.fog.color);
+            lerpColor(cColors.ambient, nColors.ambient, lFactor, ambientLight.color);
+            lerpColor(cColors.sun, nColors.sun, lFactor, sunLight.color);
+            sunLight.intensity = cColors.intensity + (nColors.intensity - cColors.intensity) * lFactor;
+
+            // Animação de Ilhas
+            islandGroups.forEach(data => {
+                if (data.spawnTimer <= 1.0) {
+                    data.spawnTimer += delta * 0.4;
+                    const isFinished = data.spawnTimer >= 1.0;
+                    
+                    for(let i=0; i<data.baseData.length; i++) {
+                        const bData = data.baseData[i];
+                        const progress = isFinished ? 1 : Math.max(0, Math.min(1, (data.spawnTimer - bData.delay * 0.5) * 2.0));
+                        const ease = 1 - Math.pow(1 - progress, 4); 
+                        
+                        dummy.position.copy(bData.pos);
+                        dummy.position.y -= (1 - ease) * 15; 
+                        dummy.scale.copy(bData.scale).multiplyScalar(ease || 0.001);
+                        dummy.rotation.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        data.baseInstanced.setMatrixAt(i, dummy.matrix);
+                    }
+                    data.baseInstanced.instanceMatrix.needsUpdate = true;
+
+                    for(let i=0; i<data.topData.length; i++) {
+                        const tData = data.topData[i];
+                        const progress = isFinished ? 1 : Math.max(0, Math.min(1, (data.spawnTimer - tData.delay * 0.5) * 2.0));
+                        const ease = 1 - Math.pow(1 - progress, 4);
+                        
+                        dummy.position.copy(tData.pos);
+                        dummy.position.y -= (1 - ease) * 15;
+                        dummy.scale.copy(tData.scale).multiplyScalar(ease || 0.001);
+                        dummy.rotation.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        data.topInstanced.setMatrixAt(i, dummy.matrix);
+                    }
+                    data.topInstanced.instanceMatrix.needsUpdate = true;
+
+                    const propsScale = isFinished ? 1 : Math.max(0, Math.min(1, (data.spawnTimer - 0.7) * 3.3));
+                    data.propsGroup.scale.setScalar(propsScale === 0 ? 0.001 : Math.sin(propsScale * Math.PI/2)); 
+                }
+                data.group.position.y = data.baseY + Math.sin(time * data.hoverSpeed + data.hoverOffset) * 1.5;
+            });
+
+            // Animação das Pontes
+            bridgeGroups.forEach(bridge => {
+                if(bridge.spawnTimer <= 1.0) {
+                    bridge.spawnTimer += delta * 0.5;
+                    const isFinished = bridge.spawnTimer >= 1.0;
+                    for(let i=0; i<bridge.data.length; i++) {
+                        const bData = bridge.data[i];
+                        const progress = isFinished ? 1 : Math.max(0, Math.min(1, (bridge.spawnTimer - bData.delay * 0.5) * 2.0));
+                        const ease = 1 - Math.pow(1 - progress, 3);
+                        dummy.position.copy(bData.pos);
+                        dummy.position.y += (1 - ease) * 5; 
+                        dummy.lookAt(bData.lookAt);
+                        dummy.rotation.z += bData.rotZ;
+                        dummy.scale.setScalar(ease || 0.001);
+                        dummy.updateMatrix();
+                        bridge.im.setMatrixAt(bData.idx, dummy.matrix);
+                    }
+                    bridge.im.instanceMatrix.needsUpdate = true;
+                }
+            });
+
+            // === NUVENS, CLIMA E DEFORMAÇÃO ===
+            const isWindy = currentWeather.id === 'wind' || currentWeather.id === 'storm';
+            const windMult = isWindy ? 4.0 : 1.0;
+            
+            windObjects.forEach(w => { w.obj.rotation.z = Math.sin(time * w.speed * windMult + w.phase) * (isWindy ? 0.15 : 0.06); });
+            
+            // Interpolação da cor e volume das nuvens
+            cloudSeaMat.color.lerp(currentWeather.cloudTarget, 0.02);
+            globalCloudScale += (currentWeather.cloudScale - globalCloudScale) * 0.015;
+
+            const updateClouds = (dataArr, instMesh) => {
+                for(let i=0; i<cloudCount; i++) {
+                    dataArr[i].pos.x += dataArr[i].speed * windMult;
+                    if(dataArr[i].pos.x > 400) dataArr[i].pos.x = -400; // Reset no horizonte
+                    
+                    let currentScale = dataArr[i].scale * globalCloudScale;
+                    
+                    // As nuvens para lá do índice 80 só ganham vida no mau tempo (para encher o céu)
+                    if (i > 80) {
+                        const extraVisibility = Math.max(0, Math.min(1, (globalCloudScale - 1.1) / 0.8));
+                        currentScale *= extraVisibility;
+                    }
+                    
+                    dummyCloud.position.copy(dataArr[i].pos);
+                    
+                    // Tornar as nuvens progressivamente mais LARGAS do que altas durante tempestade/neve
+                    const wideness = 1 + (globalCloudScale - 1) * 0.6;
+                    dummyCloud.scale.set(currentScale * wideness, currentScale, currentScale * wideness);
+                    
+                    dummyCloud.updateMatrix();
+                    instMesh.setMatrixAt(i, dummyCloud.matrix);
+                }
+                instMesh.instanceMatrix.needsUpdate = true;
+            };
+            
+            updateClouds(topCloudData, topCloudIM);
+            updateClouds(bottomCloudData, bottomCloudIM);
+
+            // Deformação do mar de nuvens (Agita-se no mau tempo)
+            const pos = seaOfClouds.geometry.attributes.position.array;
+            for(let i=0; i<pos.length; i+=3) {
+                pos[i+1] = Math.sin(pos[i] * 0.02 + time * 0.5 * windMult) * 4 + Math.cos(pos[i+2] * 0.02 + time * 0.4 * windMult) * 4;
+            }
+            seaOfClouds.geometry.attributes.position.needsUpdate = true;
+
+            // Queda das Partículas (Neve / Chuva)
+            if (weatherMat.opacity > 0) {
+                const wPos = weatherSystem.geometry.attributes.position.array;
+                const speedMult = currentWeather.id === 'snow' ? 0.2 : (currentWeather.id === 'storm' ? 3.0 : 2.0);
+                for(let i=0; i<weatherCount; i++) {
+                    wPos[i*3+1] -= weatherVel[i] * speedMult; 
+                    if(currentWeather.id === 'snow') wPos[i*3] += Math.sin(time * 2 + i) * 0.1; // Balanço da neve
+                    else if (isWindy) wPos[i*3] += 1.5; // Vento a empurrar chuva
+
+                    if(wPos[i*3+1] < -50) {
+                        wPos[i*3+1] = 150; wPos[i*3] = (Math.random() - 0.5) * 400; 
+                    }
+                }
+                weatherSystem.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Efeito Mágico
+            if (ringAnim.active) {
+                ringAnim.scale += delta * 15; ringAnim.opacity -= delta * 1.5;
+                magicRing.scale.setScalar(ringAnim.scale); magicRing.material.opacity = ringAnim.opacity;
+                if (ringAnim.opacity <= 0) ringAnim.active = false;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

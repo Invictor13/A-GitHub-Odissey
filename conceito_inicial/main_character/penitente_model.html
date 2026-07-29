@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>O Penitente - A GitHub Odyssey</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a24; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }
+        
+        #ui-overlay { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(15, 15, 20, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 15px 30px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); pointer-events: none; z-index: 10; width: 620px;}
+        h1 { margin: 0 0 5px 0; font-size: 18px; color: #ffd700; letter-spacing: 1px; text-transform: uppercase;}
+        p { margin: 0; font-size: 14px; color: #aaa; line-height: 1.8;}
+        .key { background: #333; padding: 2px 8px; border-radius: 4px; color: #fff; font-weight: bold; border-bottom: 2px solid #111;}
+        
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+
+        /* Estilo do Menu de Inventário */
+        #inventory-menu {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(20, 15, 10, 0.95); border: 2px solid #b8860b;
+            border-radius: 8px; padding: 20px; width: 400px; display: none;
+            color: #eeddcc; z-index: 20; box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            backdrop-filter: blur(5px);
+        }
+        #inventory-menu h2 { margin: 0 0 15px 0; font-size: 16px; color: #ffd700; border-bottom: 1px solid #554433; padding-bottom: 10px; text-align: center; }
+        .grid-inv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .slot { background: rgba(255,255,255,0.05); aspect-ratio: 1; border: 1px solid #554433; border-radius: 4px; position: relative; transition: 0.2s; cursor: pointer; }
+        .slot:hover { border-color: #ffd700; background: rgba(255,215,0,0.1); }
+        .mock-item { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; }
+
+        /* Sistema de Equipamentos na HUD */
+        #gear-panel { position: absolute; top: 20px; right: 20px; background: rgba(15, 15, 20, 0.85); padding: 15px; border: 1px solid #554433; border-radius: 8px; color: #ffd700; font-size: 14px; z-index: 10; backdrop-filter: blur(5px); }
+        .gear-btn { width: 100%; margin-top: 8px; padding: 8px; background: #2a2a35; color: white; border: 1px solid #445; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .gear-btn:hover { background: #ffd700; color: black; border-color: #fff;}
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="crosshair"></div>
+    
+    <!-- Painel de Equipamentos para Escalar o visual -->
+    <div id="gear-panel">
+        <div style="text-align: center; border-bottom: 1px solid #554433; padding-bottom: 5px; margin-bottom: 10px;"><strong>🛠️ Slots de Equip.</strong></div>
+        <button class="gear-btn" onclick="toggleHead()">Trocar Capacete / Cabelo</button>
+        <button class="gear-btn" onclick="toggleArmor()">Trocar Armadura</button>
+        <button class="gear-btn" onclick="toggleWeapon()">Trocar Arma</button>
+    </div>
+
+    <div id="inventory-menu">
+        <h2>🎒 Alforje do Purgatório</h2>
+        <div class="grid-inv">
+            <div class="slot"><span class="mock-item">🪵</span></div><div class="slot"><span class="mock-item">💎</span></div><div class="slot"><span class="mock-item">🌿</span></div><div class="slot"><span class="mock-item">🧪</span></div><div class="slot"><span class="mock-item">🍖</span></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+        </div>
+    </div>
+
+    <div id="ui-overlay">
+        <h1>O Penitente - A GitHub Odyssey</h1>
+        <p>
+            <span class="key">WASD</span> Mover | <span class="key">Espaço</span> Pular | <span class="key">Shift</span> Correr | <span class="key">F</span> Receber Dano <br>
+            <span class="key">Click Esq</span> Atacar | <span class="key">Click Dir (Segurar)</span> Defender | <span class="key">I</span> Inventário | <span class="key">H</span> Ocultar HUD <br>
+            <span class="key">Z</span> Sentar | <span class="key">X</span> Dormir | <span class="key">C</span> Comer | <span class="key">V</span> Beber
+        </p>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- 0. GERADOR DE TEXTURAS PROCEDURAIS ---
+        function createBumpTexture(type, size = 256) {
+            const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d'); const imgData = ctx.createImageData(size, size);
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                let val = 128;
+                if (type === 'leather') val += (Math.random() * 80) - 40;
+                else if (type === 'hair') { val += (Math.sin(Math.floor((i / 4) / size) * 0.5) * 40) + (Math.random() * 30) - 15; }
+                else if (type === 'cloth') { val += (Math.sin((i / 4) % size) * 20) + (Math.cos(Math.floor((i / 4) / size)) * 20); }
+                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = val; imgData.data[i+3] = 255; 
+            }
+            ctx.putImageData(imgData, 0, 0); const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; return tex;
+        }
+
+        const texLeatherBump = createBumpTexture('leather'); const texHairBump = createBumpTexture('hair', 128); const texClothBump = createBumpTexture('cloth', 128);
+
+        // 1. CENA E CÂMERA
+        const scene = new THREE.Scene(); scene.background = new THREE.Color('#211e29'); scene.fog = new THREE.FogExp2('#211e29', 0.02);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000); camera.position.set(0, 8, 20);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.dampingFactor = 0.05; controls.target.set(0, 4, 0); controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+        // 2. ILUMINAÇÃO
+        const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x444455, 0.6); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2); dirLight.position.set(10, 20, 10); dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+        const d = 15; dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d; dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d; scene.add(dirLight);
+
+        // 3. AMBIENTE
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x30353a, roughness: 0.9, bumpMap: texLeatherBump, bumpScale: 0.05 });
+        const ground = new THREE.Mesh(new THREE.CylinderGeometry(25, 20, 2, 24), groundMat); ground.position.y = -1; ground.receiveShadow = true; scene.add(ground);
+        const lakeCenter = { x: 10, z: -8 }; const lakeRadius = 5.5;
+        const poolWall = new THREE.Mesh(new THREE.TorusGeometry(lakeRadius, 0.8, 16, 32), new THREE.MeshStandardMaterial({ color: 0x1f2326, roughness: 0.9 }));
+        poolWall.rotation.x = Math.PI / 2; poolWall.position.set(lakeCenter.x, 0.2, lakeCenter.z); poolWall.receiveShadow = true; scene.add(poolWall);
+        const lake = new THREE.Mesh(new THREE.CylinderGeometry(lakeRadius, lakeRadius, 1.5, 32), new THREE.MeshStandardMaterial({ color: 0x1177aa, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2 }));
+        lake.position.set(lakeCenter.x, -0.2, lakeCenter.z); lake.receiveShadow = true; scene.add(lake);
+
+        // 4. MATERIAIS DOS PERSONAGENS
+        const baseParams = { flatShading: true, roughness: 0.8, metalness: 0.1 };
+        const matSkin = new THREE.MeshStandardMaterial({ color: 0xffccaa, ...baseParams });
+        const matSkinDark = new THREE.MeshStandardMaterial({ color: 0xe0a080, ...baseParams });
+        const matHair = new THREE.MeshStandardMaterial({ color: 0x4a2a18, ...baseParams, bumpMap: texHairBump, bumpScale: 0.08 }); 
+        const matArmor = new THREE.MeshStandardMaterial({ color: 0x5a3a29, ...baseParams, bumpMap: texLeatherBump, bumpScale: 0.1 });
+        const matLeatherDark = new THREE.MeshStandardMaterial({ color: 0x332015, ...baseParams, bumpMap: texLeatherBump, bumpScale: 0.1 });
+        const matShirt = new THREE.MeshStandardMaterial({ color: 0x18181a, ...baseParams, bumpMap: texClothBump, bumpScale: 0.05 });
+        const matGreen = new THREE.MeshStandardMaterial({ color: 0x226622, ...baseParams, bumpMap: texClothBump, bumpScale: 0.05 }); 
+        const matGold = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.7, roughness: 0.3, flatShading: true });
+        const matEyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, ...baseParams });
+        const matEyeIris = new THREE.MeshStandardMaterial({ color: 0x0a9922, ...baseParams });
+        const matEyePupil = new THREE.MeshStandardMaterial({ color: 0x000000, ...baseParams });
+        const matEyeShine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const matMouth = new THREE.MeshStandardMaterial({ color: 0x2a1005, ...baseParams });
+        const matSteel = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.3, flatShading: true });
+
+        function createPart(geo, mat, x, y, z, rx=0, ry=0, rz=0, parent) {
+            const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz);
+            mesh.castShadow = true; mesh.receiveShadow = true; if(parent) parent.add(mesh); return mesh;
+        }
+
+        // 5. CONSTRUÇÃO DO PENITENTE (CORE)
+        const penitente = new THREE.Group(); scene.add(penitente);
+        const bodyGroup = new THREE.Group(); penitente.add(bodyGroup);
+
+        // TORSO BASE (Skin/Under-shirt)
+        const torso = createPart(new THREE.CylinderGeometry(0.75, 0.8, 1.6, 10), matShirt, 0, 2.5, 0, 0, 0, 0, bodyGroup);
+        torso.scale.set(1.2, 1, 0.95);
+        
+        // SLOTS DE EQUIPAMENTO (A base do sistema de escalabilidade)
+        const slotHead = new THREE.Group(); 
+        const slotArmor = new THREE.Group(); torso.add(slotArmor);
+        const slotWeapon = new THREE.Group(); 
+        const slotShield = new THREE.Group();
+
+        // ---------------- WARDROBE / ITENS DE VESTUÁRIO ----------------
+
+        // ARMADURA 1: Couro (Clássica)
+        const armorLeatherGroup = new THREE.Group();
+        createPart(new THREE.CylinderGeometry(0.82, 0.85, 1.55, 10, 1, false, Math.PI * 0.15, Math.PI * 1.7), matArmor, 0, 0, 0, 0, 0, 0, armorLeatherGroup);
+        createPart(new THREE.BoxGeometry(0.6, 0.2, 0.8), matArmor, -0.4, 0.75, 0, 0, 0, -0.2, armorLeatherGroup);
+        createPart(new THREE.BoxGeometry(0.6, 0.2, 0.8), matArmor, 0.4, 0.75, 0, 0, 0, 0.2, armorLeatherGroup);
+        const coatGroup = new THREE.Group(); coatGroup.position.set(0, -0.85, 0); armorLeatherGroup.add(coatGroup);
+        const animatedCoat = []; const flapGeo = new THREE.BoxGeometry(0.45, 1.4, 0.08); flapGeo.translate(0, -0.7, 0); 
+        for (let i = 0; i < 12; i++) { 
+            const angle = (i / 12) * Math.PI * 2; const x = Math.sin(angle) * 0.88; const z = Math.cos(angle) * 0.88; 
+            if (z > 0.4 && Math.abs(x) < 0.6) continue; 
+            const flap = createPart(flapGeo, matLeatherDark, x, 0, z, 0.1, angle, 0, coatGroup);
+            animatedCoat.push({ mesh: flap, baseRx: 0.1, baseRy: angle, offset: i * 0.2 });
+        }
+
+        // ARMADURA 2: Aço Pesado (Nova!)
+        const armorSteelGroup = new THREE.Group();
+        createPart(new THREE.CylinderGeometry(0.88, 0.9, 1.6, 8), matSteel, 0, 0, 0, 0, 0, 0, armorSteelGroup);
+        createPart(new THREE.BoxGeometry(1.0, 0.3, 1.0), matSteel, 0, 0.75, 0, 0, 0, 0, armorSteelGroup); // Ombreiras coladas
+        createPart(new THREE.CylinderGeometry(0.95, 0.95, 0.4, 12), matLeatherDark, 0, -0.6, 0, 0, 0, 0, armorSteelGroup); // Cinto extra
+
+        // CINTO FIXO COM BOLSAS E LAMPIÃO (Para manter utilidades em qualquer armadura)
+        const belt = createPart(new THREE.CylinderGeometry(0.92, 0.92, 0.3, 12), matLeatherDark, 0, -0.7, 0, 0, 0, 0, torso);
+        createPart(new THREE.BoxGeometry(0.5, 0.4, 0.2), matGold, 0, 0, 0.9, 0, 0, 0, belt); 
+        createPart(new THREE.BoxGeometry(0.25, 0.25, 0.25), matEyeIris, 0, 0, 0.95, 0, 0, 0, belt); 
+        const pouchPivot = new THREE.Group(); pouchPivot.position.set(-0.75, -0.1, 0.6); pouchPivot.rotation.z = 0.2; belt.add(pouchPivot);
+        createPart(new THREE.IcosahedronGeometry(0.35, 1), matGreen, 0, -0.3, 0, 0, 0, 0, pouchPivot); 
+        const lanternPivot = new THREE.Group(); lanternPivot.position.set(0.75, -0.2, 0.5); belt.add(lanternPivot);
+        createPart(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 6), matSteel, 0, 0.2, 0, 0, 0, 0, lanternPivot);
+        createPart(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 6), matSteel, 0, -0.2, 0, 0, 0, 0, lanternPivot);
+        const matFire = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        createPart(new THREE.CylinderGeometry(0.08, 0.08, 0.35, 6), matFire, 0, 0, 0, 0, 0, 0, lanternPivot); 
+        const lanternLight = new THREE.PointLight(0xffaa00, 2, 12); lanternLight.position.set(0, 0, 0); lanternPivot.add(lanternLight);
+        penitente.userData.lanternLight = lanternLight;
+
+        // --- CABEÇA ---
+        const headPivot = new THREE.Group(); headPivot.position.set(0, 3.5, 0); bodyGroup.add(headPivot);
+        const head = createPart(new THREE.IcosahedronGeometry(0.9, 2), matSkin, 0, 0.5, 0, 0, 0, 0, headPivot);
+        head.scale.set(1.15, 1.2, 1.15); 
+        createPart(new THREE.SphereGeometry(0.2, 8, 8), matSkin, -1.0, 0.3, 0, 0, 0, 0, headPivot);
+        createPart(new THREE.SphereGeometry(0.2, 8, 8), matSkin, 1.0, 0.3, 0, 0, 0, 0, headPivot);
+        createPart(new THREE.IcosahedronGeometry(0.12, 1), matSkinDark, 0, 0.15, 1.02, 0, 0, 0, headPivot).scale.set(1, 0.8, 1);
+        const mouth = createPart(new THREE.BoxGeometry(0.25, 0.04, 0.1), matMouth, 0, 0.0, 0.95, 0, 0, 0.05, headPivot);
+
+        // Olhos
+        const eyeL = new THREE.Group(); eyeL.position.set(-0.35, 0.35, 0.92); headPivot.add(eyeL);
+        const eyeR = new THREE.Group(); eyeR.position.set(0.35, 0.35, 0.92); headPivot.add(eyeR);
+        function buildEye(parent) {
+            createPart(new THREE.BoxGeometry(0.3, 0.38, 0.1), matEyeWhite, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.2, 0.28, 0.12), matEyeIris, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.12, 0.18, 0.14), matEyePupil, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.04, 0.04, 0.16), matEyeShine, 0.04, 0.06, 0, 0, 0, 0, parent); 
+        }
+        buildEye(eyeL); buildEye(eyeR);
+
+        const browL = createPart(new THREE.BoxGeometry(0.35, 0.12, 0.25), matHair, -0.32, 0.62, 1.05, 0.1, 0, -0.25, headPivot);
+        const browR = createPart(new THREE.BoxGeometry(0.35, 0.12, 0.25), matHair, 0.32, 0.62, 1.05, 0.1, 0, 0.25, headPivot);
+
+        headPivot.add(slotHead); // Slot conectado na cabeça
+
+        // CABEÇA 1: Cabelo Dinâmico (Clássico)
+        const hairGroup = new THREE.Group(); hairGroup.position.set(0, 0.6, 0);
+        const animatedHair = [];
+        createPart(new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI*2, 0, Math.PI/1.5), matHair, 0, 0.1, -0.1, 0, 0, 0, hairGroup).scale.set(1.1, 1.05, 1.1);
+        const lockGeo = new THREE.ConeGeometry(0.25, 1.4, 4); lockGeo.translate(0, 0.7, 0); 
+        for (let i = 0; i < 95; i++) { 
+            const angle = Math.random() * Math.PI * 2; const radius = Math.sqrt(Math.random()) * 1.05; 
+            const x = Math.sin(angle) * radius; const z = Math.cos(angle) * radius;
+            let y = 0.2 + Math.sqrt(Math.max(0, 1.1 - radius*radius)) * 0.75; 
+            let rx = 0; let rz = 0; let isBangs = false; let size = 0.6 + Math.random() * 0.6; 
+            if (z > 0.4 && y < 0.8) { isBangs = true; rx = 1.7 + (Math.random() - 0.5) * 0.4; rz = (x * -0.5); size *= 0.9; } 
+            else if (z < -0.3) { rx = -1.0 + (Math.random() - 0.5) * 0.5; rz = (x * -0.5); size *= 0.8; } 
+            else if (radius > 0.7) { rx = (z * -0.5) + (Math.random() - 0.5) * 0.3; rz = (x < 0 ? 1.2 : -1.2) + (Math.random() - 0.5) * 0.3; } 
+            else { rx = (Math.random() - 0.5) * 0.6; rz = (Math.random() - 0.5) * 0.6; size *= 1.3; }
+            if (z > 0.8 && Math.abs(x) < 0.4 && y < 0.5) continue; 
+            const mesh = createPart(lockGeo, matHair, x, y, z, rx, 0, rz, hairGroup); mesh.scale.set(size, size, size);
+            animatedHair.push({ mesh, baseRx: rx, baseRz: rz, offset: i * 0.1, reactionStrength: isBangs ? 1.5 : (0.8 + (i % 5) * 0.2), isBangs: isBangs });
+        }
+
+        // CABEÇA 2: Capacete de Ferro Fechado com Chifres (Novo!)
+        const helmetGroup = new THREE.Group(); helmetGroup.position.set(0, 0.2, 0);
+        createPart(new THREE.CylinderGeometry(1.05, 1.05, 1.4, 16), matSteel, 0, 0.3, 0, 0, 0, 0, helmetGroup); // Cilindro cobrindo o rosto
+        createPart(new THREE.SphereGeometry(1.05, 16, 16, 0, Math.PI*2, 0, Math.PI/2), matSteel, 0, 1.0, 0, 0, 0, 0, helmetGroup); // Cúpula
+        const matVisor = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }); // Visor escuro
+        createPart(new THREE.BoxGeometry(1.2, 0.2, 1.05), matVisor, 0, 0.45, 0.15, 0, 0, 0, helmetGroup); // Fenda dos olhos
+        createPart(new THREE.ConeGeometry(0.2, 0.8, 6), matLeatherDark, -1.0, 0.8, 0, -0.2, 0, 0.6, helmetGroup); // Chifre Esq
+        createPart(new THREE.ConeGeometry(0.2, 0.8, 6), matLeatherDark, 1.0, 0.8, 0, -0.2, 0, -0.6, helmetGroup); // Chifre Dir
+
+        // --- BRAÇOS E PERNAS ---
+        const shoulderL = new THREE.Group(); shoulderL.position.set(-1.35, 3.0, 0); bodyGroup.add(shoulderL);
+        const shoulderR = new THREE.Group(); shoulderR.position.set(1.35, 3.0, 0); bodyGroup.add(shoulderR);
+        const elbowL = new THREE.Group(); elbowL.position.set(0, -0.7, 0); shoulderL.add(elbowL);
+        const elbowR = new THREE.Group(); elbowR.position.set(0, -0.7, 0); shoulderR.add(elbowR);
+
+        createPart(new THREE.SphereGeometry(0.45, 10, 10, 0, Math.PI * 2, 0, Math.PI/2), matArmor, 0, 0.1, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.SphereGeometry(0.45, 10, 10, 0, Math.PI * 2, 0, Math.PI/2), matArmor, 0, 0.1, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.28, 0.25, 0.8, 8), matShirt, 0, -0.3, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.CylinderGeometry(0.28, 0.25, 0.8, 8), matShirt, 0, -0.3, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.28, 0.24, 0.7, 8), matLeatherDark, 0, -0.3, 0, 0, 0, 0, elbowL);
+        createPart(new THREE.CylinderGeometry(0.28, 0.24, 0.7, 8), matLeatherDark, 0, -0.3, 0, 0, 0, 0, elbowR);
+        
+        const handL = createPart(new THREE.IcosahedronGeometry(0.3, 1), matSkin, 0, -0.75, 0, 0, 0, 0, elbowL);
+        const handR = createPart(new THREE.IcosahedronGeometry(0.3, 1), matSkin, 0, -0.75, 0, 0, 0, 0, elbowR);
+
+        handR.add(slotWeapon);
+        handL.add(slotShield);
+
+        // ARMA 1: Espada de Ferro
+        const swordGroup = new THREE.Group(); swordGroup.position.set(0, -0.1, 0.2); swordGroup.rotation.x = Math.PI / 2; 
+        createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6), matLeatherDark, 0, -0.2, 0, 0, 0, 0, swordGroup); 
+        createPart(new THREE.BoxGeometry(0.5, 0.1, 0.15), matGold, 0, 0.1, 0, 0, 0, 0, swordGroup); 
+        createPart(new THREE.BoxGeometry(0.15, 1.4, 0.05), matSteel, 0, 0.85, 0, 0, 0, 0, swordGroup); 
+        const swordTip = createPart(new THREE.ConeGeometry(0.075, 0.3, 4).rotateY(Math.PI/4), matSteel, 0, 1.7, 0, 0, 0, 0, swordGroup);
+
+        // ARMA 2: Machado Pesado (Novo!)
+        const axeGroup = new THREE.Group(); axeGroup.position.set(0, -0.1, 0.2); axeGroup.rotation.x = Math.PI / 2; 
+        createPart(new THREE.CylinderGeometry(0.06, 0.06, 1.5, 6), matLeatherDark, 0, 0.5, 0, 0, 0, 0, axeGroup); // Cabo longo
+        createPart(new THREE.BoxGeometry(0.6, 0.5, 0.1), matSteel, 0.2, 1.0, 0, 0, 0, 0, axeGroup); // Lâmina Larga
+        createPart(new THREE.ConeGeometry(0.1, 0.4, 4), matSteel, -0.2, 1.0, 0, 0, 0, Math.PI/2, axeGroup); // Espigão traseiro
+
+        // ESCUDO
+        const shieldGroup = new THREE.Group(); shieldGroup.position.set(-0.2, -0.1, 0.3); shieldGroup.rotation.y = -Math.PI / 2; 
+        createPart(new THREE.CylinderGeometry(0.55, 0.55, 0.1, 14), matLeatherDark, 0, 0, 0, Math.PI/2, 0, 0, shieldGroup);
+        createPart(new THREE.TorusGeometry(0.55, 0.05, 8, 16), matSteel, 0, 0, 0, 0, 0, 0, shieldGroup);
+        createPart(new THREE.SphereGeometry(0.15, 8, 8, 0, Math.PI*2, 0, Math.PI/2), matSteel, 0, 0, 0.05, Math.PI/2, 0, 0, shieldGroup);
+        slotShield.add(shieldGroup); // Escudo fixo por agora
+
+        // --- PERNAS ---
+        const hipL = new THREE.Group(); hipL.position.set(-0.6, 1.6, 0); bodyGroup.add(hipL);
+        const hipR = new THREE.Group(); hipR.position.set(0.6, 1.6, 0); bodyGroup.add(hipR);
+        const kneeL = new THREE.Group(); kneeL.position.set(0, -0.7, 0); hipL.add(kneeL);
+        const kneeR = new THREE.Group(); kneeR.position.set(0, -0.7, 0); hipR.add(kneeR);
+        createPart(new THREE.CylinderGeometry(0.35, 0.3, 0.8, 8), matShirt, 0, -0.3, 0, 0, 0, 0, hipL);
+        createPart(new THREE.CylinderGeometry(0.35, 0.3, 0.8, 8), matShirt, 0, -0.3, 0, 0, 0, 0, hipR);
+        createPart(new THREE.CylinderGeometry(0.3, 0.25, 0.7, 8), matShirt, 0, -0.3, 0, 0, 0, 0, kneeL);
+        createPart(new THREE.CylinderGeometry(0.3, 0.25, 0.7, 8), matShirt, 0, -0.3, 0, 0, 0, 0, kneeR);
+        createPart(new THREE.BoxGeometry(0.6, 0.4, 0.8), matLeatherDark, 0, -0.7, 0.15, 0, 0, 0, kneeL);
+        createPart(new THREE.BoxGeometry(0.6, 0.4, 0.8), matLeatherDark, 0, -0.7, 0.15, 0, 0, 0, kneeR);
+
+        // --- EFEITOS VISUAIS (VFX) ---
+        const particles = [];
+        const particleGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+        const matSlash = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+        const matDust = new THREE.MeshBasicMaterial({ color: 0x887766, transparent: true, opacity: 0.6 });
+
+        function spawnVFX(pos, type, count) {
+            const mat = type === 'slash' ? matSlash : matDust;
+            for(let i = 0; i < count; i++) {
+                const p = new THREE.Mesh(particleGeo, mat); p.position.copy(pos);
+                p.position.x += (Math.random() - 0.5) * 0.5; p.position.y += (Math.random() - 0.5) * 0.5; p.position.z += (Math.random() - 0.5) * 0.5;
+                const speed = type === 'slash' ? 12 : 5;
+                p.userData = { vel: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed), life: 1.0, type: type };
+                scene.add(p); particles.push(p);
+            }
+        }
+
+        // --- SISTEMA DE TROCA DE EQUIPAMENTOS (FUNÇÕES GLOBAIS) ---
+        let currHead = 0, currArmor = 0, currWeapon = 0;
+        function updateGear() {
+            slotHead.clear(); slotHead.add(currHead === 0 ? hairGroup : helmetGroup);
+            slotArmor.clear(); slotArmor.add(currArmor === 0 ? armorLeatherGroup : armorSteelGroup);
+            slotWeapon.clear(); slotWeapon.add(currWeapon === 0 ? swordGroup : axeGroup);
+        }
+        window.toggleHead = () => { currHead = (currHead + 1) % 2; updateGear(); };
+        window.toggleArmor = () => { currArmor = (currArmor + 1) % 2; updateGear(); };
+        window.toggleWeapon = () => { currWeapon = (currWeapon + 1) % 2; updateGear(); };
+        updateGear(); // Set inicial
+
+        // 6. CONTROLES E ESTADOS
+        const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+        let velocityY = 0; let isGrounded = true; let animTime = 0; let prevPosY = 0; 
+        let isAttacking = false; let attackTimer = 0; const ATTACK_DURATION = 0.4;
+        let isDefending = false; let isSwimming = false;
+        
+        let actionState = 'none'; // sit, sleep, eat, drink, inventory, damage, none
+        let hasHit = false; let wasDefending = false; let wasGrounded = true; let prevVelocityY = 0;
+        let blinkTimer = 2.0; let isBlinking = false; let blinkDuration = 0;
+
+        document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = true;
+            
+            if (k === 'h') {
+                const ui = document.getElementById('ui-overlay'); const panel = document.getElementById('gear-panel');
+                const isHidden = ui.style.display === 'none';
+                ui.style.display = isHidden ? 'block' : 'none'; panel.style.display = isHidden ? 'block' : 'none';
+            }
+            if (k === 'i') {
+                const invMenu = document.getElementById('inventory-menu');
+                if (actionState === 'inventory') { actionState = 'none'; invMenu.style.display = 'none'; } 
+                else if(isGrounded && !isAttacking && !isDefending && !isSwimming) { actionState = 'inventory'; invMenu.style.display = 'block'; }
+            }
+            if (actionState !== 'inventory') {
+                if (k === 'z') actionState = actionState === 'sit' ? 'none' : 'sit';
+                if (k === 'x') actionState = actionState === 'sleep' ? 'none' : 'sleep';
+                
+                // Comer e Beber com Duração Estendida (3 segundos)
+                if (k === 'c' && actionState === 'none') { actionState = 'eat'; setTimeout(() => { if(actionState === 'eat') actionState = 'none'; }, 3000); }
+                if (k === 'v' && actionState === 'none') { actionState = 'drink'; setTimeout(() => { if(actionState === 'drink') actionState = 'none'; }, 3000); }
+                
+                // TOMAR DANO (Ação interativa!)
+                if (k === 'f' && actionState === 'none') { 
+                    actionState = 'damage'; 
+                    spawnVFX(penitente.position, 'dust', 6); // Poeira de impacto no pé
+                    setTimeout(() => { if(actionState === 'damage') actionState = 'none'; }, 500); 
+                }
+
+                if (e.code === 'Space' || k === ' ') {
+                    e.preventDefault(); 
+                    if ((isGrounded || isSwimming) && !isDefending && !isAttacking && actionState === 'none') { 
+                        velocityY = 22; isGrounded = false; isSwimming = false;
+                    }
+                }
+            }
+        });
+        document.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = false; });
+
+        document.addEventListener('mousedown', (e) => {
+            if (isSwimming || actionState === 'inventory' || actionState === 'damage') return; 
+            if (e.button === 0 && !isAttacking && !isDefending && actionState === 'none') { isAttacking = true; attackTimer = ATTACK_DURATION; }
+            if (e.button === 2 && !isAttacking && actionState === 'none') { isDefending = true; }
+        });
+        document.addEventListener('mouseup', (e) => { if (e.button === 2) isDefending = false; });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // 7. MOTOR DE ANIMAÇÕES
+        function updateAnimations(delta, isMoving, moveSpeed) {
+            animTime += delta;
+            headPivot.rotation.set(0, 0, 0); torso.rotation.set(0, 0, 0); 
+            bodyGroup.position.set(0, 0, 0); torso.scale.set(1.2, 1, 0.95); 
+
+            const deltaY = penitente.position.y - prevPosY; prevPosY = penitente.position.y;
+            let gravityImpact = -deltaY * 6.0; if (isSwimming) gravityImpact = 0.5; 
+            
+            const windDrag = isMoving ? (moveSpeed > 10 ? -0.7 : -0.3) : 0;
+            const runBounce = isMoving && isGrounded && !isSwimming ? Math.abs(Math.sin(animTime * (keys.shift ? 18 : 10))) * 0.3 : 0;
+
+            let attackImpact = 0; 
+            const isResting = actionState === 'sit' || actionState === 'sleep' || actionState === 'inventory' || actionState === 'damage';
+
+            // --- ESTADO: SOFRENDO DANO ---
+            if (actionState === 'damage') {
+                bodyGroup.rotation.x = -0.3; // Jogado pra trás
+                headPivot.rotation.x = -0.4; // Cabeça estica pra trás de dor
+                shoulderL.rotation.set(-0.5, 0, 1.2); // Braços jogados pro lado/alto
+                shoulderR.rotation.set(-0.5, 0, -1.2);
+                elbowL.rotation.set(-0.2, 0, 0); elbowR.rotation.set(-0.2, 0, 0);
+                bodyGroup.position.x += (Math.random() - 0.5) * 0.15; // Tremor de impacto (Shake)
+                bodyGroup.position.z += (Math.random() - 0.5) * 0.15;
+            }
+            // --- ESTADO: DESCANSANDO (Sentar / Dormir / Inventário) ---
+            else if (actionState === 'sit') {
+                bodyGroup.position.y = -1.1; 
+                hipL.rotation.set(-1.5, 0.2, 0); hipR.rotation.set(-1.5, -0.2, 0); 
+                kneeL.rotation.set(0.1, 0, 0); kneeR.rotation.set(0.1, 0, 0); 
+                shoulderL.rotation.set(0.2, 0, -0.2); shoulderR.rotation.set(0.2, 0, 0.2); 
+                elbowL.rotation.set(-0.2, 0, 0); elbowR.rotation.set(-0.2, 0, 0);
+                torso.rotation.x = 0.1; headPivot.rotation.x = 0.2;
+            } else if (actionState === 'sleep') {
+                // CORREÇÃO DO CHÃO: O torso mede 0.85 de raio. Em -90 deg, ajustamos o Y pra ele apoiar perfeitamente.
+                bodyGroup.position.y = 0.85; 
+                bodyGroup.position.z = 0; 
+                bodyGroup.rotation.x = -Math.PI / 2; 
+                torso.scale.z = 0.95 + Math.sin(animTime * 2.5) * 0.08; 
+                torso.scale.y = 1.0 + Math.sin(animTime * 2.5) * 0.05;
+                shoulderL.rotation.set(-0.2, 0, -1.2); shoulderR.rotation.set(-0.2, 0, 1.2); 
+                elbowL.rotation.set(0, 0, 0); elbowR.rotation.set(0, 0, 0);
+                hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0); kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+            } else if (actionState === 'inventory') {
+                bodyGroup.position.y = Math.sin(animTime * 2) * 0.02; 
+                torso.rotation.x = 0.3; headPivot.rotation.x = 0.4; 
+                shoulderL.rotation.set(0.4, 0, -0.2); elbowL.rotation.set(-1.2, 0, 0);
+                shoulderR.rotation.set(0.2, 0, 0.2); elbowR.rotation.set(-0.2, 0, 0);
+                hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0); kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+            }
+            // --- ESTADO: NADANDO ---
+            else if (isSwimming) {
+                bodyGroup.position.y = Math.sin(animTime * 3) * 0.1; 
+                bodyGroup.rotation.x = isMoving ? 0.6 : 0.1; headPivot.rotation.x = isMoving ? -0.5 : 0; 
+                if (isMoving) {
+                    const swimCycle = animTime * 8; 
+                    shoulderL.rotation.set(-1.0 + Math.sin(swimCycle) * 0.8, 0, -0.4);
+                    shoulderR.rotation.set(-1.0 + Math.sin(swimCycle + Math.PI) * 0.8, 0, 0.4); 
+                    elbowL.rotation.set(-0.2, 0, 0); elbowR.rotation.set(-0.2, 0, 0);
+                    hipL.rotation.set(Math.sin(swimCycle*2) * 0.4, 0, 0); hipR.rotation.set(-Math.sin(swimCycle*2) * 0.4, 0, 0);
+                    kneeL.rotation.set(0.2, 0, 0); kneeR.rotation.set(0.2, 0, 0);
+                } else {
+                    shoulderL.rotation.set(-0.2, 0, -0.5); shoulderR.rotation.set(-0.2, 0, 0.5);
+                    elbowL.rotation.set(-0.5, 0, 0); elbowR.rotation.set(-0.5, 0, 0);
+                    hipL.rotation.set(0,0,0); hipR.rotation.set(0,0,0); kneeL.rotation.set(0,0,0); kneeR.rotation.set(0,0,0);
+                }
+            } 
+            // --- ESTADO: EM TERRA ---
+            else {
+                bodyGroup.rotation.set(0, 0, 0);
+                if (!isGrounded) {
+                    if (velocityY > 0) {
+                        if(!isAttacking && !isDefending) { shoulderL.rotation.set(-2.5, 0, -0.3); shoulderR.rotation.set(-2.5, 0, 0.3); elbowR.rotation.set(0,0,0); }
+                        hipL.rotation.set(-0.5, 0, 0); hipR.rotation.set(0.2, 0, 0); kneeL.rotation.set(0.5, 0, 0); kneeR.rotation.set(0.1, 0, 0);
+                    } else {
+                        if(!isAttacking && !isDefending) { shoulderL.rotation.set(-1.0, 0, -0.5); shoulderR.rotation.set(-1.0, 0, 0.5); }
+                        hipL.rotation.set(-0.2, 0, 0); hipR.rotation.set(-0.2, 0, 0);
+                    }
+                } else {
+                    if (!isMoving) {
+                        bodyGroup.position.y = Math.sin(animTime * 2) * 0.05; 
+                        if(!isAttacking && !isDefending && actionState === 'none') {
+                            shoulderL.rotation.set(0.1, 0, -0.2); shoulderR.rotation.set(0.1, 0, 0.2); elbowR.rotation.set(-0.2, 0, 0);
+                        }
+                        if (actionState === 'none') elbowL.rotation.set(-0.1, 0, 0); 
+                        hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0); kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+                    } else {
+                        const speedMult = keys.shift ? 18 : 10; const moveSin = Math.sin(animTime * speedMult);
+                        bodyGroup.position.y = Math.abs(moveSin) * (keys.shift ? 0.35 : 0.2); bodyGroup.rotation.x = keys.shift ? 0.2 : 0.05; 
+                        if(!isAttacking && !isDefending) {
+                            shoulderL.rotation.set(-moveSin * (keys.shift ? 1.2 : 0.6), 0, -0.2); shoulderR.rotation.set(moveSin * (keys.shift ? 1.2 : 0.6), 0, 0.2); elbowR.rotation.set(keys.shift ? -0.5 : -0.2, 0, 0);
+                        }
+                        elbowL.rotation.set(keys.shift ? -0.5 : -0.2, 0, 0); 
+                        hipL.rotation.set(moveSin * (keys.shift ? 1.0 : 0.6), 0, 0); hipR.rotation.set(-moveSin * (keys.shift ? 1.0 : 0.6), 0, 0);
+                        kneeL.rotation.set(moveSin > 0 ? moveSin * 0.8 : 0, 0, 0); kneeR.rotation.set(moveSin < 0 ? -moveSin * 0.8 : 0, 0, 0);
+                    }
+                }
+
+                // DEFESA
+                if (isDefending && !isAttacking) {
+                    shoulderL.rotation.set(-0.6, 0.4, -0.6); elbowL.rotation.set(-2.0, -1.4, 0); 
+                    torso.rotation.y = -0.7; headPivot.rotation.y = 0.7; 
+                    bodyGroup.position.y -= 0.2; 
+                    hipL.rotation.set(-0.5, 0.2, 0); kneeL.rotation.set(0.6, 0, 0); hipR.rotation.set(0.2, -0.2, 0); kneeR.rotation.set(0.4, 0, 0);
+                    torso.rotation.x += 0.2; 
+                }
+
+                // ATAQUE
+                if (isAttacking) {
+                    attackTimer -= delta; const progress = 1 - (attackTimer / ATTACK_DURATION);
+                    torso.rotation.y = Math.sin(progress * Math.PI) * 0.4; 
+                    if (progress < 0.35) {
+                        const p = progress / 0.35;
+                        shoulderR.rotation.set(-Math.PI * 0.8 * p, -0.2 * p, 0.4 * p); elbowR.rotation.set(-1.5 * p, 0, 0);
+                    } else {
+                        const p = (progress - 0.35) / 0.65;
+                        shoulderR.rotation.set(-Math.PI * 0.8 + (Math.PI * 1.1 * p), -0.2 + (0.7 * p), 0.4 - (0.2 * p));
+                        elbowR.rotation.set(-1.5 + (1.2 * p), 0, 0);
+                        if (p > 0.5) {
+                            if (!hasHit) {
+                                hasHit = true; const tipPos = new THREE.Vector3(); 
+                                if(currWeapon === 0) swordTip.getWorldPosition(tipPos); else axeGroup.getWorldPosition(tipPos); // Pega topo de qualquer arma
+                                spawnVFX(tipPos, 'slash', 12); 
+                            }
+                            attackImpact = Math.sin(((p - 0.5) / 0.5) * Math.PI) * 2.0; 
+                            bodyGroup.position.y -= attackImpact * 0.05; torso.rotation.x += attackImpact * 0.15; 
+                        }
+                    }
+                    if (attackTimer <= 0) { isAttacking = false; hasHit = false; torso.rotation.y = 0; }
+                } else if (!isDefending && !isResting) {
+                    hasHit = false; torso.rotation.y += (0 - torso.rotation.y) * 10 * delta; 
+                }
+            } 
+
+            // TEMPORÁRIOS: COMER E BEBER (Exatidão no movimento da mão pra frente do rosto)
+            if (actionState === 'eat') {
+                const chewCycle = Math.sin(animTime * 15);
+                shoulderL.rotation.set(-1.0, 0.6, -0.2); // Ombro levanta pra frente e centraliza a mão
+                elbowL.rotation.set(-2.0, 0, 0); // Dobra o cotovelo apontando a mão exata pra boca
+                headPivot.rotation.x = chewCycle * 0.05; 
+            } else if (actionState === 'drink') {
+                const gulpCycle = Math.sin(animTime * 8);
+                shoulderL.rotation.set(-1.2, 0.6, -0.2); // Levanta a mão um pouco mais alto (cantil)
+                elbowL.rotation.set(-2.2, 0, 0); 
+                headPivot.rotation.x = -0.4 + gulpCycle * 0.08; // Tomba a cabeça pra trás
+            }
+
+            // EXPRESSÕES FACIAIS
+            let emotion = 'neutral';
+            if (actionState === 'sleep') emotion = 'sleep';
+            else if (actionState === 'inventory') emotion = 'focus';
+            else if (actionState === 'damage') emotion = 'hurt';
+            else if (isAttacking) emotion = 'angry';
+            else if (isDefending) emotion = 'guard';
+            else if (!isGrounded && velocityY > 5) emotion = 'jump';
+            else if (!isGrounded && velocityY < -5) emotion = 'fall';
+
+            let targetBrowZ = -0.25, targetMouthX = 1.0, targetMouthY = 1.0;
+            if (emotion === 'angry') { targetBrowZ = -0.6; targetMouthX = 0.6; targetMouthY = 0.6; } 
+            else if (emotion === 'guard') { targetBrowZ = -0.5; targetMouthX = 0.5; targetMouthY = 0.3; } 
+            else if (emotion === 'jump') { targetBrowZ = 0.1; targetMouthX = 0.6; targetMouthY = 1.5; } 
+            else if (emotion === 'fall') { targetBrowZ = 0.4; targetMouthX = 1.4; targetMouthY = 0.5; } 
+            else if (emotion === 'sleep') { targetBrowZ = 0; targetMouthX = 0.5; targetMouthY = 0.5; }
+            else if (emotion === 'focus') { targetBrowZ = -0.4; targetMouthX = 0.8; targetMouthY = 0.8; } 
+            else if (emotion === 'hurt') { targetBrowZ = 0.6; targetMouthX = 1.2; targetMouthY = 1.5; } // Dor intensa!
+            
+            if (actionState === 'eat') targetMouthY = 1.0 + Math.abs(Math.sin(animTime * 15)) * 1.5; 
+            else if (actionState === 'drink') { targetMouthY = 2.0; targetMouthX = 0.5; }
+
+            browL.rotation.z += (targetBrowZ - browL.rotation.z) * 15 * delta; browR.rotation.z += (-targetBrowZ - browR.rotation.z) * 15 * delta;
+            mouth.scale.x += (targetMouthX - mouth.scale.x) * 15 * delta; mouth.scale.y += (targetMouthY - mouth.scale.y) * 15 * delta;
+
+            blinkTimer -= delta;
+            if (blinkTimer <= 0) { isBlinking = true; blinkTimer = 2.0 + Math.random() * 4.0; blinkDuration = 0.15; }
+            if (isBlinking || emotion === 'hurt') { // Pisca ou fecha o olho de dor
+                blinkDuration -= delta; eyeL.scale.y = 0.1; eyeR.scale.y = 0.1; 
+                if (blinkDuration <= 0) isBlinking = false;
+            } else {
+                let targetEyeScale = (emotion === 'fall' || emotion === 'jump') ? 1.3 : 1.0;
+                if (emotion === 'angry' || emotion === 'guard' || emotion === 'focus') targetEyeScale = 0.7; 
+                if (emotion === 'sleep') targetEyeScale = 0.05; 
+                eyeL.scale.y += (targetEyeScale - eyeL.scale.y) * 20 * delta; eyeR.scale.y += (targetEyeScale - eyeR.scale.y) * 20 * delta;
+            }
+
+            // FÍSICA DO CABELO E SOBRETUDO (Se aplicar ao Cabelo Dinâmico atual)
+            animatedHair.forEach(hair => {
+                if(currHead !== 0) return; // Só move cabelo se estiver sem capacete
+                const wind = Math.sin(animTime * 3 + hair.offset) * 0.05; 
+                let targetRx = hair.baseRx + wind; let targetRz = hair.baseRz + Math.cos(animTime * 2 + hair.offset) * 0.03; 
+                
+                if (hair.isBangs) {
+                    targetRx -= gravityImpact * hair.reactionStrength; targetRx -= windDrag * hair.reactionStrength * 0.15; targetRx -= runBounce * hair.reactionStrength;
+                    if (Math.abs(windDrag) > 0.1) targetRz += Math.abs(windDrag) * (hair.baseRz > 0 ? 1 : -1) * 1.5; 
+                } else {
+                    targetRx += gravityImpact * hair.reactionStrength; targetRx += windDrag * hair.reactionStrength; targetRx += runBounce * hair.reactionStrength;
+                }
+                
+                if (attackImpact > 0) {
+                    if (hair.isBangs) targetRx += attackImpact * hair.reactionStrength * 0.4; else targetRx -= attackImpact * hair.reactionStrength * 0.4; 
+                }
+                if (actionState === 'inventory') targetRx += 0.3; 
+                if (actionState === 'damage') targetRx += 0.5; // Cabelo voa pra trás ao tomar dano
+
+                hair.mesh.rotation.x += (targetRx - hair.mesh.rotation.x) * 18 * delta; hair.mesh.rotation.z += (targetRz - hair.mesh.rotation.z) * 18 * delta;
+            });
+
+            animatedCoat.forEach(flap => {
+                if(currArmor !== 0) return; // Só esvoaça se for a armadura de couro
+                const wind = Math.sin(animTime * 4 + flap.offset) * 0.05; let targetRx = flap.baseRx + wind;
+                targetRx += gravityImpact * 0.5; targetRx -= windDrag * 1.8; targetRx += runBounce * 0.6; 
+                if (attackImpact > 0) targetRx += attackImpact * 0.5; 
+                if (isDefending || actionState === 'sit') targetRx += 0.3; 
+                if (actionState === 'damage') targetRx -= 0.5;
+                flap.mesh.rotation.x += (targetRx - flap.mesh.rotation.x) * 12 * delta;
+            });
+        }
+
+        // 8. GAME LOOP
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            let isMoving = false;
+
+            const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y = 0; camDir.normalize();
+            const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+            
+            const distToLake = Math.hypot(penitente.position.x - lakeCenter.x, penitente.position.z - lakeCenter.z);
+            const isInLakeRadius = distToLake < lakeRadius;
+            
+            let speed = keys.shift ? 14 : 7; 
+            if (isDefending) speed = keys.shift ? 6 : 3; 
+            if (isSwimming) speed = 5; 
+
+            const isResting = actionState === 'sit' || actionState === 'sleep' || actionState === 'inventory' || actionState === 'damage';
+            const canMove = !(isAttacking && isGrounded && !isSwimming) && !isResting;
+
+            let moveX = 0; let moveZ = 0;
+            if (canMove) {
+                if (keys.w) { moveX += camDir.x; moveZ += camDir.z; }
+                if (keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
+                if (keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
+                if (keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+            }
+
+            const moveVec = new THREE.Vector3(moveX, 0, moveZ);
+            
+            if (moveVec.lengthSq() > 0) {
+                moveVec.normalize().multiplyScalar(speed * delta);
+                const nextPos = penitente.position.clone().add(moveVec);
+                const nextDist = Math.hypot(nextPos.x - lakeCenter.x, nextPos.z - lakeCenter.z);
+                if (nextDist > lakeRadius && nextDist < lakeRadius + 1.2 && penitente.position.y < 1.0) moveVec.set(0, 0, 0); 
+            }
+
+            if (moveVec.lengthSq() > 0) {
+                isMoving = true;
+                if (!isDefending || isSwimming) {
+                    const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                    let diff = targetAngle - penitente.rotation.y;
+                    while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                    penitente.rotation.y += diff * 12 * delta;
+                } else if (isDefending) {
+                     const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                     let diff = targetAngle - penitente.rotation.y;
+                     while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                     penitente.rotation.y += diff * 4 * delta;
+                }
+                penitente.position.add(moveVec);
+            }
+
+            // FÍSICA VERTICAL
+            const waterSurface = 0.55; let isSwimmingState = false;
+
+            if (isDefending && !wasDefending && isGrounded) {
+                spawnVFX(penitente.position, 'dust', 8);
+                const shieldPos = new THREE.Vector3(); slotShield.getWorldPosition(shieldPos); spawnVFX(shieldPos, 'slash', 6);
+            }
+            wasDefending = isDefending;
+
+            penitente.position.y += velocityY * delta;
+
+            if (isInLakeRadius) {
+                if (penitente.position.y > waterSurface) { velocityY -= 40 * delta; } 
+                else { isSwimmingState = true; penitente.position.y = waterSurface; velocityY = 0; isGrounded = true; }
+            } else {
+                velocityY -= 60 * delta; 
+                if (penitente.position.y <= 0) { penitente.position.y = 0; velocityY = 0; isGrounded = true; }
+            }
+            
+            if (isGrounded && !wasGrounded && !isSwimming) {
+                if (prevVelocityY < -10) { spawnVFX(penitente.position, 'dust', 12); }
+            }
+            wasGrounded = isGrounded; prevVelocityY = velocityY;
+            isSwimming = isSwimmingState; 
+            
+            const targetCamPos = penitente.position.clone().add(new THREE.Vector3(0, 8, 15));
+            camera.position.lerp(targetCamPos, 5 * delta);
+            controls.target.lerp(penitente.position.clone().add(new THREE.Vector3(0, 4, 0)), 10 * delta);
+
+            if (penitente.userData.lanternLight) penitente.userData.lanternLight.intensity = 1.2 + Math.random() * 0.8;
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.userData.life -= delta * (p.userData.type === 'slash' ? 3.0 : 1.5);
+                p.position.add(p.userData.vel.clone().multiplyScalar(delta));
+                if (p.userData.type === 'slash') p.scale.setScalar(Math.max(0, p.userData.life)); 
+                else { p.position.y += delta * 1.5; p.scale.setScalar(Math.max(0, p.userData.life * 1.5)); }
+                if (p.userData.life <= 0) { scene.remove(p); particles.splice(i, 1); }
+            }
+
+            updateAnimations(delta, isMoving, speed);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        animate();
+    </script>
+</body>
+</html>
