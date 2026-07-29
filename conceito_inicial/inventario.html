@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A GitHub Odyssey - Tomo do Purgatório</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Cinzel Decorative, Cinzel, MedievalSharp, Rajdhani & Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700;900&family=MedievalSharp&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --font-title: 'Cinzel Decorative', 'Cinzel', serif;
+      --font-sub: 'Cinzel', serif;
+      --font-script: 'MedievalSharp', cursive;
+      --font-game: 'Rajdhani', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: #120b06;
+      /* Pergaminho Antigo com Brilho Quente de Vela e Manchas de Tinta */
+      background-image: 
+        radial-gradient(circle at 50% -10%, rgba(245, 180, 80, 0.22) 0%, transparent 60%),
+        radial-gradient(ellipse at 15% 25%, rgba(45, 26, 12, 0.85) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 75%, rgba(35, 18, 8, 0.9) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(190, 140, 75, 0.1) 0%, transparent 70%),
+        repeating-radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.03) 0, rgba(212, 175, 55, 0.03) 2px, transparent 3px, transparent 8px),
+        radial-gradient(circle at 50% 50%, #291b10 0%, #170e07 70%, #0a0502 100%);
+      background-attachment: fixed;
+      color: #f3e4ce;
+      user-select: none;
+      min-height: 100vh;
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
+    }
+
+    h1, h2, h3, .font-title {
+      font-family: var(--font-title);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    
+    .font-sub { font-family: var(--font-sub); }
+    .font-script { font-family: var(--font-script); }
+    .font-game { font-family: var(--font-game); }
+
+    /* Custom Scrollbar - Aged Ink Style */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(20, 12, 7, 0.8); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #523924; border-radius: 4px; border: 1px solid #8b6338; }
+    ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+
+    /* Ancient Tome & Parchment Panels */
+    .glass-panel, .parchment-panel {
+      background: 
+        radial-gradient(circle at 50% 0%, rgba(65, 42, 24, 0.92), rgba(30, 18, 10, 0.96)),
+        repeating-linear-gradient(0deg, rgba(212, 175, 55, 0.02) 0px, transparent 2px, transparent 4px);
+      border: 2px solid #704d2e;
+      border-image: linear-gradient(to bottom, #a87948, #4a2f18, #a87948) 1;
+      box-shadow: 
+        0 15px 35px rgba(0, 0, 0, 0.9), 
+        inset 0 0 30px rgba(15, 8, 3, 0.85), 
+        inset 0 0 4px rgba(212, 175, 55, 0.4);
+      position: relative;
+    }
+
+    .parchment-panel::before, .glass-panel::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      pointer-events: none;
+      border-radius: 4px;
+    }
+
+    /* Inventory Slot Styling */
+    .inventory-slot {
+      position: relative;
+      background: radial-gradient(circle, #24160b 0%, #120904 100%);
+      border: 1px solid #5a3e23;
+      box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(212, 175, 55, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .inventory-slot:hover {
+      border-color: #f3c262;
+      background: radial-gradient(circle, #382110 0%, #1c0f06 100%);
+      box-shadow: inset 0 0 12px rgba(212, 175, 55, 0.4), 0 0 15px rgba(212, 175, 55, 0.35);
+    }
+
+    .inventory-slot.drag-over {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.25) !important;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
+    }
+
+    /* Item Cards */
+    .item-card {
+      cursor: grab;
+      touch-action: none;
+      transition: transform 0.1s ease;
+    }
+    .item-card:active {
+      cursor: grabbing;
+      transform: scale(0.94);
+    }
+
+    /* Rarity Indicators */
+    .rarity-common { border-bottom: 2px solid #8c7a6b; }
+    .rarity-uncommon { border-bottom: 2px solid #38a169; filter: drop-shadow(0 0 2px rgba(56, 161, 105, 0.4)); }
+    .rarity-rare { border-bottom: 2px solid #3182ce; filter: drop-shadow(0 0 3px rgba(49, 130, 206, 0.5)); }
+    .rarity-epic { border-bottom: 2px solid #805ad5; filter: drop-shadow(0 0 5px rgba(128, 90, 213, 0.6)); }
+    .rarity-legendary { border-bottom: 2px solid #d4af37; filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7)); }
+
+    .slot-equip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 55%;
+      opacity: 0.22;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .inventory-slot:hover.slot-equip::before { opacity: 0.4; }
+
+    /* Silhuetas dos slots */
+    .slot-head::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 2C7.5 2 4 5.5 4 10v3c0 3.5 2.5 6.5 6 7.5V22h4v-1.5c3.5-1 6-4 6-7.5v-3c0-4.5-3.5-8-8-8zm0 2.2c3.3 0 5.8 2.3 5.8 5.8v1H6.2V10c0-3.5 2.5-5.8 5.8-5.8zM6.2 12h11.6v1.8H6.2V12zm0 3.8h11.6c-.6 2.6-2.8 4.6-5.8 5.2-3-.6-5.2-2.6-5.8-5.2z'/%3E%3C/svg%3E");
+    }
+    .slot-chest::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M16 2l3 3.5-2.5 3.5H14v12H10V9H7.5L5 5.5 8 2h2.5c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5H16z'/%3E%3C/svg%3E");
+    }
+    .slot-right_hand::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 1l2 3v10h3.5v2H13.5v4h1v3h-5v-3h1v-4H6.5v-2H10V4l2-3zm-1 3.5h2V14h-2V4.5z'/%3E%3C/svg%3E");
+    }
+    .slot-left_hand::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M3 3h7v8c0 4.5-3.5 8-7 9.5 0 0 0-11.5 0-17.5zm2 2v5.5c0 2.2 1.8 4.3 3.5 5.2V5H5zm13-3l-1.5 2v6h-1.5v1.5h1.5v4.5h-1V21h4v-2h-1v-4.5h1.5V10H19.5V4L18 2zm-1 3.5h2V9h-2V5.5z'/%3E%3C/svg%3E");
+    }
+    .slot-feet::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M9 3h6v9l3 2v2c0 2.8-2.2 5-5 5H7c-2.8 0-5-2.2-5-5v-1l6-4V3zm1 2v7.2L4.5 15.5v1.5c0 1.7 1.3 3 3 3h5c1.7 0 3-1.3 3-3v-1.2L13 13V5h-3z'/%3E%3C/svg%3E");
+    }
+    .slot-accessory::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z'/%3E%3C/svg%3E");
+    }
+
+    .fade-in {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body class="p-2 md:p-6 flex flex-col justify-between min-h-screen">
+
+  <!-- Top Global Header -->
+  <header class="max-w-7xl w-full mx-auto mb-4">
+    <div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center gap-4">
+      
+      <!-- Player Info -->
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-2xl shadow-lg shadow-amber-950/50">
+          <i class="fa-solid fa-book-skull"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base md:text-lg font-bold tracking-wider text-amber-100 uppercase font-title">Penitente #001</h1>
+            <span id="run-badge" class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded font-mono font-semibold">
+              INCURSÃO ATIVA
+            </span>
+          </div>
+          <p class="text-xs text-amber-200/70 font-script flex items-center gap-2">
+            <span><i class="fa-solid fa-compass text-amber-400 mr-1"></i> Local: <strong class="text-amber-100">Planalto das Almas (Nó #04)</strong></span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Player Vitals (HP, Fome, Sede) com Decaimento Ativo -->
+      <div class="flex items-center gap-4 md:gap-6 text-sm bg-stone-950/80 px-4 py-2 rounded-xl border border-stone-800">
+        <!-- HP -->
+        <div class="flex items-center gap-2" title="Pontos de Vida (Drena se Fome ou Sede zerarem)">
+          <i class="fa-solid fa-heart text-red-600 text-base"></i>
+          <div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+            <div id="vital-hp" class="bg-gradient-to-r from-red-800 to-red-500 h-2.5 rounded-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+          <span id="txt-hp" class="text-xs font-mono font-bold w-9 text-right text-red-300">100%</span>
+        </div>
+
+        <!-- Fome -->
+        <div class="flex items-center gap-2" title="Fome (Decai com o tempo)">
+          <i class="fa-solid fa-drumstick-bite text-amber-600 text-base"></i>
+          <div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+            <div id="vital-food" class="bg-gradient-to-r from-amber-800 to-amber-500 h-2.5 rounded-full transition-all duration-300" style="width: 75%"></div>
+          </div>
+          <span id="txt-food" class="text-xs font-mono font-bold w-9 text-right text-amber-300">75%</span>
+        </div>
+
+        <!-- Sede -->
+        <div class="flex items-center gap-2" title="Sede (Decai com o tempo)">
+          <i class="fa-solid fa-droplet text-sky-500 text-base"></i>
+          <div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+            <div id="vital-water" class="bg-gradient-to-r from-sky-800 to-sky-500 h-2.5 rounded-full transition-all duration-300" style="width: 60%"></div>
+          </div>
+          <span id="txt-water" class="text-xs font-mono font-bold w-9 text-right text-sky-300">60%</span>
+        </div>
+      </div>
+
+      <!-- Weight Controls & LocalStorage Actions -->
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <span class="text-[10px] text-amber-300/70 uppercase tracking-wider block font-script">Carga do Alforje</span>
+          <span id="weight-text" class="text-xs font-bold font-mono text-amber-100">0.0 / 25.0 kg</span>
+        </div>
+        <div class="w-20 bg-stone-950 border border-stone-800 rounded-lg p-1">
+          <div id="weight-bar" class="h-2 bg-amber-600 rounded transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <!-- Reset Save Button -->
+        <button onclick="resetGameState()" title="Reiniciar Progresso (Limpar Dados Guardados)" class="text-xs bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1.5 rounded-lg border border-red-800/80 transition flex items-center gap-1 font-mono">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid View Container -->
+  <main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+    
+    <!-- LEFT PANEL: Equipamentos & Bônus de Conjunto (3 cols) -->
+    <section class="lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col justify-between">
+      <div>
+        <h2 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 mb-4 flex items-center justify-between font-title">
+          <span><i class="fa-solid fa-shield-halved text-amber-400 mr-2"></i>Equipamentos</span>
+          <span class="text-[10px] font-normal text-amber-400/60 font-script">Grimório</span>
+        </h2>
+
+        <!-- Equipment Slots Grid -->
+        <div class="flex flex-col items-center gap-3">
+          <!-- Linha 1: Cabeça -->
+          <div id="slot-head" data-equip-type="head" class="inventory-slot slot-equip slot-head w-16 h-16 rounded-xl flex items-center justify-center"></div>
+
+          <!-- Linha 2: Corpo -->
+          <div id="slot-chest" data-equip-type="chest" class="inventory-slot slot-equip slot-chest w-16 h-16 rounded-xl flex items-center justify-center"></div>
+
+          <!-- Linha 3: Mão Direita & Mão Esquerda -->
+          <div class="flex items-center gap-4">
+            <div id="slot-right_hand" data-equip-type="right_hand" class="inventory-slot slot-equip slot-right_hand w-16 h-16 rounded-xl flex items-center justify-center"></div>
+            <div id="slot-left_hand" data-equip-type="left_hand" class="inventory-slot slot-equip slot-left_hand w-16 h-16 rounded-xl flex items-center justify-center"></div>
+          </div>
+
+          <!-- Linha 4: Calçados & Acessório -->
+          <div class="flex items-center gap-4">
+            <div id="slot-feet" data-equip-type="feet" class="inventory-slot slot-equip slot-feet w-16 h-16 rounded-xl flex items-center justify-center"></div>
+            <div id="slot-accessory" data-equip-type="accessory" class="inventory-slot slot-equip slot-accessory w-16 h-16 rounded-xl flex items-center justify-center"></div>
+          </div>
+        </div>
+
+        <!-- Calculated Stats & Set Bonus Box -->
+        <div class="mt-5 pt-3 border-t border-amber-900/50 bg-stone-950/60 rounded-lg p-3 space-y-2 font-game">
+          <h3 class="text-[11px] font-bold text-amber-400/80 uppercase tracking-wider mb-1 flex items-center justify-between font-sub">
+            <span>Bônus de Equipamento</span>
+            <i class="fa-solid fa-shield-cat text-amber-400"></i>
+          </h3>
+          <div class="flex justify-between text-xs items-center">
+            <span class="text-amber-200/70 flex items-center gap-1">
+              <svg class="w-4 h-4 fill-amber-500 inline-block" viewBox="0 0 24 24">
+                <path d="M12 1l2 3v10h3.5v2H13.5v4h1v3h-5v-3h1v-4H6.5v-2H10V4l2-3zm-1 3.5h2V14h-2V4.5z"/>
+              </svg>
+              Dano de Ataque:
+            </span>
+            <span id="stat-atk" class="font-mono text-amber-400 font-bold">10</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-amber-200/70"><i class="fa-solid fa-shield-halved text-amber-300 w-4"></i> Proteção Física:</span>
+            <span id="stat-def" class="font-mono text-amber-200 font-bold">0</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-amber-200/70"><i class="fa-solid fa-wand-magic-sparkles text-purple-400 w-4"></i> Poder Astral:</span>
+            <span id="stat-magic" class="font-mono text-purple-300 font-bold">0</span>
+          </div>
+
+          <!-- Visualizador de Bônus de Conjunto (Set Bonus) -->
+          <div id="set-bonus-container" class="mt-2 pt-2 border-t border-amber-900/40 text-[11px]">
+            <!-- Renderizado dinamicamente por JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Virtues & Masteries -->
+      <div class="mt-5 pt-3 border-t border-amber-900/60 font-game">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider font-sub">
+            <i class="fa-solid fa-award mr-1"></i> Virtudes & Maestrias
+          </h3>
+          <span class="text-[9px] text-red-400 uppercase font-script">Evolatilia</span>
+        </div>
+
+        <div id="masteries-container" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER PANEL: Primary Inventory (6 cols) -->
+    <section class="lg:col-span-6 glass-panel rounded-xl p-4 flex flex-col justify-between">
+      <div id="view-inventory" class="flex flex-col h-full justify-between">
+        
+        <!-- Filter, Search & Utility Header -->
+        <div class="space-y-2 mb-3 pb-2 border-b border-amber-900/60">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1 bg-stone-950 p-1 rounded-lg border border-amber-900/50">
+              <button onclick="setFilter('all')" class="filter-btn active text-xs px-2.5 py-1 rounded font-medium bg-amber-800 text-amber-100 transition">Todos</button>
+              <button onclick="setFilter('equipment')" class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Armas/Armaduras</button>
+              <button onclick="setFilter('consumable')" class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Elixires</button>
+              <button onclick="setFilter('material')" class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Materiais</button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span id="view-mode-title" class="text-xs font-bold uppercase text-amber-300 font-sub hidden sm:inline">Alforje do Purgatório</span>
+              <button onclick="sortInventory()" title="Ordenar Tomo" class="text-xs bg-amber-950 hover:bg-amber-900 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-800 transition flex items-center gap-1">
+                <i class="fa-solid fa-arrow-down-a-z"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- CAMPO DE BUSCA RÁPIDA (Search Bar) -->
+          <div class="relative w-full">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-amber-600"></i>
+            <input type="text" id="inventory-search" oninput="handleSearch(this.value)" placeholder="Buscar relíquia ou material..." 
+              class="w-full bg-stone-950/90 border border-amber-900/60 focus:border-amber-500 rounded-lg pl-8 pr-3 py-1 text-xs text-amber-100 placeholder-amber-700/60 outline-none font-body transition">
+          </div>
+        </div>
+
+        <!-- Inventory Slots Grid -->
+        <div id="backpack-grid" class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-5 gap-2 flex-grow auto-rows-max p-1 min-h-[280px]">
+          <!-- Rendered dynamically by JS -->
+        </div>
+
+        <!-- Quick Hint Footer -->
+        <div class="mt-3 pt-2 border-t border-amber-900/40 flex justify-between items-center text-[11px] text-amber-300/70 font-script">
+          <span><i class="fa-solid fa-hand-pointer text-amber-400 mr-1"></i> Clique Direito: Menu Contextual</span>
+          <span><i class="fa-solid fa-feather text-amber-400 mr-1"></i> Arraste os itens livremente</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Alchemical Workbench (3 cols) -->
+    <section class="lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col justify-between gap-4">
+      <!-- Crafting Station -->
+      <div>
+        <h2 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 mb-3 flex items-center justify-between font-title">
+          <span><i class="fa-solid fa-flask-vial text-amber-500 mr-2"></i>Bancada Alquímica</span>
+          <span class="text-[10px] text-amber-400/60 font-script">Fórmulas</span>
+        </h2>
+        
+        <div id="recipe-list" class="space-y-2 max-h-[310px] overflow-y-auto pr-1">
+          <!-- Recipes loaded by JS -->
+        </div>
+      </div>
+
+      <!-- Drop Zone / Purge Zone -->
+      <div id="drop-zone" class="border-2 border-dashed border-amber-700/40 hover:border-red-600/80 bg-stone-950/60 hover:bg-red-950/30 rounded-xl p-3 text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer">
+        <i class="fa-solid fa-fire text-2xl text-amber-500 hover:text-red-500 transition"></i>
+        <span class="text-xs font-bold text-amber-200 uppercase tracking-wider font-sub">Oferenda ao Purgatório</span>
+        <span class="text-[10px] text-amber-300/60 font-script">Arraste aqui para incinerar o item</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Hotbar Footer Container -->
+  <footer class="max-w-7xl w-full mx-auto mt-4">
+    <div class="glass-panel rounded-xl p-3 flex items-center justify-center">
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-300/80 hidden sm:inline font-sub">Atalhos Roteados (1-5):</span>
+        <div id="hotbar-grid" class="flex gap-2">
+          <!-- Slots 1-5 populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Dynamic Parchment Tooltip com Comparador de Atributos -->
+  <div id="tooltip" class="fixed hidden z-50 pointer-events-none glass-panel p-3.5 rounded-xl shadow-2xl max-w-xs border border-amber-800/80 fade-in">
+    <div class="flex justify-between items-start gap-3 mb-1">
+      <h3 id="tt-title" class="font-bold text-sm text-amber-100 font-title">Nome do Item</h3>
+      <span id="tt-rarity" class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">Comum</span>
+    </div>
+    <div id="tt-type" class="text-[10px] text-amber-400 font-medium mb-2 uppercase tracking-wider font-script">Tipo</div>
+    <p id="tt-desc" class="text-xs text-amber-200/90 mb-2.5 leading-relaxed font-body">Descrição manuscrita da relíquia.</p>
+    
+    <!-- Item Stats or Effects Box -->
+    <div id="tt-stats" class="text-xs space-y-1 mb-2 pt-2 border-t border-amber-900/60 font-game"></div>
+
+    <!-- COMPARADOR DE ATRIBUTOS (Equipment Attribute Comparison) -->
+    <div id="tt-comparison" class="hidden text-[11px] bg-stone-950/80 p-2 rounded-lg border border-amber-900/50 mb-2 font-game space-y-0.5">
+      <div class="text-[9px] uppercase font-bold text-amber-400 border-b border-amber-900/40 pb-0.5 mb-1">Comparado ao Equipado:</div>
+      <div id="tt-compare-diff"></div>
+    </div>
+
+    <div class="flex justify-between items-center text-[10px] text-amber-300/70 pt-2 border-t border-amber-900/60">
+      <span>Peso: <strong id="tt-weight" class="text-amber-100">0.5 kg</strong></span>
+      <span id="tt-action-hint" class="text-amber-400 font-script">Clique direito: Opções</span>
+    </div>
+  </div>
+
+  <!-- Context Menu Ampliado -->
+  <div id="context-menu" class="fixed hidden z-50 glass-panel rounded-lg py-1 border border-amber-700 shadow-2xl min-w-[160px]">
+    <button id="ctx-action" class="w-full text-left px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-900/40 hover:text-amber-200 flex items-center gap-2 font-sub">
+      <i class="fa-solid fa-play text-xs text-amber-400"></i> <span id="ctx-action-text">Usar / Equipar</span>
+    </button>
+    <button id="ctx-split" class="w-full text-left px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-900/40 hover:text-amber-100 flex items-center gap-2 font-sub">
+      <i class="fa-solid fa-arrows-split-up-and-left text-xs text-amber-400"></i> <span>Dividir Pilha</span>
+    </button>
+    <button id="ctx-drop" class="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-950/40 flex items-center gap-2 font-sub">
+      <i class="fa-solid fa-fire text-xs"></i> <span>Incinerar</span>
+    </button>
+  </div>
+
+  <!-- MODAL DE DIVISÃO DE PILHA (Stack Splitter Modal) -->
+  <div id="split-modal" class="fixed inset-0 z-50 hidden bg-black/75 flex items-center justify-center p-4">
+    <div class="glass-panel p-5 rounded-2xl max-w-xs w-full border border-amber-700 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-amber-900/60 pb-2">
+        <h3 class="text-sm font-bold text-amber-100 font-title"><i class="fa-solid fa-arrows-split-up-and-left text-amber-400 mr-2"></i>Dividir Pilha</h3>
+        <button onclick="closeSplitModal()" class="text-amber-400 hover:text-amber-100 text-xs"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p id="split-item-name" class="text-xs text-amber-200 font-script">Escolha a quantidade a retirar:</p>
+      
+      <div class="flex items-center justify-center gap-3">
+        <input type="range" id="split-slider" min="1" max="1" value="1" oninput="updateSplitVal(this.value)" class="w-full accent-amber-600 bg-stone-900 rounded-lg cursor-pointer">
+        <span id="split-val" class="font-mono text-sm font-bold text-amber-300 w-8 text-center bg-stone-950 px-2 py-1 rounded border border-amber-800">1</span>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="confirmSplitStack()" class="w-full bg-amber-800 hover:bg-amber-700 text-amber-100 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider font-sub transition">Confirmar</button>
+        <button onclick="closeSplitModal()" class="w-full bg-stone-900 hover:bg-stone-800 text-amber-300/70 py-1.5 rounded-lg text-xs font-bold uppercase font-sub transition">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="fixed bottom-20 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    /* ==========================================================================
+       AUDIO SYNTHESIZER ENGINE (Web Audio API - Pure JS SFX)
+       ========================================================================== */
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      },
+      playClick() {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.05);
+      },
+      playEquip() {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(480, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      },
+      playCraft() {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(640, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.18);
+      },
+      playConsume() {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(700, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      }
+    };
+
+    const ITEM_DATABASE = {
+      // Materiais
+      wood_ancient: { id: "wood_ancient", name: "Madeira Ancestral", type: "material", rarity: "common", weight: 0.5, stackable: true, maxStack: 30, icon: "fa-tree-city text-amber-700", desc: "Madeira extraída das árvores flutuantes no purgatório." },
+      ore_purgatory: { id: "ore_purgatory", name: "Minério de Purgatório", type: "material", rarity: "uncommon", weight: 1.2, stackable: true, maxStack: 20, icon: "fa-gem text-indigo-400", desc: "Minério denso impregnado com memórias." },
+      herb_astral: { id: "herb_astral", name: "Erva Astral", type: "material", rarity: "common", weight: 0.1, stackable: true, maxStack: 50, icon: "fa-leaf text-emerald-400", desc: "Planta bioluminescente usada em elixires." },
+      hide_beast: { id: "hide_beast", name: "Pele de Besta", type: "material", rarity: "uncommon", weight: 0.8, stackable: true, maxStack: 20, icon: "fa-scroll text-amber-800", desc: "Couro resistente retirado das criaturas da névoa." },
+      essence_astral: { id: "essence_astral", name: "Essência Astral", type: "material", rarity: "rare", weight: 0.2, stackable: true, maxStack: 10, icon: "fa-meteor text-purple-400", desc: "Fragmento de energia cósmica condensado." },
+
+      // Equipamentos e Conjuntos (Set Bonus)
+      hood_sinner: { id: "hood_sinner", name: "Elmo do Santuário", type: "armor", equipType: "head", set: "sanctuary", rarity: "uncommon", weight: 2.1, stackable: false, icon: "fa-helmet-safety text-amber-300", desc: "Elmo de viseira forjada contra impactos do Santuário.", stats: { def: 8 } },
+      vest_sanctuary: { id: "vest_sanctuary", name: "Túnica do Santuário", type: "armor", equipType: "chest", set: "sanctuary", rarity: "rare", weight: 4.5, stackable: false, icon: "fa-shirt text-amber-600", desc: "Túnica com tramas místicas do Santuário Celeste.", stats: { def: 18 } },
+      penitent_sword: { id: "penitent_sword", name: "Espada do Penitente", type: "weapon", equipType: "right_hand", rarity: "uncommon", weight: 3.5, stackable: false, icon: "fa-sword text-slate-300", desc: "Lâmina afiada forjada para combate.", stats: { atk: 18 } },
+      shield_purgatory: { id: "shield_purgatory", name: "Escudo do Santuário", type: "armor", equipType: "left_hand", set: "sanctuary", rarity: "rare", weight: 3.2, stackable: false, icon: "fa-shield-halved text-sky-400", desc: "Escudo sagrado do conjunto do Santuário.", stats: { def: 14 } },
+      boots_strider: { id: "boots_strider", name: "Botas de Couro", type: "armor", equipType: "feet", rarity: "common", weight: 1.2, stackable: false, icon: "fa-shoe-prints text-amber-700", desc: "Calçado reforçado para caminhadas no purgatório.", stats: { def: 5 } },
+      ring_memory: { id: "ring_memory", name: "Anel do Devoto", type: "accessory", equipType: "accessory", rarity: "legendary", weight: 0.1, stackable: false, icon: "fa-ring text-amber-400", desc: "Banda metálica simples sem adornos que canaliza energia astral.", stats: { magic: 15, def: 5 } },
+
+      // Consumíveis
+      elixir_celestial: { id: "elixir_celestial", name: "Elixir Celeste", type: "consumable", rarity: "rare", weight: 0.3, stackable: true, maxStack: 10, icon: "fa-flask text-sky-400", desc: "Poção purificada que recupera a vitalidade e a sede.", effects: { hp: 45, water: 30 } },
+      ration_purgatory: { id: "ration_purgatory", name: "Ração de Viagem", type: "consumable", rarity: "common", weight: 0.5, stackable: true, maxStack: 15, icon: "fa-drumstick-bite text-amber-600", desc: "Alimento seco nutritivo para expedições.", effects: { food: 45 } }
+    };
+
+    const SET_BONUSES = {
+      sanctuary: {
+        name: "Conjunto do Santuário",
+        reqPieces: 2,
+        stats: { def: 10, atk: 5 },
+        desc: "Bônus (2 Peças): +10 Proteção Física e +5 Dano de Ataque"
+      }
+    };
+
+    const RECIPES = [
+      {
+        id: "penitent_sword",
+        resultId: "penitent_sword",
+        count: 1,
+        ingredients: [{ id: "wood_ancient", count: 4 }, { id: "ore_purgatory", count: 6 }]
+      },
+      {
+        id: "elixir_celestial",
+        resultId: "elixir_celestial",
+        count: 2,
+        ingredients: [{ id: "herb_astral", count: 4 }, { id: "essence_astral", count: 1 }]
+      },
+      {
+        id: "vest_sanctuary",
+        resultId: "vest_sanctuary",
+        count: 1,
+        ingredients: [{ id: "hide_beast", count: 8 }, { id: "ore_purgatory", count: 4 }]
+      }
+    ];
+
+    const TOTAL_BACKPACK_SLOTS = 20;
+    const TOTAL_HOTBAR_SLOTS = 5;
+    const MAX_WEIGHT = 25.0;
+
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    let backpackState = new Array(TOTAL_BACKPACK_SLOTS).fill(null);
+    let hotbarState = new Array(TOTAL_HOTBAR_SLOTS).fill(null);
+
+    let equipmentState = {
+      head: null,
+      chest: null,
+      right_hand: null,
+      left_hand: null,
+      feet: null,
+      accessory: null
+    };
+
+    let playerVitals = { hp: 100, food: 75, water: 60 };
+
+    let masteries = {
+      combat: { name: "Combate (Espadas)", level: 12, xp: 40, icon: "fa-sword text-amber-500" },
+      lumberjack: { name: "Ofício de Lenhador", level: 8, xp: 10, icon: "fa-tree text-emerald-500" },
+      mining: { name: "Mineração Éter", level: 5, xp: 80, icon: "fa-gem text-sky-400" },
+      alchemy: { name: "Alquimia Celeste", level: 14, xp: 20, icon: "fa-flask text-purple-400" }
+    };
+
+    let draggedItemInfo = null;
+    let contextTarget = null;
+
+    const STORAGE_KEY = 'TOMO_PURGATORIO_SAVE_V1';
+
+    function saveGameState() {
+      const data = {
+        backpackState,
+        hotbarState,
+        equipmentState,
+        playerVitals,
+        masteries
+      };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.error('Falha ao salvar no LocalStorage', e);
+      }
+    }
+
+    function loadGameState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.backpackState) backpackState = parsed.backpackState;
+          if (parsed.hotbarState) hotbarState = parsed.hotbarState;
+          if (parsed.equipmentState) equipmentState = parsed.equipmentState;
+          if (parsed.playerVitals) playerVitals = parsed.playerVitals;
+          if (parsed.masteries) masteries = parsed.masteries;
+          return true;
+        }
+      } catch (e) {
+        console.error('Erro ao carregar do LocalStorage', e);
+      }
+      return false;
+    }
+
+    function resetGameState() {
+      localStorage.removeItem(STORAGE_KEY);
+      // Carga padrão inicial
+      backpackState = new Array(TOTAL_BACKPACK_SLOTS).fill(null);
+      hotbarState = new Array(TOTAL_HOTBAR_SLOTS).fill(null);
+      equipmentState = { head: null, chest: null, right_hand: null, left_hand: null, feet: null, accessory: null };
+      playerVitals = { hp: 100, food: 75, water: 60 };
+
+      backpackState[0] = { itemId: "wood_ancient", count: 12 };
+      backpackState[1] = { itemId: "ore_purgatory", count: 8 };
+      backpackState[2] = { itemId: "herb_astral", count: 15 };
+      backpackState[3] = { itemId: "elixir_celestial", count: 3 };
+      backpackState[4] = { itemId: "ration_purgatory", count: 4 };
+      backpackState[5] = { itemId: "penitent_sword", count: 1 };
+      backpackState[6] = { itemId: "hood_sinner", count: 1 };
+
+      showToast('Dados reiniciados para o estado padrão!', 'info');
+      initUI();
+      saveGameState();
+    }
+
+    function initUI() {
+      if (!loadGameState()) {
+        // Inicializar com itens padrões se não houver save
+        backpackState[0] = { itemId: "wood_ancient", count: 12 };
+        backpackState[1] = { itemId: "ore_purgatory", count: 8 };
+        backpackState[2] = { itemId: "herb_astral", count: 15 };
+        backpackState[3] = { itemId: "elixir_celestial", count: 3 };
+        backpackState[4] = { itemId: "ration_purgatory", count: 4 };
+        backpackState[5] = { itemId: "penitent_sword", count: 1 };
+        backpackState[6] = { itemId: "hood_sinner", count: 1 };
+      }
+
+      renderBackpackGrid();
+      renderHotbar();
+      renderEquipment();
+      renderCrafting();
+      renderMasteries();
+      updateVitalsUI();
+      calculateWeight();
+      setupGlobalEvents();
+      startSurvivalLoop();
+    }
+
+    function renderBackpackGrid() {
+      const grid = document.getElementById('backpack-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < TOTAL_BACKPACK_SLOTS; i++) {
+        const item = backpackState[i];
+        const slotEl = document.createElement('div');
+        slotEl.className = 'inventory-slot w-full aspect-square rounded-xl flex items-center justify-center';
+        slotEl.dataset.slotIndex = i;
+        slotEl.dataset.location = 'backpack';
+
+        slotEl.addEventListener('dragover', handleDragOver);
+        slotEl.addEventListener('dragleave', handleDragLeave);
+        slotEl.addEventListener('drop', handleDrop);
+
+        if (item) {
+          const itemDef = ITEM_DATABASE[item.itemId];
+          if (itemDef && matchesFilter(itemDef) && matchesSearch(itemDef)) {
+            const itemCard = createItemCard(item, itemDef, 'backpack', i);
+            slotEl.appendChild(itemCard);
+          }
+        }
+
+        grid.appendChild(slotEl);
+      }
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      renderBackpackGrid();
+    }
+
+    function matchesSearch(itemDef) {
+      if (!searchQuery) return true;
+      return itemDef.name.toLowerCase().includes(searchQuery) || itemDef.desc.toLowerCase().includes(searchQuery);
+    }
+
+    function matchesFilter(itemDef) {
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'equipment' && (itemDef.type === 'weapon' || itemDef.type === 'armor' || itemDef.type === 'accessory')) return true;
+      if (currentFilter === 'consumable' && itemDef.type === 'consumable') return true;
+      if (currentFilter === 'material' && itemDef.type === 'material') return true;
+      return false;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-amber-800', 'text-amber-100');
+        btn.classList.add('text-amber-300/70');
+      });
+      event.target.classList.add('active', 'bg-amber-800', 'text-amber-100');
+      event.target.classList.remove('text-amber-300/70');
+      renderBackpackGrid();
+    }
+
+    function renderHotbar() {
+      const grid = document.getElementById('hotbar-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < TOTAL_HOTBAR_SLOTS; i++) {
+        const item = hotbarState[i];
+        const slotEl = document.createElement('div');
+        slotEl.className = 'inventory-slot w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center relative';
+        slotEl.dataset.slotIndex = i;
+        slotEl.dataset.location = 'hotbar';
+
+        const keyTag = document.createElement('span');
+        keyTag.className = 'absolute top-1 left-1.5 text-[9px] font-mono font-bold text-amber-400 bg-stone-950/90 px-1 rounded pointer-events-none z-10 border border-amber-900/40';
+        keyTag.innerText = i + 1;
+        slotEl.appendChild(keyTag);
+
+        slotEl.addEventListener('dragover', handleDragOver);
+        slotEl.addEventListener('dragleave', handleDragLeave);
+        slotEl.addEventListener('drop', handleDrop);
+
+        if (item) {
+          const itemDef = ITEM_DATABASE[item.itemId];
+          if (itemDef) {
+            const itemCard = createItemCard(item, itemDef, 'hotbar', i);
+            slotEl.appendChild(itemCard);
+          }
+        }
+
+        grid.appendChild(slotEl);
+      }
+    }
+
+    function renderEquipment() {
+      Object.keys(equipmentState).forEach(equipSlot => {
+        const slotEl = document.getElementById(`slot-${equipSlot}`);
+        if (!slotEl) return;
+
+        slotEl.innerHTML = '';
+        slotEl.addEventListener('dragover', handleDragOver);
+        slotEl.addEventListener('dragleave', handleDragLeave);
+        slotEl.addEventListener('drop', handleDrop);
+
+        const item = equipmentState[equipSlot];
+        if (item) {
+          const itemDef = ITEM_DATABASE[item.itemId];
+          if (itemDef) {
+            const itemCard = createItemCard(item, itemDef, 'equip', equipSlot);
+            slotEl.appendChild(itemCard);
+          }
+        }
+      });
+
+      updateStatsUI();
+    }
+
+    function createItemCard(item, itemDef, location, index) {
+      const card = document.createElement('div');
+      card.className = `item-card w-full h-full flex flex-col items-center justify-center relative p-1 rounded-xl rarity-${itemDef.rarity}`;
+      card.draggable = true;
+
+      const icon = document.createElement('i');
+      icon.className = `fa-solid ${itemDef.icon} text-2xl sm:text-3xl drop-shadow-md pointer-events-none`;
+      card.appendChild(icon);
+
+      if (item.count > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'absolute bottom-1 right-1 text-[10px] font-mono font-bold text-amber-100 bg-stone-950/90 px-1.5 py-0.2 rounded border border-amber-800 pointer-events-none z-10';
+        badge.innerText = item.count;
+        card.appendChild(badge);
+      }
+
+      card.addEventListener('dragstart', () => {
+        draggedItemInfo = { location, index, item };
+        card.classList.add('opacity-40');
+        hideTooltip();
+        hideContextMenu();
+      });
+
+      card.addEventListener('dragend', () => card.classList.remove('opacity-40'));
+      card.addEventListener('mouseenter', (e) => showTooltip(e, itemDef, item, location));
+      card.addEventListener('mousemove', moveTooltip);
+      card.addEventListener('mouseleave', hideTooltip);
+
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(e, location, index, item, itemDef);
+      });
+
+      card.addEventListener('dblclick', () => {
+        quickAction(location, index, item, itemDef);
+      });
+
+      return card;
+    }
+
+    function updateStatsUI() {
+      let atk = 10;
+      let def = 0;
+      let magic = 0;
+
+      // Equipamento base
+      const equippedSets = {};
+
+      Object.values(equipmentState).forEach(item => {
+        if (item) {
+          const defs = ITEM_DATABASE[item.itemId];
+          if (defs) {
+            if (defs.stats) {
+              if (defs.stats.atk) atk += defs.stats.atk;
+              if (defs.stats.def) def += defs.stats.def;
+              if (defs.stats.magic) magic += defs.stats.magic;
+            }
+            if (defs.set) {
+              equippedSets[defs.set] = (equippedSets[defs.set] || 0) + 1;
+            }
+          }
+        }
+      });
+
+      // Checar Bônus de Conjunto
+      const setContainer = document.getElementById('set-bonus-container');
+      setContainer.innerHTML = '';
+      let hasActiveSet = false;
+
+      Object.keys(equippedSets).forEach(setKey => {
+        const setDef = SET_BONUSES[setKey];
+        if (setDef && equippedSets[setKey] >= setDef.reqPieces) {
+          hasActiveSet = true;
+          if (setDef.stats.atk) atk += setDef.stats.atk;
+          if (setDef.stats.def) def += setDef.stats.def;
+          if (setDef.stats.magic) magic += setDef.stats.magic;
+
+          setContainer.innerHTML += `
+            <div class="text-amber-300 flex items-center justify-between font-bold">
+              <span><i class="fa-solid fa-layer-group text-amber-400 mr-1"></i> ${setDef.name}</span>
+              <span class="text-[9px] bg-amber-950 px-1 border border-amber-800 rounded">ATIVO</span>
+            </div>
+            <div class="text-amber-200/70 text-[10px] leading-tight">${setDef.desc}</div>
+          `;
+        }
+      });
+
+      if (!hasActiveSet) {
+        setContainer.innerHTML = `<span class="text-[10px] text-amber-400/50 italic">Nenhum bônus de conjunto ativo.</span>`;
+      }
+
+      document.getElementById('stat-atk').innerText = atk;
+      document.getElementById('stat-def').innerText = def;
+      document.getElementById('stat-magic').innerText = magic;
+    }
+
+    function renderMasteries() {
+      const container = document.getElementById('masteries-container');
+      container.innerHTML = '';
+
+      Object.keys(masteries).forEach(mKey => {
+        const m = masteries[mKey];
+        const row = document.createElement('div');
+        row.className = 'space-y-0.5 text-xs';
+
+        row.innerHTML = `
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="text-amber-200/90 font-semibold"><i class="fa-solid ${m.icon} w-4"></i> ${m.name}</span>
+            <span class="font-mono text-amber-400 font-bold">Nível ${m.level}/100</span>
+          </div>
+          <div class="w-full bg-stone-950 h-1.5 rounded-full overflow-hidden border border-amber-900/40">
+            <div class="bg-gradient-to-r from-amber-700 to-amber-400 h-1.5 rounded-full" style="width: ${m.xp}%"></div>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
+    function renderCrafting() {
+      const listContainer = document.getElementById('recipe-list');
+      listContainer.innerHTML = '';
+
+      RECIPES.forEach(recipe => {
+        const resultDef = ITEM_DATABASE[recipe.resultId];
+        const canCraft = checkCanCraft(recipe);
+
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between ${
+          canCraft 
+            ? 'bg-stone-900/80 border-amber-800/80 hover:border-amber-500/50' 
+            : 'bg-stone-950/40 border-stone-900 opacity-60'
+        }`;
+
+        let ingHtml = recipe.ingredients.map(ing => {
+          const ingDef = ITEM_DATABASE[ing.id];
+          const hasCount = countPlayerItem(ing.id);
+          const hasEnough = hasCount >= ing.count;
+          return `<span class="${hasEnough ? 'text-amber-200' : 'text-red-400 font-semibold'}">${ingDef.name} (${hasCount}/${ing.count})</span>`;
+        }).join(', ');
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-lg bg-stone-950 flex items-center justify-center text-lg text-amber-400 border border-amber-900/60">
+              <i class="fa-solid ${resultDef.icon}"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-amber-100 font-title">${resultDef.name}</h4>
+              <p class="text-[9px] text-amber-300/70 font-game">${ingHtml}</p>
+            </div>
+          </div>
+          <button ${!canCraft ? 'disabled' : ''} onclick="craftRecipe('${recipe.id}')" 
+            class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition ${
+              canCraft 
+                ? 'bg-amber-700 hover:bg-amber-600 text-amber-100 shadow-lg' 
+                : 'bg-stone-800 text-stone-600 cursor-not-allowed'
+            }">
+            Criar
+          </button>
+        `;
+
+        listContainer.appendChild(card);
+      });
+    }
+
+    function checkCanCraft(recipe) {
+      return recipe.ingredients.every(ing => countPlayerItem(ing.id) >= ing.count);
+    }
+
+    function countPlayerItem(itemId) {
+      let total = 0;
+      backpackState.forEach(slot => { if (slot && slot.itemId === itemId) total += slot.count; });
+      hotbarState.forEach(slot => { if (slot && slot.itemId === itemId) total += slot.count; });
+      return total;
+    }
+
+    function craftRecipe(recipeId) {
+      const recipe = RECIPES.find(r => r.id === recipeId);
+      if (!recipe || !checkCanCraft(recipe)) return;
+
+      recipe.ingredients.forEach(ing => {
+        let rem = ing.count;
+        for (let i = 0; i < backpackState.length; i++) {
+          if (backpackState[i] && backpackState[i].itemId === ing.id) {
+            if (backpackState[i].count > rem) {
+              backpackState[i].count -= rem;
+              rem = 0;
+              break;
+            } else {
+              rem -= backpackState[i].count;
+              backpackState[i] = null;
+            }
+          }
+        }
+      });
+
+      addItemToState(backpackState, recipe.resultId, recipe.count);
+      AudioEngine.playCraft();
+      showToast(`Item Criado: ${ITEM_DATABASE[recipe.resultId].name}`, 'success');
+
+      renderBackpackGrid();
+      renderHotbar();
+      renderCrafting();
+      calculateWeight();
+      saveGameState();
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      this.classList.add('drag-over');
+    }
+
+    function handleDragLeave() {
+      this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+
+      if (!draggedItemInfo) return;
+
+      const targetLoc = this.dataset.location || this.dataset.equipType;
+      const targetIndex = this.dataset.slotIndex || this.dataset.equipType;
+
+      moveItem(draggedItemInfo.location, draggedItemInfo.index, targetLoc, targetIndex);
+      draggedItemInfo = null;
+    }
+
+    function moveItem(fromLoc, fromIdx, toLoc, toIdx) {
+      let sourceItem = getItemFromLocation(fromLoc, fromIdx);
+      if (!sourceItem) return;
+
+      const itemDef = ITEM_DATABASE[sourceItem.itemId];
+
+      // Validar encaixe do slot de equipamento
+      if (['head', 'chest', 'right_hand', 'left_hand', 'feet', 'accessory'].includes(toLoc)) {
+        if (!itemDef.equipType || itemDef.equipType !== toLoc) {
+          showToast(`Incompatível com a Posição: ${toLoc}`, 'error');
+          return;
+        }
+      }
+
+      let destItem = getItemFromLocation(toLoc, toIdx);
+
+      if (destItem && destItem.itemId === sourceItem.itemId && itemDef.stackable) {
+        const max = itemDef.maxStack || 99;
+        const total = destItem.count + sourceItem.count;
+        if (total <= max) {
+          destItem.count = total;
+          setItemAtLocation(fromLoc, fromIdx, null);
+        } else {
+          destItem.count = max;
+          sourceItem.count = total - max;
+        }
+      } else {
+        setItemAtLocation(fromLoc, fromIdx, destItem);
+        setItemAtLocation(toLoc, toIdx, sourceItem);
+      }
+
+      AudioEngine.playEquip();
+      renderBackpackGrid();
+      renderHotbar();
+      renderEquipment();
+      renderCrafting();
+      calculateWeight();
+      saveGameState();
+    }
+
+    function getItemFromLocation(loc, idx) {
+      if (loc === 'backpack') return backpackState[idx];
+      if (loc === 'hotbar') return hotbarState[idx];
+      if (['head', 'chest', 'right_hand', 'left_hand', 'feet', 'accessory'].includes(loc)) return equipmentState[loc];
+      return null;
+    }
+
+    function setItemAtLocation(loc, idx, item) {
+      if (loc === 'backpack') backpackState[idx] = item;
+      else if (loc === 'hotbar') hotbarState[idx] = item;
+      else if (['head', 'chest', 'right_hand', 'left_hand', 'feet', 'accessory'].includes(loc)) equipmentState[loc] = item;
+    }
+
+    function quickAction(loc, idx, item, itemDef) {
+      if (itemDef.type === 'consumable') {
+        consumeItem(loc, idx, item, itemDef);
+      } else if (itemDef.equipType) {
+        if (loc === 'equip') {
+          const freeSlot = backpackState.findIndex(s => s === null);
+          if (freeSlot !== -1) moveItem(loc, idx, 'backpack', freeSlot);
+          else showToast('Alforje cheio!', 'error');
+        } else {
+          moveItem(loc, idx, itemDef.equipType, itemDef.equipType);
+        }
+      }
+    }
+
+    function consumeItem(loc, idx, item, itemDef) {
+      if (!itemDef.effects) return;
+
+      if (itemDef.effects.hp) playerVitals.hp = Math.min(100, playerVitals.hp + itemDef.effects.hp);
+      if (itemDef.effects.food) playerVitals.food = Math.min(100, playerVitals.food + itemDef.effects.food);
+      if (itemDef.effects.water) playerVitals.water = Math.min(100, playerVitals.water + itemDef.effects.water);
+
+      AudioEngine.playConsume();
+      showToast(`Consumido: ${itemDef.name}`, 'info');
+
+      if (item.count > 1) {
+        item.count--;
+      } else {
+        setItemAtLocation(loc, idx, null);
+      }
+
+      updateVitalsUI();
+      renderBackpackGrid();
+      renderHotbar();
+      calculateWeight();
+      saveGameState();
+    }
+
+    function startSurvivalLoop() {
+      // A cada 12 segundos, drena 1% de Fome e 1.5% de Sede
+      setInterval(() => {
+        playerVitals.food = Math.max(0, playerVitals.food - 1);
+        playerVitals.water = Math.max(0, playerVitals.water - 1.5);
+
+        // Se a fome ou a sede chegarem a 0, perde vida gradualmente
+        if (playerVitals.food === 0 || playerVitals.water === 0) {
+          playerVitals.hp = Math.max(0, playerVitals.hp - 2);
+          if (playerVitals.hp === 0) {
+            showToast('O Penitente sucumbiu no Purgatório...', 'error');
+          } else {
+            showToast('Sua vitalidade está esvaindo por fome/sede!', 'error');
+          }
+        }
+
+        updateVitalsUI();
+        saveGameState();
+      }, 12000);
+    }
+
+    function updateVitalsUI() {
+      document.getElementById('vital-hp').style.width = `${playerVitals.hp}%`;
+      document.getElementById('txt-hp').innerText = `${Math.round(playerVitals.hp)}%`;
+
+      document.getElementById('vital-food').style.width = `${playerVitals.food}%`;
+      document.getElementById('txt-food').innerText = `${Math.round(playerVitals.food)}%`;
+
+      document.getElementById('vital-water').style.width = `${playerVitals.water}%`;
+      document.getElementById('txt-water').innerText = `${Math.round(playerVitals.water)}%`;
+    }
+
+    function addItemToState(stateArr, itemId, count = 1) {
+      const itemDef = ITEM_DATABASE[itemId];
+      if (!itemDef) return false;
+
+      if (itemDef.stackable) {
+        for (let i = 0; i < stateArr.length; i++) {
+          if (stateArr[i] && stateArr[i].itemId === itemId && stateArr[i].count < itemDef.maxStack) {
+            stateArr[i].count += count;
+            return true;
+          }
+        }
+      }
+
+      const emptyIdx = stateArr.findIndex(s => s === null);
+      if (emptyIdx !== -1) {
+        stateArr[emptyIdx] = { itemId, count };
+        return true;
+      }
+      return false;
+    }
+
+    function calculateWeight() {
+      let currentWeight = 0;
+      const tally = (item) => {
+        if (item) {
+          const def = ITEM_DATABASE[item.itemId];
+          if (def) currentWeight += def.weight * item.count;
+        }
+      };
+
+      backpackState.forEach(tally);
+      hotbarState.forEach(tally);
+      Object.values(equipmentState).forEach(tally);
+
+      const bar = document.getElementById('weight-bar');
+      const text = document.getElementById('weight-text');
+      const pct = Math.min(100, (currentWeight / MAX_WEIGHT) * 100);
+
+      text.innerText = `${currentWeight.toFixed(1)} / ${MAX_WEIGHT.toFixed(1)} kg`;
+      bar.style.width = `${pct}%`;
+
+      if (pct > 90) bar.className = 'h-2 bg-red-500 rounded transition-all duration-300';
+      else if (pct > 70) bar.className = 'h-2 bg-amber-500 rounded transition-all duration-300';
+      else bar.className = 'h-2 bg-emerald-500 rounded transition-all duration-300';
+    }
+
+    function sortInventory() {
+      let validItems = backpackState.filter(Boolean);
+
+      validItems.sort((a, b) => {
+        const defA = ITEM_DATABASE[a.itemId];
+        const defB = ITEM_DATABASE[b.itemId];
+        return defA.type.localeCompare(defB.type) || defA.name.localeCompare(defB.name);
+      });
+
+      backpackState.fill(null);
+      validItems.forEach((item, idx) => backpackState[idx] = item);
+
+      AudioEngine.playClick();
+      renderBackpackGrid();
+      saveGameState();
+    }
+
+    const tooltip = document.getElementById('tooltip');
+
+    function showTooltip(e, itemDef, item, location) {
+      document.getElementById('tt-title').innerText = itemDef.name;
+      document.getElementById('tt-type').innerText = itemDef.type;
+      document.getElementById('tt-desc').innerText = itemDef.desc;
+      document.getElementById('tt-weight').innerText = `${(itemDef.weight * item.count).toFixed(1)} kg`;
+      document.getElementById('tt-rarity').innerText = itemDef.rarity;
+
+      const statsBox = document.getElementById('tt-stats');
+      statsBox.innerHTML = '';
+
+      if (itemDef.stats) {
+        if (itemDef.stats.atk) statsBox.innerHTML += `<div class="text-amber-400 flex items-center gap-1"><svg class="w-3.5 h-3.5 fill-amber-400 inline-block" viewBox="0 0 24 24"><path d="M12 1l2 3v10h3.5v2H13.5v4h1v3h-5v-3h1v-4H6.5v-2H10V4l2-3zm-1 3.5h2V14h-2V4.5z"/></svg> Dano Ataque: +${itemDef.stats.atk}</div>`;
+        if (itemDef.stats.def) statsBox.innerHTML += `<div class="text-sky-300"><i class="fa-solid fa-shield mr-1"></i> Proteção: +${itemDef.stats.def}</div>`;
+        if (itemDef.stats.magic) statsBox.innerHTML += `<div class="text-purple-300"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Poder Astral: +${itemDef.stats.magic}</div>`;
+      }
+
+      if (itemDef.effects) {
+        if (itemDef.effects.hp) statsBox.innerHTML += `<div class="text-red-400"><i class="fa-solid fa-heart mr-1"></i> Cura: +${itemDef.effects.hp} HP</div>`;
+        if (itemDef.effects.food) statsBox.innerHTML += `<div class="text-amber-500"><i class="fa-solid fa-drumstick-bite mr-1"></i> Fome: +${itemDef.effects.food}</div>`;
+        if (itemDef.effects.water) statsBox.innerHTML += `<div class="text-sky-400"><i class="fa-solid fa-droplet mr-1"></i> Sede: +${itemDef.effects.water}</div>`;
+      }
+
+      // COMPARADOR DE ATRIBUTOS
+      const compBox = document.getElementById('tt-comparison');
+      const compDiff = document.getElementById('tt-compare-diff');
+      compBox.classList.add('hidden');
+      compDiff.innerHTML = '';
+
+      if (location !== 'equip' && itemDef.equipType) {
+        const currentlyEquipped = equipmentState[itemDef.equipType];
+        const equippedDef = currentlyEquipped ? ITEM_DATABASE[currentlyEquipped.itemId] : null;
+
+        let diffHtml = '';
+
+        const newAtk = (itemDef.stats && itemDef.stats.atk) || 0;
+        const curAtk = (equippedDef && equippedDef.stats && equippedDef.stats.atk) || 0;
+        const dAtk = newAtk - curAtk;
+
+        const newDef = (itemDef.stats && itemDef.stats.def) || 0;
+        const curDef = (equippedDef && equippedDef.stats && equippedDef.stats.def) || 0;
+        const dDef = newDef - curDef;
+
+        const newMag = (itemDef.stats && itemDef.stats.magic) || 0;
+        const curMag = (equippedDef && equippedDef.stats && equippedDef.stats.magic) || 0;
+        const dMag = newMag - curMag;
+
+        if (dAtk !== 0) diffHtml += `<div class="${dAtk > 0 ? 'text-emerald-400' : 'text-red-400'}">Dano Ataque: ${dAtk > 0 ? '+' : ''}${dAtk}</div>`;
+        if (dDef !== 0) diffHtml += `<div class="${dDef > 0 ? 'text-emerald-400' : 'text-red-400'}">Proteção: ${dDef > 0 ? '+' : ''}${dDef}</div>`;
+        if (dMag !== 0) diffHtml += `<div class="${dMag > 0 ? 'text-emerald-400' : 'text-red-400'}">Poder Astral: ${dMag > 0 ? '+' : ''}${dMag}</div>`;
+
+        if (!equippedDef) {
+          diffHtml = `<div class="text-emerald-400">Nenhum item equipado neste slot (+Atributos Diretos)</div>`;
+        } else if (diffHtml === '') {
+          diffHtml = `<div class="text-amber-300/70">Atributos idênticos ao item equipado</div>`;
+        }
+
+        compDiff.innerHTML = diffHtml;
+        compBox.classList.remove('hidden');
+      }
+
+      tooltip.classList.remove('hidden');
+      moveTooltip(e);
+    }
+
+    function moveTooltip(e) {
+      tooltip.style.left = `${e.clientX + 15}px`;
+      tooltip.style.top = `${e.clientY + 15}px`;
+    }
+
+    function hideTooltip() { tooltip.classList.add('hidden'); }
+
+    const ctxMenu = document.getElementById('context-menu');
+    function showContextMenu(e, loc, idx, item, itemDef) {
+      contextTarget = { loc, idx, item, itemDef };
+      
+      const splitBtn = document.getElementById('ctx-split');
+      if (itemDef.stackable && item.count > 1 && loc === 'backpack') {
+        splitBtn.classList.remove('hidden');
+      } else {
+        splitBtn.classList.add('hidden');
+      }
+
+      ctxMenu.style.left = `${e.clientX}px`;
+      ctxMenu.style.top = `${e.clientY}px`;
+      ctxMenu.classList.remove('hidden');
+    }
+
+    function hideContextMenu() { ctxMenu.classList.add('hidden'); }
+
+    // Divisão de Pilhas Modal Logic
+    function openSplitModal() {
+      if (!contextTarget) return;
+      const { item, itemDef } = contextTarget;
+      document.getElementById('split-item-name').innerText = `Dividir pilha de ${itemDef.name} (${item.count} disponíveis):`;
+      const slider = document.getElementById('split-slider');
+      slider.min = 1;
+      slider.max = item.count - 1;
+      slider.value = Math.floor(item.count / 2);
+      updateSplitVal(slider.value);
+      
+      document.getElementById('split-modal').classList.remove('hidden');
+      hideContextMenu();
+    }
+
+    function updateSplitVal(val) {
+      document.getElementById('split-val').innerText = val;
+    }
+
+    function closeSplitModal() {
+      document.getElementById('split-modal').classList.add('hidden');
+    }
+
+    function confirmSplitStack() {
+      if (!contextTarget) return;
+      const amount = parseInt(document.getElementById('split-slider').value);
+      const { loc, idx, item } = contextTarget;
+
+      if (amount > 0 && amount < item.count) {
+        const freeIdx = backpackState.findIndex(s => s === null);
+        if (freeIdx === -1) {
+          showToast('Nenhum slot livre para a pilha dividida!', 'error');
+          closeSplitModal();
+          return;
+        }
+
+        item.count -= amount;
+        backpackState[freeIdx] = { itemId: item.itemId, count: amount };
+
+        showToast(`Pilha dividida: -${amount} un.`, 'info');
+        renderBackpackGrid();
+        saveGameState();
+      }
+
+      closeSplitModal();
+    }
+
+    function setupGlobalEvents() {
+      document.addEventListener('click', () => hideContextMenu());
+
+      document.getElementById('ctx-action').addEventListener('click', () => {
+        if (contextTarget) quickAction(contextTarget.loc, contextTarget.idx, contextTarget.item, contextTarget.itemDef);
+      });
+
+      document.getElementById('ctx-split').addEventListener('click', () => {
+        openSplitModal();
+      });
+
+      document.getElementById('ctx-drop').addEventListener('click', () => {
+        if (contextTarget) {
+          setItemAtLocation(contextTarget.loc, contextTarget.idx, null);
+          showToast(`Descartado: ${contextTarget.itemDef.name}`, 'info');
+          renderBackpackGrid();
+          renderHotbar();
+          renderEquipment();
+          calculateWeight();
+          saveGameState();
+        }
+      });
+
+      const dropZone = document.getElementById('drop-zone');
+      dropZone.addEventListener('dragover', handleDragOver);
+      dropZone.addEventListener('dragleave', handleDragLeave);
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (draggedItemInfo) {
+          const itemDef = ITEM_DATABASE[draggedItemInfo.item.itemId];
+          setItemAtLocation(draggedItemInfo.location, draggedItemInfo.index, null);
+          showToast(`Incinerado no Purgatório: ${itemDef.name}`, 'info');
+          renderBackpackGrid();
+          renderHotbar();
+          renderEquipment();
+          calculateWeight();
+          saveGameState();
+          draggedItemInfo = null;
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        const key = parseInt(e.key);
+        if (key >= 1 && key <= 5) {
+          const item = hotbarState[key - 1];
+          if (item) {
+            const def = ITEM_DATABASE[item.itemId];
+            quickAction('hotbar', key - 1, item, def);
+          }
+        }
+      });
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `glass-panel px-4 py-2 rounded-xl text-xs font-semibold shadow-2xl flex items-center gap-2 border fade-in font-sub ${
+        type === 'error' ? 'border-red-600/60 text-red-300' :
+        type === 'success' ? 'border-amber-500/60 text-amber-200' :
+        'border-amber-600/50 text-amber-300'
+      }`;
+
+      const icon = type === 'error' ? 'fa-triangle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-scroll';
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    window.onload = function() {
+      initUI();
+    };
+  </script>
+</body>
+</html>
