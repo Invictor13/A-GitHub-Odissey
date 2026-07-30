@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>A GitHub Odyssey - Santuário Celeste (Hub AAA + Física)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+        
+        #error-console { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(220, 38, 38, 0.95); color: white; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999; display: none; white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+
+        #resource-bar {
+            position: absolute; top: 20px; right: 20px; z-index: 98;
+            display: flex; gap: 14px; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px);
+            padding: 12px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8); color: #fff; font-weight: 800; font-size: 13px;
+            flex-wrap: wrap;
+        }
+        .res-item { display: flex; align-items: center; gap: 6px; }
+        .res-item span { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+
+        #build-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 480px; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(24px);
+            border: 2px solid #ffd700; border-radius: 20px; padding: 25px;
+            z-index: 105; display: none; flex-direction: column; gap: 16px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);
+            color: #fff;
+        }
+        .modal-header { display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 5px;}
+        .modal-header .dog-avatar { width: 50px; height: 50px; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px solid #ffd700; flex-shrink: 0; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        .modal-title-area h2 { margin: 0; font-size: 18px; color: #ffd700; text-transform: uppercase; letter-spacing: 1px; }
+        .modal-title-area p { margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; }
+
+        .building-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .building-info h3 { margin: 0 0 4px 0; font-size: 14px; color: #38bdf8; }
+        .building-info p { margin: 0; font-size: 11px; color: #94a3b8; }
+        .building-cost { font-size: 11px; color: #ffd700; margin-top: 4px; font-weight: 700; }
+        .btn-construct { background: #38bdf8; color: #0f172a; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; transition: 0.2s; font-size: 11px; text-transform: uppercase; }
+        .btn-construct:hover { background: #0ea5e9; transform: scale(1.05); }
+        .btn-construct:disabled { background: #334155; color: #64748b; cursor: not-allowed; transform: none; }
+
+        .btn-embark { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; color: white; cursor: pointer; margin-top: 10px;}
+        .btn-embark:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6); }
+
+        .close-modal { position: absolute; top: 15px; right: 18px; background: none; border: none; color: #94a3b8; font-size: 18px; font-weight: 900; cursor: pointer; }
+        .close-modal:hover { color: #fff; }
+
+        #interaction-prompt {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); border: 2px solid #ffd700; color: white;
+            padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 900;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3); pointer-events: none; opacity: 0; transition: opacity 0.3s ease; z-index: 100;
+            text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px;
+        }
+        #interaction-prompt span { background: #ffd700; color: #000; padding: 2px 8px; border-radius: 6px; }
+
+        #dialogue-box {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 550px; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px);
+            border: 2px solid #38bdf8; border-radius: 16px; padding: 16px 24px;
+            z-index: 90; display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); color: #fff; opacity: 0; transition: opacity 0.4s; pointer-events: none;
+        }
+        .dialogue-content h4 { margin: 0 0 4px 0; color: #38bdf8; font-size: 13px; text-transform: uppercase; }
+        .dialogue-content p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.4; }
+
+        #instructions { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 24px; border-radius: 20px; font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); pointer-events: none; border: 1px solid rgba(255,255,255,0.1); z-index: 80;}
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="error-console"></div>
+
+    <div id="resource-bar">
+        <div class="res-item">🪙 Ouro: <span id="res-gold">99999</span></div>
+        <div class="res-item">🪵 Madeira: <span id="res-wood">99999</span></div>
+        <div class="res-item">💎 Minério: <span id="res-ore">99999</span></div>
+        <div class="res-item">🌾 Palha: <span id="res-straw">99999</span></div>
+    </div>
+
+    <div id="interaction-prompt"><span>E</span> Falar com o Capitão</div>
+
+    <div id="dialogue-box">
+        <div class="dog-avatar" style="border-color: #38bdf8;">🐶</div>
+        <div class="dialogue-content">
+            <h4 id="dog-name">Capitão Cimentado</h4>
+            <p id="dog-text">"..."</p>
+        </div>
+    </div>
+
+    <div id="build-modal">
+        <button class="close-modal" id="btnCloseModal">✕</button>
+        <div class="modal-header">
+            <div class="dog-avatar">🐶</div>
+            <div class="modal-title-area">
+                <h2>Prancheta do Capitão</h2>
+                <p>Gere o Santuário Celeste ou parta para uma Incursão.</p>
+            </div>
+        </div>
+        
+        <div class="building-card">
+            <div class="building-info">
+                <h3>➕ Expandir Setor da Ilha</h3>
+                <p>Ergue novos relevos, colinas e caminhos para a base.</p>
+                <div class="building-cost">Custo: 30 Madeira, 15 Minério (Infinito)</div>
+            </div>
+            <button class="btn-construct" id="btnBuildIsland" onclick="constructItem('island')">Expandir</button>
+        </div>
+
+        <div class="building-card">
+            <div class="building-info">
+                <h3>⚒️ Forja Ancestral</h3>
+                <p>Invoca o Ferreiro para melhorar os equipamentos iniciais.</p>
+                <div class="building-cost">Custo: 50 Madeira, 30 Minério (Infinito)</div>
+            </div>
+            <button class="btn-construct" id="btnBuildForge" onclick="constructItem('forge')">Construir</button>
+        </div>
+
+        <div class="building-card">
+            <div class="building-info">
+                <h3>🌾 Terraço de Plantação</h3>
+                <p>Invoca o Fazendeiro. Fornece bônus de sobrevivência.</p>
+                <div class="building-cost">Custo: 25 Madeira, 20 Palha (Infinito)</div>
+            </div>
+            <button class="btn-construct" id="btnBuildFarm" onclick="constructItem('farm')">Construir</button>
+        </div>
+
+        <div class="building-card">
+            <div class="building-info">
+                <h3>🐾 Abrigo de Animais</h3>
+                <p>Cria um cercado para a fauna resgatada nas runs.</p>
+                <div class="building-cost">Custo: 40 Madeira, 30 Palha (Infinito)</div>
+            </div>
+            <button class="btn-construct" id="btnBuildAnimal" onclick="constructItem('animal')">Construir</button>
+        </div>
+
+        <button class="btn-embark" id="btnEmbarkModal">⚔️ Partir para Incursão</button>
+    </div>
+
+    <div id="instructions">WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        window.addEventListener('error', (e) => {
+            const errBox = document.getElementById('error-console');
+            if (errBox) { errBox.style.display = 'block'; errBox.innerText = '⚠️ ERRO:\n' + e.message + '\nLinha: ' + e.lineno; }
+        });
+
+        // Recursos infinitos para teste
+        const resources = { gold: 99999, wood: 99999, ore: 99999, straw: 99999 };
+        const buildingsBuilt = { island: 0, forge: false, farm: false, animal: false };
+        const ISLAND_SIZE = 22.0; 
+        
+        const groundMeshes = []; 
+        const npcs = [];
+
+        window.constructItem = function(type) {
+            if (type === 'island') {
+                if (resources.wood >= 30 && resources.ore >= 15) {
+                    resources.wood -= 30; resources.ore -= 15;
+                    buildingsBuilt.island++;
+                    updateResUI();
+                    triggerIslandExpansion(buildingsBuilt.island);
+                    triggerDogBark("Buf! Mais terra firme abaixo das nossas patas. Trabalho sólido!");
+                }
+            } else if (type === 'forge') {
+                if (!buildingsBuilt.forge && resources.wood >= 50 && resources.ore >= 30 && resources.gold >= 50) {
+                    resources.wood -= 50; resources.ore -= 30; resources.gold -= 50;
+                    buildingsBuilt.forge = true; updateResUI();
+                    document.getElementById('btnBuildForge').innerText = "Construído";
+                    document.getElementById('btnBuildForge').disabled = true;
+                    spawnBuildingModel('forge', 14, 0, 0);
+                    triggerDogBark("A fornalha arde! E o nosso Ferreiro de confiança chegou.");
+                }
+            } else if (type === 'farm') {
+                if (!buildingsBuilt.farm && resources.wood >= 25 && resources.straw >= 20) {
+                    resources.wood -= 25; resources.straw -= 20;
+                    buildingsBuilt.farm = true; updateResUI();
+                    document.getElementById('btnBuildFarm').innerText = "Construído";
+                    document.getElementById('btnBuildFarm').disabled = true;
+                    spawnBuildingModel('farm', -14, 0, 0);
+                    triggerDogBark("Terra arada. O agricultor vai garantir a nossa ração.");
+                }
+            } else if (type === 'animal') {
+                if (!buildingsBuilt.animal && resources.wood >= 40 && resources.straw >= 30 && resources.gold >= 40) {
+                    resources.wood -= 40; resources.straw -= 30; resources.gold -= 40;
+                    buildingsBuilt.animal = true; updateResUI();
+                    document.getElementById('btnBuildAnimal').innerText = "Construído";
+                    document.getElementById('btnBuildAnimal').disabled = true;
+                    spawnBuildingModel('animal', 0, 0, -14);
+                    triggerDogBark("Cercado erguido! Espaço seguro para os bichos.");
+                }
+            }
+        };
+
+        function updateResUI() {
+            document.getElementById('res-gold').innerText = resources.gold;
+            document.getElementById('res-wood').innerText = resources.wood;
+            document.getElementById('res-ore').innerText = resources.ore;
+            document.getElementById('res-straw').innerText = resources.straw;
+        }
+
+        let barkTimeout;
+        function triggerDogBark(text) {
+            const diagBox = document.getElementById('dialogue-box');
+            document.getElementById('dog-text').innerText = `"${text}"`;
+            diagBox.style.opacity = '1';
+            clearTimeout(barkTimeout);
+            barkTimeout = setTimeout(() => { diagBox.style.opacity = '0'; }, 4000);
+        }
+
+        // --- CENA THREE.JS (AAA) ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0f172a');
+        scene.fog = new THREE.FogExp2('#0f172a', 0.007);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set(0, 20, 26);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 1.9; 
+        controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+
+        // Luzes Dinâmicas
+        const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.4); scene.add(hemiLight);
+        const ambientLight = new THREE.AmbientLight(0xf0fdf4, 0.2); scene.add(ambientLight);
+        
+        const sunLight = new THREE.DirectionalLight(0xffedd5, 1.8);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048; sunLight.shadow.mapSize.height = 2048;
+        const shadowDist = 80; 
+        sunLight.shadow.camera.left = -shadowDist; sunLight.shadow.camera.right = shadowDist; 
+        sunLight.shadow.camera.top = shadowDist; sunLight.shadow.camera.bottom = -shadowDist;
+        sunLight.shadow.camera.near = 0.5; sunLight.shadow.camera.far = 250;
+        sunLight.shadow.bias = -0.0003;
+        scene.add(sunLight); scene.add(sunLight.target);
+
+        // Estrelas
+        const skyGroup = new THREE.Group(); scene.add(skyGroup);
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(1500 * 3);
+        for(let i=0; i<1500*3; i+=3) {
+            starPos[i] = (Math.random() - 0.5) * 400; starPos[i+1] = 60 + Math.random() * 120; starPos[i+2] = (Math.random() - 0.5) * 400;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, transparent: true, opacity: 0.9, fog: false });
+        const starsMesh = new THREE.Points(starGeo, starMat);
+        skyGroup.add(starsMesh);
+
+        // Nuvens Volumétricas ABAIXO DA ILHA
+        const cloudsGroup = new THREE.Group(); scene.add(cloudsGroup);
+        const cloudGeo = new THREE.DodecahedronGeometry(5.0, 0);
+        const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, flatShading: true });
+        for (let i = 0; i < 40; i++) {
+            const cGroup = new THREE.Group();
+            for (let j = 0; j < (Math.random()*5+3); j++) {
+                const mesh = new THREE.Mesh(cloudGeo, cloudMat);
+                mesh.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*6, (Math.random()-0.5)*20);
+                mesh.scale.setScalar(1.5 + Math.random()*4.5);
+                cGroup.add(mesh);
+            }
+            cGroup.position.set((Math.random() - 0.5) * 400, -35 - Math.random() * 30, (Math.random() - 0.5) * 400);
+            cloudsGroup.add(cGroup);
+        }
+
+        // --- TEXTURAS PROCESSUAIS (BUMP MAPS AAA) ---
+        function createBumpTexture(type, size = 256) {
+            const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d'); const imgData = ctx.createImageData(size, size);
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                let val = 128;
+                if (type === 'leather') val += (Math.random() * 80) - 40;
+                else if (type === 'hair') val += (Math.sin(Math.floor((i / 4) / size) * 0.5) * 40) + (Math.random() * 30) - 15;
+                else if (type === 'cloth') val += (Math.sin((i / 4) % size) * 20) + (Math.cos(Math.floor((i / 4) / size)) * 20);
+                else if (type === 'noise') val += (Math.random() * 120) - 60; // Para o chão e terra
+                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = val; imgData.data[i+3] = 255; 
+            }
+            ctx.putImageData(imgData, 0, 0); const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; return tex;
+        }
+
+        const texLeatherBump = createBumpTexture('leather'); 
+        const texHairBump = createBumpTexture('hair', 128); 
+        const texClothBump = createBumpTexture('cloth', 128);
+        const texNoiseBump = createBumpTexture('noise', 256);
+
+        // --- MATERIAIS DE ALTA DEFINIÇÃO ---
+        const matBase = { roughness: 0.85, flatShading: true };
+        const matRock = new THREE.MeshStandardMaterial({ color: 0x64748b, bumpMap: texNoiseBump, bumpScale: 0.05, ...matBase });
+        const matDirt = new THREE.MeshStandardMaterial({ color: 0x291d16, bumpMap: texNoiseBump, bumpScale: 0.08, ...matBase });
+        const matWood = new THREE.MeshStandardMaterial({ color: 0x5c2b0c, bumpMap: texLeatherBump, bumpScale: 0.05, ...matBase });
+        const matGrass = new THREE.MeshStandardMaterial({ color: 0x15803d, bumpMap: texNoiseBump, bumpScale: 0.03, roughness: 0.8, flatShading: true });
+        const matDogBody = new THREE.MeshStandardMaterial({ color: 0x0f172a, bumpMap: texLeatherBump, bumpScale: 0.02, roughness: 0.6, flatShading: true }); 
+        const matDogSkin = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, flatShading: true }); 
+
+        // SHADER DE GRAMA ANIMADA
+        const grassGeo = new THREE.BufferGeometry();
+        grassGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.15, 0, 0, 0.15, 0, 0, 0.0, 0.8, 0]), 3)); grassGeo.computeVertexNormals();
+        
+        const grassUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
+        const matGrassShader = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.9, flatShading: true });
+        matGrassShader.onBeforeCompile = (shader) => {
+            shader.uniforms.uTime = grassUniforms.uTime; shader.uniforms.uPlayerPos = grassUniforms.uPlayerPos;
+            shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nuniform float uTime;\nuniform vec3 uPlayerPos;\nvarying vec3 vGrassTint;`);
+            shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `
+                #include <begin_vertex>
+                vec4 worldPos = instanceMatrix * vec4(position, 1.0);
+                if (position.y > 0.1) {
+                    float wind = sin(uTime * 2.5 + worldPos.x * 0.8 + worldPos.z * 0.8) * 0.22;
+                    transformed.x += wind; transformed.z += wind * 0.6;
+                    float dist = distance(worldPos.xz, uPlayerPos.xz);
+                    if (dist < 1.5) { vec2 push = normalize(worldPos.xz - uPlayerPos.xz) * (1.5 - dist) * 0.6; transformed.x += push.x; transformed.z += push.y; }
+                }
+                vGrassTint = mix(vec3(0.5), vec3(1.2), clamp(position.y * 1.8, 0.0, 1.0));
+            `);
+            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vGrassTint;`);
+            shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb *= vGrassTint;`);
+        };
+
+        const hubGroup = new THREE.Group(); scene.add(hubGroup);
+
+        function addGrassToBlock(group, width, depth, yLevel) {
+            const count = Math.floor((width * depth) * 4.5); 
+            const iGrass = new THREE.InstancedMesh(grassGeo, matGrassShader, count);
+            const dummy = new THREE.Object3D();
+            const grassColor = new THREE.Color(0x22c55e);
+            for(let i=0; i<count; i++) {
+                dummy.position.set((Math.random()-0.5)*(width-0.5), yLevel, (Math.random()-0.5)*(depth-0.5));
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.scale.setScalar(0.7 + Math.random()*1.0);
+                dummy.updateMatrix();
+                iGrass.setMatrixAt(i, dummy.matrix);
+                iGrass.setColorAt(i, grassColor);
+            }
+            group.add(iGrass);
+        }
+
+        // --- CONSTRUÇÃO DE RELEVO SEGMENTADO E COLOSSAL ---
+        function createIslandMesh(x, z, isCentral = false) {
+            const group = new THREE.Group();
+            const terrainGroup = new THREE.Group();
+            
+            // Camada de Grama Base
+            const basePlat = new THREE.Mesh(new THREE.BoxGeometry(ISLAND_SIZE, 0.4, ISLAND_SIZE), matGrass);
+            basePlat.position.y = 0.2; basePlat.receiveShadow = true; basePlat.castShadow = true;
+            terrainGroup.add(basePlat); groundMeshes.push(basePlat);
+            
+            // Camada Gigante de Terra (Evita o aspeto "Tapete Voador")
+            const baseDirt = new THREE.Mesh(new THREE.BoxGeometry(ISLAND_SIZE - 0.2, 8.0, ISLAND_SIZE - 0.2), matDirt);
+            baseDirt.position.y = -4.0; // Desce dos 0.0 até aos -8.0
+            baseDirt.receiveShadow = true; baseDirt.castShadow = true;
+            terrainGroup.add(baseDirt);
+
+            // Pilar Rochoso Profundo
+            const baseRock = new THREE.Mesh(new THREE.CylinderGeometry(ISLAND_SIZE * 0.45, ISLAND_SIZE * 0.15, 20.0, 9), matRock);
+            baseRock.position.y = -18.0; 
+            baseRock.castShadow = true; baseRock.receiveShadow = true;
+            terrainGroup.add(baseRock);
+
+            // Detalhes Rústicos por Baixo (Estalactites de terra/pedra)
+            for (let i = 0; i < 5; i++) {
+                const stalactite = new THREE.Mesh(new THREE.ConeGeometry(1 + Math.random()*2, 4 + Math.random()*6, 5), matDirt);
+                stalactite.position.set((Math.random()-0.5)*(ISLAND_SIZE-3), -8.0 - Math.random()*2, (Math.random()-0.5)*(ISLAND_SIZE-3));
+                stalactite.rotation.x = Math.PI; 
+                stalactite.castShadow = true;
+                terrainGroup.add(stalactite);
+            }
+
+            addGrassToBlock(terrainGroup, ISLAND_SIZE, ISLAND_SIZE, 0.4);
+
+            // Socalcos/Elevações (Preenchidos Sólidos)
+            const numElevations = isCentral ? 1 : Math.floor(Math.random() * 3) + 2;
+            for(let i=0; i<numElevations; i++) {
+                const w = 6 + Math.random() * 6; const d = 6 + Math.random() * 6; const h = 0.4 + Math.random() * 1.5; 
+                let px = (Math.random() - 0.5) * (ISLAND_SIZE - w - 2); let pz = (Math.random() - 0.5) * (ISLAND_SIZE - d - 2);
+                
+                if (isCentral && Math.abs(px) < 6 && Math.abs(pz) < 6) { px = 7; pz = -7; }
+
+                // Topo da colina
+                const elevGrass = new THREE.Mesh(new THREE.BoxGeometry(w, 0.4, d), matGrass);
+                elevGrass.position.set(px, 0.4 + h - 0.2, pz); // Topo da grama encaixa perfeitamente na altura h
+                elevGrass.receiveShadow = true; elevGrass.castShadow = true;
+                terrainGroup.add(elevGrass); groundMeshes.push(elevGrass);
+
+                // Corpo de terra da colina
+                const elevDirt = new THREE.Mesh(new THREE.BoxGeometry(w - 0.2, h - 0.4, d - 0.2), matDirt);
+                elevDirt.position.set(px, 0.4 + (h - 0.4)/2, pz); // Preenche do nível 0.4 (base) até à colina
+                elevDirt.receiveShadow = true; elevDirt.castShadow = true;
+                terrainGroup.add(elevDirt);
+
+                const localGroup = new THREE.Group(); localGroup.position.set(px, 0, pz);
+                addGrassToBlock(localGroup, w, d, 0.4 + h);
+                terrainGroup.add(localGroup);
+            }
+
+            // Geração de Caminhos de Pedra
+            if (!isCentral) {
+                const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
+                for (let i = 0; i < 9; i++) {
+                    const s = new THREE.Mesh(stoneGeo, matRock);
+                    let lx = 0, lz = 0;
+                    if (x !== 0) lx = -Math.sign(x) * (i * 1.5 + 2.0);
+                    if (z !== 0) lz = -Math.sign(z) * (i * 1.5 + 2.0);
+                    s.position.set(lx + (Math.random()-0.5)*0.5, 0.4, lz + (Math.random()-0.5)*0.5); // Embutida no chão
+                    s.rotation.y = Math.random() * Math.PI;
+                    s.castShadow = true; s.receiveShadow = true;
+                    terrainGroup.add(s); groundMeshes.push(s); 
+                }
+            }
+            
+            group.add(terrainGroup); group.position.set(x, 0, z);
+            terrainGroup.updateMatrixWorld(true);
+            return group;
+        }
+
+        const centralIsland = createIslandMesh(0, 0, true);
+        hubGroup.add(centralIsland);
+
+        const campfireGroup = new THREE.Group(); campfireGroup.position.set(0, 0.4, 0); hubGroup.add(campfireGroup);
+        for(let i=0; i<6; i++) {
+            const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 6), matWood);
+            log.rotation.z = Math.PI/2; log.rotation.y = (i / 6) * Math.PI * 2; log.position.y = 0.06;
+            campfireGroup.add(log);
+        }
+        const fireLight = new THREE.PointLight(0xf97316, 5.0, 20); fireLight.position.set(0, 0.8, 0); campfireGroup.add(fireLight);
+        const fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 6), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+        fireMesh.position.y = 0.6; campfireGroup.add(fireMesh);
+
+        // --- CAPITÃO CIMENTADO ---
+        const dogGroup = new THREE.Group(); dogGroup.position.set(4.0, 0.4, 4.0); hubGroup.add(dogGroup);
+        const dogSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
+        dogSpot.position.set(4.0, 10, 4.0); dogSpot.castShadow = true; scene.add(dogSpot); scene.add(dogSpot.target);
+
+        const dogBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.2), matDogBody); dogBody.position.y = 0.6; dogBody.castShadow = true;
+        const dogHead = new THREE.Group(); dogHead.position.set(0, 1.1, 0.55); dogGroup.add(dogHead);
+        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.65, 0.65), matDogBody); headMesh.castShadow = true; dogHead.add(headMesh);
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.35), matDogSkin); snout.position.set(0, -0.1, 0.38); snout.castShadow = true; dogHead.add(snout);
+        const nose = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.12), new THREE.MeshStandardMaterial({color: 0x000000, roughness:0.2})); nose.position.set(0, 0.12, 0.18); snout.add(nose);
+        
+        const earL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.1), matDogSkin); earL.position.set(-0.3, 0.45, 0); earL.rotation.z = 0.3; dogHead.add(earL);
+        const earR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.1), matDogSkin); earR.position.set(0.3, 0.45, 0); earR.rotation.z = -0.3; dogHead.add(earR);
+        
+        const dogLegGeo = new THREE.BoxGeometry(0.25, 0.45, 0.25); dogLegGeo.translate(0, -0.22, 0);
+        const legL = new THREE.Mesh(dogLegGeo, matDogBody); legL.position.set(-0.3, 0.45, 0.35); dogGroup.add(legL);
+        const legR = new THREE.Mesh(dogLegGeo, matDogBody); legR.position.set(0.3, 0.45, 0.35); dogGroup.add(legR);
+        const legBL = new THREE.Mesh(dogLegGeo, matDogBody); legBL.position.set(-0.3, 0.45, -0.35); dogGroup.add(legBL);
+        const legBR = new THREE.Mesh(dogLegGeo, matDogBody); legBR.position.set(0.3, 0.45, -0.35); dogGroup.add(legBR);
+
+        dogGroup.add(dogBody); dogGroup.scale.setScalar(1.5);
+        let dogTargetPos = new THREE.Vector3(4.0, 0.4, 4.0); let dogWaitTimer = 3.0;
+
+        const expansionGroup = new THREE.Group(); hubGroup.add(expansionGroup);
+        const expansionSlots = [ { x: ISLAND_SIZE, z: 0 }, { x: -ISLAND_SIZE, z: 0 }, { x: 0, z: ISLAND_SIZE }, { x: 0, z: -ISLAND_SIZE } ];
+
+        function triggerIslandExpansion(level) {
+            if (level <= expansionSlots.length) {
+                const slot = expansionSlots[level - 1];
+                const newIsland = createIslandMesh(slot.x, slot.z, false);
+                newIsland.position.y = -35; newIsland.scale.set(0.1, 0.1, 0.1);
+                expansionGroup.add(newIsland);
+
+                let animProgress = 0;
+                const animInterval = setInterval(() => {
+                    animProgress += 0.02;
+                    newIsland.position.y = -35 + (35 * animProgress);
+                    newIsland.scale.setScalar(animProgress);
+                    if (animProgress >= 1.0) {
+                        newIsland.position.y = 0; newIsland.scale.set(1, 1, 1);
+                        clearInterval(animInterval);
+                    }
+                }, 16);
+            }
+        }
+
+        // --- GERADOR DE NPCS COM DETALHES ---
+        function createNPC(type, x, z) {
+            const npcGroup = new THREE.Group();
+            
+            const shirtColor = type === 'forge' ? 0x883333 : (type === 'farm' ? 0x338833 : 0x555555);
+            const matNPCSkin = new THREE.MeshStandardMaterial({ color: 0xeebbaa, roughness: 0.8, bumpMap: texLeatherBump, bumpScale: 0.02 });
+            const matNPCShirt = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.9, bumpMap: texClothBump, bumpScale: 0.05 });
+            const matNPCPants = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.9, bumpMap: texClothBump, bumpScale: 0.05 });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.5), matNPCShirt); torso.position.y = 1.3; npcGroup.add(torso);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), matNPCSkin); head.position.y = 2.2; npcGroup.add(head);
+            const armL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), matNPCShirt); armL.position.set(-0.55, 1.5, 0); npcGroup.add(armL);
+            const armR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), matNPCShirt); armR.position.set(0.55, 1.5, 0); npcGroup.add(armR);
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 0.35), matNPCPants); legL.position.set(-0.2, 0.4, 0); npcGroup.add(legL);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 0.35), matNPCPants); legR.position.set(0.2, 0.4, 0); npcGroup.add(legR);
+
+            if(type === 'forge') {
+                const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), new THREE.MeshStandardMaterial({color:0x444444}));
+                hammer.position.set(0.6, 1.2, 0.4); hammer.rotation.x = Math.PI/4; npcGroup.add(hammer);
+            } else if(type === 'farm') {
+                const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.3, 8), new THREE.MeshStandardMaterial({color: 0xddaa55}));
+                hat.position.y = 2.6; npcGroup.add(hat);
+            }
+
+            npcGroup.position.set(x, 0.4, z);
+            hubGroup.add(npcGroup);
+            npcs.push({ group: npcGroup, torso: torso, head: head, armL: armL, armR: armR, type: type, animTime: Math.random()*10 });
+        }
+
+        // --- CONSTRUÇÕES E NPCS ---
+        function spawnBuildingModel(type, x, y, z) {
+            const bGroup = new THREE.Group();
+            if (type === 'forge') {
+                const anvil = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
+                anvil.position.set(0, 0.3, 1.5); bGroup.add(anvil);
+                const furnace = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 1.5), matRock);
+                furnace.position.set(0, 1.25, -1.0); bGroup.add(furnace);
+                const fFire = new THREE.PointLight(0xffaa00, 3, 12); fFire.position.set(0, 1, -0.2); bGroup.add(fFire);
+                
+                createNPC('forge', x - 1.5, z + 1.0);
+
+            } else if (type === 'farm') {
+                for(let r=0; r<3; r++) {
+                    const dirt = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 1.0), matDirt);
+                    dirt.position.set(0, 0.1, r * 1.8 - 1.8); bGroup.add(dirt);
+                    for(let c=0; c<4; c++) {
+                        const crop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 5, 5), new THREE.MeshStandardMaterial({color: 0x22c55e}));
+                        crop.position.set(c * 1.0 - 1.5, 0.3, r * 1.8 - 1.8); bGroup.add(crop);
+                    }
+                }
+                createNPC('farm', x + 2.5, z);
+
+            } else if (type === 'animal') {
+                const coop = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.0, 3.0), matWood);
+                coop.position.set(0, 1.0, -1.5); bGroup.add(coop);
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.8, 4), new THREE.MeshStandardMaterial({color: 0xb91c1c}));
+                roof.position.set(0, 2.9, -1.5); roof.rotation.y = Math.PI/4; bGroup.add(roof);
+                const fence1 = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.6, 0.1), matWood); fence1.position.set(0, 0.4, 2.0); bGroup.add(fence1);
+            }
+            
+            bGroup.position.set(x, 0.4, z);
+            hubGroup.add(bGroup);
+            bGroup.children.forEach(c => { if(c.geometry) groundMeshes.push(c); });
+        }
+
+        // --- CONSTRUÇÃO DO PENITENTE (RIG COMPLETO AAA RESTAURADO) ---
+        const charBaseParams = { flatShading: true, roughness: 0.8, metalness: 0.1 };
+        const matCharSkin = new THREE.MeshStandardMaterial({ color: 0xffccaa, ...charBaseParams });
+        const matHair = new THREE.MeshStandardMaterial({ color: 0x4a2a18, ...charBaseParams, bumpMap: texHairBump, bumpScale: 0.08 }); 
+        const matArmor = new THREE.MeshStandardMaterial({ color: 0x5a3a29, ...charBaseParams, bumpMap: texLeatherBump, bumpScale: 0.1 });
+        const matLeatherDark = new THREE.MeshStandardMaterial({ color: 0x332015, ...charBaseParams, bumpMap: texLeatherBump, bumpScale: 0.1 });
+        const matCharShirt = new THREE.MeshStandardMaterial({ color: 0x18181a, ...charBaseParams, bumpMap: texClothBump, bumpScale: 0.05 });
+        const matGreen = new THREE.MeshStandardMaterial({ color: 0x226622, ...charBaseParams, bumpMap: texClothBump, bumpScale: 0.05 }); 
+        const matEyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, ...charBaseParams });
+        const matEyeIris = new THREE.MeshStandardMaterial({ color: 0x0a9922, ...charBaseParams });
+        const matEyePupil = new THREE.MeshStandardMaterial({ color: 0x000000, ...charBaseParams });
+        const matMouth = new THREE.MeshStandardMaterial({ color: 0x2a1005, ...charBaseParams });
+        const matSteel = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.3, flatShading: true });
+        const matGold = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3, metalness: 0.8, flatShading: true });
+
+        function createPart(geo, mat, x, y, z, rx=0, ry=0, rz=0, parent) {
+            const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz);
+            mesh.castShadow = true; mesh.receiveShadow = true; if(parent) parent.add(mesh); return mesh;
+        }
+
+        const playerGroup = new THREE.Group(); playerGroup.position.set(0, 4.0, 5.0); scene.add(playerGroup); 
+        const bodyGroup = new THREE.Group(); playerGroup.add(bodyGroup);
+
+        const torso = createPart(new THREE.CylinderGeometry(0.55, 0.6, 1.2, 10), matCharShirt, 0, 1.8, 0, 0, 0, 0, bodyGroup);
+        torso.scale.set(1.2, 1, 0.95);
+        
+        const slotArmor = new THREE.Group(); torso.add(slotArmor);
+        const slotWeapon = new THREE.Group(); const slotShield = new THREE.Group();
+
+        const armorLeatherGroup = new THREE.Group();
+        createPart(new THREE.CylinderGeometry(0.62, 0.65, 1.15, 10, 1, false, Math.PI * 0.15, Math.PI * 1.7), matArmor, 0, 0, 0, 0, 0, 0, armorLeatherGroup);
+        createPart(new THREE.BoxGeometry(0.45, 0.15, 0.6), matArmor, -0.3, 0.55, 0, 0, 0, -0.2, armorLeatherGroup);
+        createPart(new THREE.BoxGeometry(0.45, 0.15, 0.6), matArmor, 0.3, 0.55, 0, 0, 0, 0.2, armorLeatherGroup);
+        const coatGroup = new THREE.Group(); coatGroup.position.set(0, -0.6, 0); armorLeatherGroup.add(coatGroup);
+        const animatedCoat = []; const flapGeo = new THREE.BoxGeometry(0.35, 1.0, 0.06); flapGeo.translate(0, -0.5, 0); 
+        for (let i = 0; i < 12; i++) { 
+            const angle = (i / 12) * Math.PI * 2; const x = Math.sin(angle) * 0.66; const z = Math.cos(angle) * 0.66; 
+            if (z > 0.3 && Math.abs(x) < 0.4) continue; 
+            const flap = createPart(flapGeo, matLeatherDark, x, 0, z, 0.1, angle, 0, coatGroup);
+            animatedCoat.push({ mesh: flap, baseRx: 0.1, baseRy: angle, offset: i * 0.2 });
+        }
+        slotArmor.add(armorLeatherGroup);
+
+        const belt = createPart(new THREE.CylinderGeometry(0.68, 0.68, 0.22, 12), matLeatherDark, 0, -0.52, 0, 0, 0, 0, torso);
+        createPart(new THREE.BoxGeometry(0.35, 0.3, 0.15), matGold, 0, 0, 0.68, 0, 0, 0, belt); 
+        createPart(new THREE.BoxGeometry(0.18, 0.18, 0.18), matEyeIris, 0, 0, 0.72, 0, 0, 0, belt); 
+        const pouchPivot = new THREE.Group(); pouchPivot.position.set(-0.55, -0.08, 0.45); pouchPivot.rotation.z = 0.2; belt.add(pouchPivot);
+        createPart(new THREE.IcosahedronGeometry(0.25, 1), matGreen, 0, -0.2, 0, 0, 0, 0, pouchPivot); 
+        const lanternPivot = new THREE.Group(); lanternPivot.position.set(0.55, -0.12, 0.38); belt.add(lanternPivot);
+        createPart(new THREE.CylinderGeometry(0.09, 0.09, 0.04, 6), matSteel, 0, 0.15, 0, 0, 0, 0, lanternPivot);
+        const matFire = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.25, 6), matFire, 0, 0, 0, 0, 0, 0, lanternPivot); 
+        const lanternLight = new THREE.PointLight(0xffaa00, 1.5, 10); lanternLight.position.set(0, 0, 0); lanternPivot.add(lanternLight);
+
+        const headPivot = new THREE.Group(); headPivot.position.set(0, 2.6, 0); bodyGroup.add(headPivot);
+        createPart(new THREE.IcosahedronGeometry(0.65, 2), matCharSkin, 0, 0.35, 0, 0, 0, 0, headPivot).scale.set(1.15, 1.2, 1.15); 
+        createPart(new THREE.BoxGeometry(0.18, 0.03, 0.08), matMouth, 0, -0.05, 0.7, 0, 0, 0.05, headPivot);
+
+        const eyeL = new THREE.Group(); eyeL.position.set(-0.25, 0.25, 0.68); headPivot.add(eyeL);
+        const eyeR = new THREE.Group(); eyeR.position.set(0.25, 0.25, 0.68); headPivot.add(eyeR);
+        function buildEye(parent) {
+            createPart(new THREE.BoxGeometry(0.22, 0.28, 0.08), matEyeWhite, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.15, 0.2, 0.1), matEyeIris, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.08, 0.12, 0.12), matEyePupil, 0, 0, 0, 0, 0, 0, parent); 
+        }
+        buildEye(eyeL); buildEye(eyeR);
+
+        const hairGroup = new THREE.Group(); hairGroup.position.set(0, 0.4, 0); headPivot.add(hairGroup);
+        const animatedHair = [];
+        createPart(new THREE.SphereGeometry(0.7, 16, 16, 0, Math.PI*2, 0, Math.PI/1.5), matHair, 0, 0.1, -0.08, 0, 0, 0, hairGroup).scale.set(1.1, 1.05, 1.1);
+        const lockGeo = new THREE.ConeGeometry(0.18, 1.0, 4); lockGeo.translate(0, 0.5, 0); 
+        for (let i = 0; i < 75; i++) { 
+            const angle = Math.random() * Math.PI * 2; const radius = Math.sqrt(Math.random()) * 0.75; 
+            const x = Math.sin(angle) * radius; const z = Math.cos(angle) * radius;
+            let y = 0.15 + Math.sqrt(Math.max(0, 0.8 - radius*radius)) * 0.5; 
+            let rx = 0; let rz = 0; let isBangs = false; let size = 0.5 + Math.random() * 0.5; 
+            if (z > 0.3 && y < 0.6) { isBangs = true; rx = 1.7; rz = (x * -0.5); } 
+            else if (z < -0.2) { rx = -1.0; }
+            const mesh = createPart(lockGeo, matHair, x, y, z, rx, 0, rz, hairGroup); mesh.scale.setScalar(size);
+            animatedHair.push({ mesh, baseRx: rx, baseRz: rz, offset: i * 0.1, reactionStrength: isBangs ? 1.5 : 0.8, isBangs: isBangs });
+        }
+
+        const shoulderL = new THREE.Group(); shoulderL.position.set(-1.0, 2.2, 0); bodyGroup.add(shoulderL);
+        const shoulderR = new THREE.Group(); shoulderR.position.set(1.0, 2.2, 0); bodyGroup.add(shoulderR);
+        const elbowL = new THREE.Group(); elbowL.position.set(0, -0.5, 0); shoulderL.add(elbowL);
+        const elbowR = new THREE.Group(); elbowR.position.set(0, -0.5, 0); shoulderR.add(elbowR);
+
+        createPart(new THREE.SphereGeometry(0.32, 10, 10, 0, Math.PI * 2, 0, Math.PI/2), matArmor, 0, 0.1, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.SphereGeometry(0.32, 10, 10, 0, Math.PI * 2, 0, Math.PI/2), matArmor, 0, 0.1, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.2, 0.18, 0.55, 8), matCharShirt, 0, -0.25, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.CylinderGeometry(0.2, 0.18, 0.55, 8), matCharShirt, 0, -0.25, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.2, 0.17, 0.5, 8), matLeatherDark, 0, -0.25, 0, 0, 0, 0, elbowL);
+        createPart(new THREE.CylinderGeometry(0.2, 0.17, 0.5, 8), matLeatherDark, 0, -0.25, 0, 0, 0, 0, elbowR);
+        
+        const handL = createPart(new THREE.IcosahedronGeometry(0.2, 1), matCharSkin, 0, -0.55, 0, 0, 0, 0, elbowL);
+        const handR = createPart(new THREE.IcosahedronGeometry(0.2, 1), matCharSkin, 0, -0.55, 0, 0, 0, 0, elbowR);
+        handR.add(slotWeapon); handL.add(slotShield);
+
+        const swordGroup = new THREE.Group(); swordGroup.position.set(0, -0.1, 0.15); swordGroup.rotation.x = Math.PI / 2; 
+        createPart(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), matLeatherDark, 0, -0.15, 0, 0, 0, 0, swordGroup); 
+        createPart(new THREE.BoxGeometry(0.45, 0.08, 0.12), matGold, 0, 0.1, 0, 0, 0, 0, swordGroup); 
+        createPart(new THREE.BoxGeometry(0.14, 1.4, 0.05), matSteel, 0, 0.8, 0, 0, 0, 0, swordGroup); 
+        slotWeapon.add(swordGroup);
+
+        const shieldGroup = new THREE.Group(); shieldGroup.position.set(0, 1.8, -0.3); shieldGroup.rotation.y = Math.PI; 
+        createPart(new THREE.CylinderGeometry(0.4, 0.4, 0.08, 14), matLeatherDark, 0, 0, 0, Math.PI/2, 0, 0, shieldGroup);
+        createPart(new THREE.TorusGeometry(0.4, 0.04, 8, 16), matSteel, 0, 0, 0, 0, 0, 0, shieldGroup);
+        bodyGroup.add(shieldGroup);
+
+        const hipL = new THREE.Group(); hipL.position.set(-0.42, 1.15, 0); bodyGroup.add(hipL);
+        const hipR = new THREE.Group(); hipR.position.set(0.42, 1.15, 0); bodyGroup.add(hipR);
+        const kneeL = new THREE.Group(); kneeL.position.set(0, -0.5, 0); hipL.add(kneeL);
+        const kneeR = new THREE.Group(); kneeR.position.set(0, -0.5, 0); hipR.add(kneeR);
+        createPart(new THREE.CylinderGeometry(0.25, 0.22, 0.55, 8), matCharShirt, 0, -0.2, 0, 0, 0, 0, hipL);
+        createPart(new THREE.CylinderGeometry(0.25, 0.22, 0.55, 8), matCharShirt, 0, -0.2, 0, 0, 0, 0, hipR);
+        createPart(new THREE.CylinderGeometry(0.22, 0.18, 0.5, 8), matCharShirt, 0, -0.2, 0, 0, 0, 0, kneeL);
+        createPart(new THREE.CylinderGeometry(0.22, 0.18, 0.5, 8), matCharShirt, 0, -0.2, 0, 0, 0, 0, kneeR);
+        createPart(new THREE.BoxGeometry(0.4, 0.3, 0.55), matLeatherDark, 0, -0.5, 0.1, 0, 0, 0, kneeL);
+        createPart(new THREE.BoxGeometry(0.4, 0.3, 0.55), matLeatherDark, 0, -0.5, 0.1, 0, 0, 0, kneeR);
+
+        // --- SISTEMA DE CONTROLE ---
+        const keys = { w: false, a: false, s: false, d: false, shift: false, e: false, ' ': false };
+        let isModalOpen = false; let isNearDog = false; let isGrounded = false; let velocityY = 0;
+
+        window.addEventListener('keydown', (e) => { 
+            const k = e.key.toLowerCase(); 
+            if(keys.hasOwnProperty(k)) keys[k] = true; 
+            if(e.code === 'Space') keys[' '] = true;
+
+            if (k === 'e' && isNearDog && !isModalOpen) {
+                isModalOpen = true; document.getElementById('build-modal').style.display = 'flex';
+                document.getElementById('interaction-prompt').style.opacity = '0';
+                keys.w = false; keys.a = false; keys.s = false; keys.d = false; keys[' '] = false;
+            }
+        });
+        window.addEventListener('keyup', (e) => { 
+            const k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = false; 
+            if(e.code === 'Space') keys[' '] = false;
+        });
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => { 
+            document.getElementById('build-modal').style.display = 'none'; 
+            setTimeout(() => { isModalOpen = false; }, 100);
+        });
+
+        document.getElementById('btnEmbarkModal').addEventListener('click', () => {
+            document.getElementById('build-modal').style.display = 'none';
+            triggerDogBark("Boa sorte na incursão, Penitente! Cuida-te lá fora.");
+            setTimeout(() => { 
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed'; overlay.style.top = '0'; overlay.style.left = '0';
+                overlay.style.width = '100vw'; overlay.style.height = '100vh';
+                overlay.style.backgroundColor = '#000'; overlay.style.zIndex = '9999';
+                overlay.style.display = 'flex'; overlay.style.justifyContent = 'center'; overlay.style.alignItems = 'center';
+                overlay.style.color = '#ffd700'; overlay.style.fontSize = '24px'; overlay.style.fontWeight = '900';
+                overlay.innerHTML = 'A INICIAR INCURSÃO...';
+                document.body.appendChild(overlay);
+            }, 2000);
+        });
+
+        const raycaster = new THREE.Raycaster();
+        
+        function getFloorY(position) {
+            const origin = position.clone(); origin.y += 10.0; 
+            raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+            const intersects = raycaster.intersectObjects(groundMeshes, false);
+            if (intersects.length > 0) return intersects[0].point.y;
+            return -50; 
+        }
+
+        const clock = new THREE.Clock();
+        let animTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            const time = clock.getElapsedTime();
+            controls.update();
+
+            cloudsGroup.rotation.y += delta * 0.01;
+
+            // Lógica Interação Cão
+            const distToDog = playerGroup.position.distanceTo(dogGroup.position);
+            if (distToDog < 5.0 && !isModalOpen) {
+                if(!isNearDog) document.getElementById('interaction-prompt').style.opacity = '1';
+                isNearDog = true;
+                const targetAngle = Math.atan2(playerGroup.position.x - dogGroup.position.x, playerGroup.position.z - dogGroup.position.z);
+                let diff = targetAngle - dogGroup.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                dogGroup.rotation.y += diff * 6 * delta;
+                legL.rotation.x = 0; legR.rotation.x = 0; legBL.rotation.x = 0; legBR.rotation.x = 0;
+            } else {
+                if(isNearDog) document.getElementById('interaction-prompt').style.opacity = '0';
+                isNearDog = false;
+
+                if (dogWaitTimer > 0) {
+                    dogWaitTimer -= delta;
+                    legL.rotation.x = 0; legR.rotation.x = 0; legBL.rotation.x = 0; legBR.rotation.x = 0;
+                } else {
+                    const distToTarget = dogGroup.position.distanceTo(dogTargetPos);
+                    if (distToTarget < 0.5) {
+                        dogWaitTimer = 2 + Math.random() * 5; 
+                        dogTargetPos.set((Math.random() - 0.5) * 12, 0.4, (Math.random() - 0.5) * 12);
+                    } else {
+                        const dogMoveDir = new THREE.Vector3().subVectors(dogTargetPos, dogGroup.position);
+                        dogMoveDir.y = 0; dogMoveDir.normalize();
+                        dogGroup.position.addScaledVector(dogMoveDir, 2.5 * delta);
+
+                        const targetAngle = Math.atan2(dogMoveDir.x, dogMoveDir.z);
+                        let diff = targetAngle - dogGroup.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                        dogGroup.rotation.y += diff * 8 * delta;
+
+                        const legAnim = Math.sin(time * 15) * 0.4;
+                        legL.rotation.x = legAnim; legR.rotation.x = -legAnim;
+                        legBL.rotation.x = -legAnim; legBR.rotation.x = legAnim;
+                    }
+                }
+            }
+
+            // Física Cão
+            const dogFloorY = getFloorY(dogGroup.position);
+            dogGroup.position.y += (dogFloorY - dogGroup.position.y) * 10 * delta;
+            dogSpot.position.set(dogGroup.position.x, 10, dogGroup.position.z);
+            dogSpot.target.position.copy(dogGroup.position);
+            dogSpot.target.updateMatrixWorld();
+            dogBody.scale.y = 1.0 + Math.sin(time * 3) * 0.03;
+            if(!isNearDog) dogHead.rotation.y = Math.sin(time * 0.8) * 0.15;
+
+            // Animação NPCs
+            npcs.forEach(npc => {
+                npc.animTime += delta;
+                npc.torso.scale.y = 1.0 + Math.sin(npc.animTime * 2) * 0.03;
+                npc.head.rotation.y = Math.sin(npc.animTime * 0.5) * 0.2;
+                npc.armL.rotation.x = Math.sin(npc.animTime * 1) * 0.1;
+                npc.armR.rotation.x = Math.cos(npc.animTime * 1) * 0.1;
+                const nFloorY = getFloorY(npc.group.position);
+                npc.group.position.y = nFloorY;
+            });
+
+            // --- FÍSICA E MOVIMENTO DO PENITENTE (RAYCAST + SALTO) ---
+            let speed = keys.shift ? 16.0 : 8.0;
+            let moveX = 0, moveZ = 0;
+            let isMoving = false;
+            
+            if (!isModalOpen) {
+                const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y = 0; camDir.normalize();
+                const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0,1,0)).normalize();
+
+                if(keys.w) { moveX += camDir.x; moveZ += camDir.z; } if(keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
+                if(keys.a) { moveX -= camRight.x; moveZ -= camRight.z; } if(keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+
+                const moveVec = new THREE.Vector3(moveX, 0, moveZ);
+                isMoving = moveVec.lengthSq() > 0;
+
+                if (isMoving) {
+                    moveVec.normalize().multiplyScalar(speed * delta);
+                    playerGroup.position.x += moveVec.x;
+                    playerGroup.position.z += moveVec.z;
+
+                    let targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                    let diff = targetAngle - playerGroup.rotation.y;
+                    while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                    playerGroup.rotation.y += diff * 12 * delta;
+                }
+            }
+
+            const floorY = getFloorY(playerGroup.position);
+
+            if (keys[' '] && isGrounded) { 
+                velocityY = 16.0; 
+                isGrounded = false; 
+                keys[' '] = false; 
+            }
+
+            if (!isGrounded) {
+                velocityY -= 45.0 * delta; 
+                playerGroup.position.y += velocityY * delta;
+                
+                if (velocityY <= 0 && playerGroup.position.y <= floorY) { 
+                    playerGroup.position.y = floorY; 
+                    isGrounded = true; 
+                    velocityY = 0; 
+                }
+            } else {
+                if (playerGroup.position.y > floorY + 0.4) {
+                    isGrounded = false; 
+                } else {
+                    playerGroup.position.y += (floorY - playerGroup.position.y) * 15 * delta;
+                }
+            }
+
+            if (playerGroup.position.y < -40) {
+                playerGroup.position.set(0, 10, 5); velocityY = 0;
+            }
+
+            // --- ANIMAÇÕES AVANÇADAS DO PENITENTE ---
+            animTime += delta;
+            headPivot.rotation.set(0, 0, 0); torso.rotation.set(0, 0, 0); 
+            bodyGroup.position.set(0, 0, 0); torso.scale.set(1.2, 1, 0.95); 
+
+            if (!isGrounded) {
+                bodyGroup.position.y = 0.2;
+                shoulderL.rotation.set(0, 0, 0.5); shoulderR.rotation.set(0, 0, -0.5);
+                hipL.rotation.set(-0.2, 0, 0); hipR.rotation.set(-0.2, 0, 0);
+                kneeL.rotation.set(0.2, 0, 0); kneeR.rotation.set(0.2, 0, 0);
+            } else if (!isMoving) {
+                bodyGroup.position.y = Math.sin(animTime * 2) * 0.05; 
+                shoulderL.rotation.set(0.1, 0, -0.2); shoulderR.rotation.set(0.1, 0, 0.2); 
+                elbowR.rotation.set(-0.2, 0, 0); elbowL.rotation.set(-0.2, 0, 0);
+                hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0); kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+            } else {
+                const speedMult = keys.shift ? 22 : 14; const moveSin = Math.sin(animTime * speedMult);
+                bodyGroup.position.y = Math.abs(moveSin) * 0.35; bodyGroup.rotation.x = 0.2; 
+                shoulderL.rotation.set(-moveSin * 1.2, 0, -0.2); shoulderR.rotation.set(moveSin * 1.2, 0, 0.2); 
+                hipL.rotation.set(moveSin * 1.0, 0, 0); hipR.rotation.set(-moveSin * 1.0, 0, 0);
+                kneeL.rotation.set(moveSin > 0 ? moveSin * 0.8 : 0, 0, 0); kneeR.rotation.set(moveSin < 0 ? -moveSin * 0.8 : 0, 0, 0);
+            }
+
+            const windDrag = isMoving ? (speed > 10 ? -0.7 : -0.3) : 0;
+            const runBounce = isMoving ? Math.abs(Math.sin(animTime * (keys.shift ? 22 : 12))) * 0.35 : 0;
+            const jumpDrag = !isGrounded ? (velocityY > 0 ? 0.8 : -0.8) : 0; 
+            
+            animatedHair.forEach(hair => {
+                const wind = Math.sin(animTime * 3 + hair.offset) * 0.05; 
+                let targetRx = hair.baseRx + wind - windDrag * hair.reactionStrength * 0.15 - runBounce * hair.reactionStrength + jumpDrag;
+                hair.mesh.rotation.x += (targetRx - hair.mesh.rotation.x) * 18 * delta; 
+            });
+
+            animatedCoat.forEach(flap => {
+                const wind = Math.sin(animTime * 4 + flap.offset) * 0.05; 
+                let targetRx = flap.baseRx + wind - windDrag * 1.8 + runBounce * 0.6 + jumpDrag * 1.5; 
+                flap.mesh.rotation.x += (targetRx - flap.mesh.rotation.x) * 12 * delta;
+            });
+
+            const prevTarget = controls.target.clone();
+            controls.target.lerp(playerGroup.position, 8 * delta);
+            const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
+            camera.position.add(camShift);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
