@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Penitent } from './characters/Penitent.js';
 import { HubEnvironment } from './world_builder/HubEnvironment.js';
+import { ProceduralMap } from './world_builder/ProceduralMap.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -77,8 +78,24 @@ window.addEventListener('resize', () => {
 });
 
 // Initialize Environment and Character
-const hub = new HubEnvironment(scene);
+// NOTE: Temporarily swapping HubEnvironment for ProceduralMap to test generation
+// const environment = new HubEnvironment(scene);
+
+const environment = new ProceduralMap(scene);
+environment.generateGrid(14);
+environment.build3DGeometry('campos_pastos');
+
 const penitent = new Penitent(scene);
+penitent.isGrounded = true; // Let gravity handle it, but hint we are starting on ground.
+
+// Position player at the center of the first generated room
+if (environment.rooms && environment.rooms.length > 0) {
+    const spawn = environment.rooms[0];
+    const offsetX = -environment.mapW/2;
+    const offsetZ = -environment.mapH/2;
+    penitent.playerGroup.position.set(spawn.cx + offsetX, 10, spawn.cy + offsetZ);
+}
+
 
 // Main Animation Loop
 function animate() {
@@ -87,11 +104,11 @@ function animate() {
     gameState.delta = Math.min(gameState.clock.getDelta(), 0.1);
     gameState.time = gameState.clock.getElapsedTime();
 
-    // Update Hub (clouds, grass wind, etc)
-    hub.update(gameState.delta, gameState.time, penitent.playerGroup.position);
+    // Update Environment (wind, chunk culling, anti-occlusion)
+    environment.update(gameState.delta, gameState.time, camera, penitent.playerGroup.position);
 
     // Update Character Movement and Animation
-    penitent.update(gameState.delta, camera, (pos) => hub.getFloorY(pos));
+    penitent.update(gameState.delta, camera, (pos) => environment.getFloorY(pos));
 
     // Camera follow player
     const prevTarget = controls.target.clone();
