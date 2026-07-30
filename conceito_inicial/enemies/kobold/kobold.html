@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kobold da Floresta (Lobo) - A GitHub Odyssey</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background-color: #080d08; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        
+        #ui-overlay { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(10, 18, 12, 0.88); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(85, 170, 50, 0.4); 
+            color: white; 
+            padding: 16px 24px; 
+            border-radius: 14px; 
+            text-align: center; 
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8); 
+            pointer-events: auto; 
+            z-index: 10; 
+            width: 92%;
+            max-width: 680px;
+        }
+
+        h1 { margin: 0 0 4px 0; font-size: 19px; color: #7ec850; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; text-shadow: 0 0 10px rgba(126, 200, 80, 0.4); }
+        p.subtitle { margin: 0 0 12px 0; font-size: 13px; color: #a2c890; }
+        
+        .action-bar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+        .btn {
+            background: #142412;
+            border: 1px solid #3d6e2c;
+            color: #d2f0b5;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover { background: #2b4c1d; color: #fff; border-color: #7ec850; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(126,200,80,0.3); }
+        .btn:active { transform: translateY(1px); }
+
+        /* Controles Virtuais D-Pad */
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 10px;
+            gap: 15px;
+        }
+
+        .dpad-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        .dpad-row {
+            display: flex;
+            gap: 3px;
+        }
+        .dpad-btn {
+            width: 32px;
+            height: 32px;
+            background: #142412;
+            border: 1px solid #3d6e2c;
+            color: #7ec850;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .dpad-btn:active, .dpad-btn.active {
+            background: #7ec850;
+            color: #080d08;
+        }
+
+        .controls-hint { 
+            display: flex; 
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px; 
+            color: #83a574; 
+            text-align: left;
+        }
+        .key { background: #1f331b; color: #b8e898; padding: 2px 6px; border-radius: 4px; border: 1px solid #3a5a32; font-family: monospace; font-weight: bold; }
+
+        #audio-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 18, 12, 0.85);
+            border: 1px solid rgba(85, 170, 50, 0.4);
+            color: #7ec850;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 13px;
+            backdrop-filter: blur(8px);
+        }
+
+        #badge-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 18, 12, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            padding: 8px 14px;
+            border-radius: 8px;
+            z-index: 10;
+            font-size: 12px;
+            backdrop-filter: blur(8px);
+        }
+        #badge-info strong { color: #7ec850; }
+    </style>
+
+    <!-- Three.js e OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="badge-info">
+        Inimigo: <strong>Kobold da Floresta (Lobo Preto & Branco)</strong>
+    </div>
+
+    <button id="audio-toggle">🔊 Áudio: ON</button>
+
+    <div id="ui-overlay">
+        <h1>Kobold da Floresta</h1>
+        <p class="subtitle">A GitHub Odyssey — Galeria de Modelos 3D</p>
+        
+        <div class="action-bar">
+            <button class="btn" onclick="triggerAnimation('idle')">Parado</button>
+            <button class="btn" onclick="triggerAnimation('run')">Trote / Corrida</button>
+            <button class="btn" onclick="triggerAnimation('attack')">Pancada de Bastão</button>
+            <button class="btn" onclick="triggerAnimation('taunt')">Uivo / Provocar</button>
+            <button class="btn" onclick="triggerAnimation('hit')">Receber Dano</button>
+            <button class="btn" onclick="triggerJump()">Pular</button>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="controls-hint">
+                <span><span class="key">WASD</span> / <span class="key">Setas</span> Mover Kobold</span>
+                <span><span class="key">Espaço</span> Pular | <span class="key">J</span> Golpe com Bastão</span>
+                <span><span class="key">K</span> Uivar | <span class="key">L</span> Dano</span>
+            </div>
+
+            <!-- D-Pad Virtual de Movimentação -->
+            <div class="dpad-container">
+                <button class="dpad-btn" id="btn-up" onpointerdown="setVirtualKey('up', true)" onpointerup="setVirtualKey('up', false)" onpointerleave="setVirtualKey('up', false)">▲</button>
+                <div class="dpad-row">
+                    <button class="dpad-btn" id="btn-left" onpointerdown="setVirtualKey('left', true)" onpointerup="setVirtualKey('left', false)" onpointerleave="setVirtualKey('left', false)">◄</button>
+                    <button class="dpad-btn" id="btn-down" onpointerdown="setVirtualKey('down', true)" onpointerup="setVirtualKey('down', false)" onpointerleave="setVirtualKey('down', false)">▼</button>
+                    <button class="dpad-btn" id="btn-right" onpointerdown="setVirtualKey('right', true)" onpointerup="setVirtualKey('right', false)" onpointerleave="setVirtualKey('right', false)">►</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SINTETIZADOR DE ÁUDIO PROCEDURAL CANINO ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playStep() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(130 + Math.random() * 40, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playAttack() {
+                if (!this.enabled || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.25;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(250, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.12);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+
+                const osc = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(620, this.ctx.currentTime + 0.08);
+                osc.frequency.linearRampToValueAtTime(140, this.ctx.currentTime + 0.25);
+                oscGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+                osc.connect(oscGain);
+                oscGain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playTaunt() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.exponentialRampToValueAtTime(780, now + 0.25);
+                osc.frequency.exponentialRampToValueAtTime(480, now + 0.55);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.55);
+            }
+
+            playHit() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.28, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playJump() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.14);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.14);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.14);
+            }
+        }
+
+        const audio = new SoundFX();
+        const audioBtn = document.getElementById('audio-toggle');
+        audioBtn.addEventListener('click', () => {
+            audio.init();
+            audio.enabled = !audio.enabled;
+            audioBtn.innerText = audio.enabled ? '🔊 Áudio: ON' : '🔇 Áudio: OFF';
+        });
+
+        // --- GERADORES DE TEXTURA PROCEDURAL ---
+        function createPixelTexture(baseHex, detailHex, size = 64, noiseDensity = 0.25) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = baseHex;
+            ctx.fillRect(0, 0, size, size);
+
+            const grid = 4;
+            for (let x = 0; x < size; x += grid) {
+                for (let y = 0; y < size; y += grid) {
+                    if (Math.random() < noiseDensity) {
+                        ctx.fillStyle = detailHex;
+                        ctx.globalAlpha = 0.15 + Math.random() * 0.35;
+                        ctx.fillRect(x, y, grid, grid);
+                    }
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        // --- TEXTURAS PRETO E BRANCO (LOBO) + FOLHAS DA FLORESTA ---
+        const blackFurTex = createPixelTexture('#1a1c20', '#0a0b0d', 64, 0.45); 
+        const whiteFurTex = createPixelTexture('#e3e8ed', '#aab2b8', 64, 0.35); 
+        const snoutNoseTex = createPixelTexture('#0d0d0f', '#000000', 32, 0.4); 
+        
+        const leafGreenTex = createPixelTexture('#437a28', '#214212', 64, 0.4); 
+        const leafDarkTex = createPixelTexture('#2d521c', '#152e0a', 64, 0.35); 
+        const woodTex = createPixelTexture('#4a321d', '#281a0c', 64, 0.4); 
+        const spikeMetalTex = createPixelTexture('#80858e', '#454a52', 32, 0.4); 
+        const eyeTex = createPixelTexture('#ffaa00', '#ffff00', 32, 0.5); 
+
+        // Materiais
+        const blackFurMat = new THREE.MeshStandardMaterial({ map: blackFurTex, roughness: 0.85, flatShading: true });
+        const whiteFurMat = new THREE.MeshStandardMaterial({ map: whiteFurTex, roughness: 0.9, flatShading: true });
+        const noseMat = new THREE.MeshStandardMaterial({ map: snoutNoseTex, roughness: 0.5, flatShading: true });
+        const leafMat1 = new THREE.MeshStandardMaterial({ map: leafGreenTex, roughness: 0.7, flatShading: true, side: THREE.DoubleSide });
+        const leafMat2 = new THREE.MeshStandardMaterial({ map: leafDarkTex, roughness: 0.75, flatShading: true, side: THREE.DoubleSide });
+        const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9, flatShading: true });
+        const spikeMat = new THREE.MeshStandardMaterial({ map: spikeMetalTex, roughness: 0.5, metalness: 0.6, flatShading: true });
+        const eyeMat = new THREE.MeshBasicMaterial({ map: eyeTex });
+
+        // --- CENA, CÂMERA & RENDERIZADOR ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#080d08');
+        scene.fog = new THREE.FogExp2('#080d08', 0.025);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 4, 11);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 25;
+        controls.target.set(0, 1.8, 0);
+
+        // --- ILUMINAÇÃO FLORESTAL ---
+        const ambientLight = new THREE.AmbientLight('#23381c', 0.9);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight('#e2f5c8', 1.2);
+        dirLight.position.set(8, 15, 10);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.0005;
+        scene.add(dirLight);
+
+        const forestGlow = new THREE.PointLight('#88ff44', 1.8, 12);
+        forestGlow.position.set(-2, 3.5, 2);
+        forestGlow.castShadow = true;
+        scene.add(forestGlow);
+
+        // --- PLATAFORMA ROCHOSA COM MUSGO DA FLORESTA ---
+        const pedestalGroup = new THREE.Group();
+
+        const baseGeo = new THREE.CylinderGeometry(4.5, 5, 1, 12);
+        const stoneTex = createPixelTexture('#1e241b', '#101410', 128, 0.45);
+        const baseMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.9, flatShading: true });
+        const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+        baseMesh.position.y = -0.5;
+        baseMesh.receiveShadow = true;
+        pedestalGroup.add(baseMesh);
+
+        const mossGeo = new THREE.CylinderGeometry(4.52, 4.52, 0.1, 12);
+        const mossTex = createPixelTexture('#385e25', '#1a3610', 64, 0.4);
+        const mossMat = new THREE.MeshStandardMaterial({ map: mossTex, roughness: 0.95, flatShading: true });
+        const mossMesh = new THREE.Mesh(mossGeo, mossMat);
+        mossMesh.position.y = 0.01;
+        mossMesh.receiveShadow = true;
+        pedestalGroup.add(mossMesh);
+
+        // Cogumelos
+        const shroomCapMat = new THREE.MeshStandardMaterial({ color: '#ff4444', roughness: 0.6, flatShading: true });
+        const shroomStemMat = new THREE.MeshStandardMaterial({ color: '#d9d2c5', roughness: 0.8, flatShading: true });
+        
+        for (let i = 0; i < 6; i++) {
+            const shroom = new THREE.Group();
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.28, 6), shroomStemMat);
+            stem.position.y = 0.14;
+            const cap = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.14, 8), shroomCapMat);
+            cap.position.y = 0.28;
+            shroom.add(stem, cap);
+
+            const angle = (i / 6) * Math.PI * 2 + 0.3;
+            const dist = 2.4 + Math.random() * 1.6;
+            shroom.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+            shroom.rotation.y = Math.random();
+            shroom.scale.setScalar(0.8 + Math.random() * 0.5);
+            shroom.castShadow = true;
+            pedestalGroup.add(shroom);
+        }
+
+        scene.add(pedestalGroup);
+
+        // --- CONSTRUÇÃO DO PERSONAGEM: KOBOLD LOBO PRETO & BRANCO ---
+        const kobold = new THREE.Group();
+
+        const hips = new THREE.Group();
+        hips.position.y = 1.5;
+        kobold.add(hips);
+
+        // Pélvis com pelagem preta
+        const pelvisGeo = new THREE.BoxGeometry(0.55, 0.32, 0.45);
+        const pelvis = new THREE.Mesh(pelvisGeo, blackFurMat);
+        pelvis.castShadow = true;
+        hips.add(pelvis);
+
+        // Torso / Tronco do Lobo
+        const torso = new THREE.Group();
+        torso.position.y = 0.15;
+        hips.add(torso);
+
+        const chestGeo = new THREE.BoxGeometry(0.65, 0.72, 0.5);
+        const chest = new THREE.Mesh(chestGeo, blackFurMat);
+        chest.position.y = 0.35;
+        chest.castShadow = true;
+        torso.add(chest);
+
+        // Pelo Branco no Peitoral/Barriga
+        const bellyGeo = new THREE.BoxGeometry(0.48, 0.58, 0.1);
+        const belly = new THREE.Mesh(bellyGeo, whiteFurMat);
+        belly.position.set(0, 0.32, 0.22);
+        torso.add(belly);
+
+        // --- SISTEMA DE MALHA 3D REATIVA: VESTES DE FOLHAS DE ARVORE ---
+        const animatedCloth = [];
+
+        function createLeafShapeGeo(width, height) {
+            const geo = new THREE.ConeGeometry(width, height, 3);
+            geo.rotateX(-Math.PI / 2);
+            geo.translate(0, -height / 2, 0); // Origem no topo da folha
+            return geo;
+        }
+
+        // 1. Manto / Capa Curta de Folhas nos Ombros
+        const leafCapeGroup = new THREE.Group();
+        leafCapeGroup.position.set(0, 0.58, -0.26);
+        torso.add(leafCapeGroup);
+
+        for (let i = 0; i < 5; i++) {
+            const span = (i / 4 - 0.5) * 0.55;
+            const leafWidth = 0.15 + Math.random() * 0.04;
+            const leafHeight = 0.6 + Math.random() * 0.2;
+            
+            const leafGeo = createLeafShapeGeo(leafWidth, leafHeight);
+            const leafMesh = new THREE.Mesh(leafGeo, i % 2 === 0 ? leafMat1 : leafMat2);
+            leafMesh.position.set(span, 0, 0);
+
+            const baseRx = -0.18 - Math.random() * 0.1;
+            const baseRz = span * 0.25;
+            leafMesh.rotation.set(baseRx, 0, baseRz);
+            leafMesh.castShadow = true;
+
+            leafCapeGroup.add(leafMesh);
+
+            animatedCloth.push({
+                mesh: leafMesh,
+                baseRx: baseRx,
+                baseRz: baseRz,
+                baseRy: 0,
+                offset: i * 0.4 + 1.2,
+                reactY: -0.8,
+                reactDrag: -2.2,
+                reactRun: 1.0,
+                reactAttack: -1.3,
+                reactHit: 1.3,
+                reactTaunt: -1.0
+            });
+        }
+
+        // 2. CAUDA DE LOBO (Preta com Ponta Branca - 5 Segmentos)
+        const tailSegments = [];
+        let parentJoint = hips;
+
+        for (let i = 0; i < 5; i++) {
+            const joint = new THREE.Group();
+            if (i === 0) {
+                joint.position.set(0, -0.12, -0.22);
+                joint.rotation.x = -0.4;
+            } else {
+                joint.position.set(0, 0, -0.24);
+            }
+
+            const radiusTop = 0.14 - i * 0.02;
+            const radiusBot = 0.11 - i * 0.02;
+            const segGeo = new THREE.CylinderGeometry(radiusTop, radiusBot, 0.26, 6);
+            segGeo.rotateX(Math.PI / 2);
+            segGeo.translate(0, 0, -0.13);
+
+            const segMat = (i >= 3) ? whiteFurMat : blackFurMat;
+            const segMesh = new THREE.Mesh(segGeo, segMat);
+            segMesh.castShadow = true;
+            joint.add(segMesh);
+
+            parentJoint.add(joint);
+            parentJoint = joint;
+
+            tailSegments.push({
+                group: joint,
+                baseRx: i === 0 ? -0.4 : 0.1,
+                baseRy: 0,
+                index: i
+            });
+        }
+
+        // --- CRINA 3D NAS COSTAS DO LOBO (SPINE FUR RIDGE) ---
+        const backFurRidge = new THREE.Group();
+        backFurRidge.position.set(0, 0.35, -0.26);
+        torso.add(backFurRidge);
+
+        const furLockGeo = new THREE.ConeGeometry(0.08, 0.38, 4);
+        furLockGeo.translate(0, 0.19, 0);
+
+        for (let i = 0; i < 10; i++) {
+            const isWhite = i % 3 === 0;
+            const lockMat = isWhite ? whiteFurMat : blackFurMat;
+            const lock = new THREE.Mesh(furLockGeo, lockMat);
+            
+            const y = (i / 9 - 0.5) * 0.6;
+            lock.position.set((Math.random() - 0.5) * 0.08, y, 0);
+            const rx = -0.8 - (Math.random() * 0.2);
+            const rz = (Math.random() - 0.5) * 0.2;
+            lock.rotation.set(rx, 0, rz);
+            lock.scale.set(0.9, 1.1, 0.9);
+            lock.castShadow = true;
+            backFurRidge.add(lock);
+
+            animatedCloth.push({
+                mesh: lock,
+                baseRx: rx,
+                baseRz: rz,
+                baseRy: 0,
+                offset: i * 0.3 + 2.0,
+                reactY: -0.6,
+                reactDrag: -1.5,
+                reactRun: 0.9,
+                reactAttack: -1.1,
+                reactHit: 1.3,
+                reactTaunt: -0.9
+            });
+        }
+
+        // --- CABEÇA DE LOBO REALISTA (PRETO E BRANCO COM JUBA 3D) ---
+        const neck = new THREE.Group();
+        neck.position.set(0, 0.62, 0.1);
+        torso.add(neck);
+
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 0.1, 0.08);
+        neck.add(headGroup);
+
+        // Crânio Preto
+        const headGeo = new THREE.BoxGeometry(0.52, 0.42, 0.48);
+        const headMesh = new THREE.Mesh(headGeo, blackFurMat);
+        headMesh.castShadow = true;
+        headGroup.add(headMesh);
+
+        // JUBA 3D DE PELO NA CABEÇA E NUCA
+        const wolfManeHead = new THREE.Group();
+        wolfManeHead.position.set(0, 0.22, -0.08);
+        headGroup.add(wolfManeHead);
+
+        for (let i = 0; i < 18; i++) {
+            const isWhite = Math.random() < 0.35;
+            const lockMat = isWhite ? whiteFurMat : blackFurMat;
+            const lock = new THREE.Mesh(furLockGeo, lockMat);
+            
+            const row = Math.floor(i / 3);
+            const col = (i % 3) - 1;
+            
+            const x = col * 0.12 + (Math.random() - 0.5) * 0.05;
+            const y = 0.1 - row * 0.08;
+            const z = -row * 0.1 - (Math.random() * 0.05);
+            
+            lock.position.set(x, y, z);
+            const rx = -0.5 - row * 0.2 + (Math.random() - 0.5) * 0.2;
+            const rz = col * 0.2 + (Math.random() - 0.5) * 0.2;
+            lock.rotation.set(rx, 0, rz);
+            lock.castShadow = true;
+            wolfManeHead.add(lock);
+
+            animatedCloth.push({
+                mesh: lock,
+                baseRx: rx,
+                baseRz: rz,
+                baseRy: 0,
+                offset: i * 0.2,
+                reactY: -0.5,
+                reactDrag: -1.2,
+                reactRun: 0.8,
+                reactAttack: -1.0,
+                reactHit: 1.2,
+                reactTaunt: -0.8
+            });
+        }
+
+        // Bochechas com pelagem branca
+        const cheekGeo = new THREE.BoxGeometry(0.56, 0.25, 0.35);
+        const cheekMesh = new THREE.Mesh(cheekGeo, whiteFurMat);
+        cheekMesh.position.set(0, -0.08, 0.12);
+        headGroup.add(cheekMesh);
+
+        // Focinho de Lobo alongado
+        const wolfSnoutTopGeo = new THREE.BoxGeometry(0.32, 0.14, 0.48);
+        const wolfSnoutTop = new THREE.Mesh(wolfSnoutTopGeo, blackFurMat);
+        wolfSnoutTop.position.set(0, 0.02, 0.42);
+        wolfSnoutTop.castShadow = true;
+        headGroup.add(wolfSnoutTop);
+
+        const wolfSnoutBotGeo = new THREE.BoxGeometry(0.3, 0.12, 0.46);
+        const wolfSnoutBot = new THREE.Mesh(wolfSnoutBotGeo, whiteFurMat);
+        wolfSnoutBot.position.set(0, -0.1, 0.42);
+        headGroup.add(wolfSnoutBot);
+
+        // Nariz Preto
+        const wolfNoseGeo = new THREE.BoxGeometry(0.14, 0.1, 0.1);
+        const wolfNose = new THREE.Mesh(wolfNoseGeo, noseMat);
+        wolfNose.position.set(0, 0.06, 0.65);
+        headGroup.add(wolfNose);
+
+        // Mandíbula Branca
+        const jawGeo = new THREE.BoxGeometry(0.28, 0.12, 0.44);
+        const jaw = new THREE.Mesh(jawGeo, whiteFurMat);
+        jaw.position.set(0, -0.22, 0.4);
+        jaw.castShadow = true;
+        headGroup.add(jaw);
+
+        // Dentes/Presas Caninas
+        const fangGeo = new THREE.ConeGeometry(0.035, 0.12, 4);
+        const toothMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.3, flatShading: true });
+        
+        const fangUpperL = new THREE.Mesh(fangGeo, toothMat);
+        fangUpperL.position.set(-0.11, -0.16, 0.6);
+        fangUpperL.rotation.x = Math.PI;
+
+        const fangUpperR = new THREE.Mesh(fangGeo, toothMat);
+        fangUpperR.position.set(0.11, -0.16, 0.6);
+        fangUpperR.rotation.x = Math.PI;
+
+        headGroup.add(fangUpperL, fangUpperR);
+
+        // Olhos Amarelos Brilhantes
+        const eyeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.06);
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.2, 0.08, 0.22);
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.2, 0.08, 0.22);
+        headGroup.add(leftEye, rightEye);
+
+        // Orelhas de Lobo Triangulares
+        const earGeo = new THREE.ConeGeometry(0.14, 0.5, 4);
+        
+        const leftWolfEarGroup = new THREE.Group();
+        leftWolfEarGroup.position.set(-0.2, 0.28, -0.05);
+        
+        const leftWolfEar = new THREE.Mesh(earGeo, blackFurMat);
+        leftWolfEar.position.y = 0.22;
+        leftWolfEar.rotation.set(0.1, 0, -0.15);
+        leftWolfEar.castShadow = true;
+        leftWolfEarGroup.add(leftWolfEar);
+
+        const leftEarInner = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.4, 4), whiteFurMat);
+        leftEarInner.position.set(0, 0.2, 0.02);
+        leftEarInner.rotation.set(0.1, 0, -0.15);
+        leftWolfEarGroup.add(leftEarInner);
+
+        const rightWolfEarGroup = new THREE.Group();
+        rightWolfEarGroup.position.set(0.2, 0.28, -0.05);
+        
+        const rightWolfEar = new THREE.Mesh(earGeo, blackFurMat);
+        rightWolfEar.position.y = 0.22;
+        rightWolfEar.rotation.set(0.1, 0, 0.15);
+        rightWolfEar.castShadow = true;
+        rightWolfEarGroup.add(rightWolfEar);
+
+        const rightEarInner = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.4, 4), whiteFurMat);
+        rightEarInner.position.set(0, 0.2, 0.02);
+        rightEarInner.rotation.set(0.1, 0, 0.15);
+        rightWolfEarGroup.add(rightEarInner);
+
+        headGroup.add(leftWolfEarGroup, rightWolfEarGroup);
+
+        // Chifres de Kobold
+        const hornGeo = new THREE.ConeGeometry(0.05, 0.3, 4);
+        const hornMat = new THREE.MeshStandardMaterial({ color: '#1a1815', roughness: 0.6, flatShading: true });
+
+        const leftHornGroup = new THREE.Group();
+        leftHornGroup.position.set(-0.24, 0.18, -0.12);
+        const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+        leftHorn.rotation.set(-0.7, -0.3, -0.4);
+        leftHornGroup.add(leftHorn);
+
+        const rightHornGroup = new THREE.Group();
+        rightHornGroup.position.set(0.24, 0.18, -0.12);
+        const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+        rightHorn.rotation.set(-0.7, 0.3, 0.4);
+        rightHornGroup.add(rightHorn);
+
+        headGroup.add(leftHornGroup, rightHornGroup);
+
+        // BRAÇOS E PERNAS
+        const leftShoulder = new THREE.Group();
+        leftShoulder.position.set(-0.4, 0.48, 0);
+        torso.add(leftShoulder);
+
+        const armGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.42, 6);
+        const leftArm = new THREE.Mesh(armGeo, blackFurMat);
+        leftArm.position.y = -0.2;
+        leftArm.castShadow = true;
+        leftShoulder.add(leftArm);
+
+        const leftElbow = new THREE.Group();
+        leftElbow.position.y = -0.38;
+        leftShoulder.add(leftElbow);
+
+        const forearmGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.42, 6);
+        const leftForearm = new THREE.Mesh(forearmGeo, whiteFurMat);
+        leftForearm.position.y = -0.2;
+        leftForearm.castShadow = true;
+        leftElbow.add(leftForearm);
+
+        const rightShoulder = new THREE.Group();
+        rightShoulder.position.set(0.4, 0.48, 0);
+        torso.add(rightShoulder);
+
+        const rightArm = new THREE.Mesh(armGeo, blackFurMat);
+        rightArm.position.y = -0.2;
+        rightArm.castShadow = true;
+        rightShoulder.add(rightArm);
+
+        const rightElbow = new THREE.Group();
+        rightElbow.position.y = -0.38;
+        rightShoulder.add(rightElbow);
+
+        const rightForearm = new THREE.Mesh(forearmGeo, whiteFurMat);
+        rightForearm.position.y = -0.2;
+        rightForearm.castShadow = true;
+        rightElbow.add(rightForearm);
+
+        const rightHand = new THREE.Group();
+        rightHand.position.y = -0.4;
+        rightElbow.add(rightHand);
+
+        // --- ARMA: BASTÃO DE MADEIRA COM ESPINHOS ---
+        const spikedClubGroup = new THREE.Group();
+        
+        const clubShaftGeo = new THREE.CylinderGeometry(0.04, 0.06, 1.25, 7);
+        const clubShaft = new THREE.Mesh(clubShaftGeo, woodMat);
+        clubShaft.rotation.x = Math.PI / 2;
+        spikedClubGroup.add(clubShaft);
+
+        const clubHeadGeo = new THREE.CylinderGeometry(0.09, 0.06, 0.45, 8);
+        const clubHead = new THREE.Mesh(clubHeadGeo, woodMat);
+        clubHead.position.z = 0.4;
+        clubHead.rotation.x = Math.PI / 2;
+        clubHead.castShadow = true;
+        spikedClubGroup.add(clubHead);
+
+        const spikeGeo = new THREE.ConeGeometry(0.035, 0.18, 4);
+        const spikePositions = [
+            { pos: [0.08, 0, 0.3], rot: [0, 0, -Math.PI / 2] },
+            { pos: [-0.08, 0, 0.35], rot: [0, 0, Math.PI / 2] },
+            { pos: [0, 0.08, 0.4], rot: [Math.PI / 2, 0, 0] },
+            { pos: [0, -0.08, 0.45], rot: [-Math.PI / 2, 0, 0] },
+            { pos: [0.07, 0.07, 0.5], rot: [Math.PI / 4, 0, -Math.PI / 4] },
+            { pos: [-0.07, -0.07, 0.52], rot: [-Math.PI / 4, 0, Math.PI / 4] },
+            { pos: [0, 0, 0.63], rot: [0, 0, 0] }
+        ];
+
+        spikePositions.forEach(s => {
+            const spike = new THREE.Mesh(spikeGeo, spikeMat);
+            spike.position.set(s.pos[0], s.pos[1], s.pos[2]);
+            spike.rotation.set(s.rot[0], s.rot[1], s.rot[2]);
+            spike.castShadow = true;
+            spikedClubGroup.add(spike);
+        });
+
+        rightHand.add(spikedClubGroup);
+
+        // PERNAS & PÉS
+        const leftHip = new THREE.Group();
+        leftHip.position.set(-0.2, -0.1, 0);
+        hips.add(leftHip);
+
+        const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.48, 6);
+        const leftThigh = new THREE.Mesh(legGeo, blackFurMat);
+        leftThigh.position.y = -0.22;
+        leftThigh.castShadow = true;
+        leftHip.add(leftThigh);
+
+        const leftKnee = new THREE.Group();
+        leftKnee.position.y = -0.42;
+        leftHip.add(leftKnee);
+
+        const leftShin = new THREE.Mesh(legGeo, whiteFurMat);
+        leftShin.position.y = -0.22;
+        leftShin.castShadow = true;
+        leftKnee.add(leftShin);
+
+        const footGeo = new THREE.BoxGeometry(0.15, 0.09, 0.35);
+        const leftFoot = new THREE.Mesh(footGeo, whiteFurMat);
+        leftFoot.position.set(0, -0.45, 0.08);
+        leftFoot.castShadow = true;
+        leftKnee.add(leftFoot);
+
+        const rightHip = new THREE.Group();
+        rightHip.position.set(0.2, -0.1, 0);
+        hips.add(rightHip);
+
+        const rightThigh = new THREE.Mesh(legGeo, blackFurMat);
+        rightThigh.position.y = -0.22;
+        rightThigh.castShadow = true;
+        rightHip.add(rightThigh);
+
+        const rightKnee = new THREE.Group();
+        rightKnee.position.y = -0.42;
+        rightHip.add(rightKnee);
+
+        const rightShin = new THREE.Mesh(legGeo, whiteFurMat);
+        rightShin.position.y = -0.22;
+        rightShin.castShadow = true;
+        rightKnee.add(rightShin);
+
+        const rightFoot = new THREE.Mesh(footGeo, whiteFurMat);
+        rightFoot.position.set(0, -0.45, 0.08);
+        rightFoot.castShadow = true;
+        rightKnee.add(rightFoot);
+
+        scene.add(kobold);
+
+        // --- PARTÍCULAS ---
+        const particleCount = 45;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePos = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            particlePos[i] = (Math.random() - 0.5) * 8;
+            particlePos[i + 1] = Math.random() * 5;
+            particlePos[i + 2] = (Math.random() - 0.5) * 8;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+
+        const particleMat = new THREE.PointsMaterial({
+            color: '#88ff44',
+            size: 0.06,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+        // --- CONTROLES TECLADO E D-PAD ---
+        const activeKeys = {};
+        const virtualKeys = { up: false, down: false, left: false, right: false };
+
+        window.addEventListener('keydown', (e) => {
+            audio.init();
+            const key = e.key.toLowerCase();
+            activeKeys[key] = true;
+            activeKeys[e.code] = true;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', ' '].includes(e.key) || ['KeyW','KeyA','KeyS','KeyD'].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            if (e.key === ' ' || e.code === 'Space') { triggerJump(); }
+            if (key === 'j') { triggerAnimation('attack'); }
+            if (key === 'k') { triggerAnimation('taunt'); }
+            if (key === 'l') { triggerAnimation('hit'); }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            activeKeys[key] = false;
+            activeKeys[e.code] = false;
+        });
+
+        window.addEventListener('pointerdown', () => window.focus());
+
+        function setVirtualKey(dir, state) {
+            audio.init();
+            virtualKeys[dir] = state;
+            const btn = document.getElementById(`btn-${dir}`);
+            if (btn) {
+                if (state) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        }
+
+        let currentAnim = 'idle';
+        let animTime = 0;
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const gravity = -18;
+        const baseHipsY = 1.5;
+
+        const koboldPos = new THREE.Vector3(0, 0, 0);
+        let rotationTarget = 0;
+
+        function triggerAnimation(name) {
+            audio.init();
+            currentAnim = name;
+            animTime = 0;
+
+            if (name === 'attack') audio.playAttack();
+            if (name === 'taunt') audio.playTaunt();
+            if (name === 'hit') audio.playHit();
+        }
+
+        function triggerJump() {
+            if (!isJumping) {
+                audio.init();
+                isJumping = true;
+                jumpVelocity = 6.0;
+                audio.playJump();
+            }
+        }
+
+        // --- MÁQUINA DE ANIMAÇÃO PROCEDURAL ---
+        function updateAnimations(delta) {
+            animTime += delta;
+
+            const moveUp = activeKeys['w'] || activeKeys['arrowup'] || activeKeys['KeyW'] || activeKeys['ArrowUp'] || virtualKeys.up;
+            const moveDown = activeKeys['s'] || activeKeys['arrowdown'] || activeKeys['KeyS'] || activeKeys['ArrowDown'] || virtualKeys.down;
+            const moveLeft = activeKeys['a'] || activeKeys['arrowleft'] || activeKeys['KeyA'] || activeKeys['ArrowLeft'] || virtualKeys.left;
+            const moveRight = activeKeys['d'] || activeKeys['arrowright'] || activeKeys['KeyD'] || activeKeys['ArrowRight'] || virtualKeys.right;
+
+            const isMovingInput = moveUp || moveDown || moveLeft || moveRight;
+
+            if (isMovingInput && currentAnim !== 'attack' && currentAnim !== 'hit') {
+                currentAnim = 'run';
+            } else if (!isMovingInput && currentAnim === 'run') {
+                currentAnim = 'idle';
+            }
+
+            const lerpSpeed = 10 * delta;
+
+            // VETOR DE MOVIMENTO
+            let moveX = 0;
+            let moveZ = 0;
+            if (moveUp) moveZ -= 1;
+            if (moveDown) moveZ += 1;
+            if (moveLeft) moveX -= 1;
+            if (moveRight) moveX += 1;
+
+            if (moveX !== 0 || moveZ !== 0) {
+                const moveVec = new THREE.Vector3(moveX, 0, moveZ).normalize();
+                rotationTarget = Math.atan2(moveVec.x, moveVec.z);
+                
+                const nextPos = koboldPos.clone().addScaledVector(moveVec, 3.4 * delta);
+                if (nextPos.distanceTo(new THREE.Vector3(0, 0, 0)) < 3.8) {
+                    koboldPos.copy(nextPos);
+                }
+
+                if (Math.sin(animTime * 15) > 0.8) {
+                    audio.playStep();
+                }
+            }
+
+            // Suavizar Rotação do Corpo
+            let diff = rotationTarget - kobold.rotation.y;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            kobold.rotation.y += diff * lerpSpeed;
+            kobold.position.x = koboldPos.x;
+            kobold.position.z = koboldPos.z;
+
+            // Câmera
+            controls.target.x = THREE.MathUtils.lerp(controls.target.x, kobold.position.x, 6 * delta);
+            controls.target.z = THREE.MathUtils.lerp(controls.target.z, kobold.position.z, 6 * delta);
+
+            // Física do Pulo
+            if (isJumping) {
+                kobold.position.y += jumpVelocity * delta;
+                jumpVelocity += gravity * delta;
+                if (kobold.position.y <= 0) {
+                    kobold.position.y = 0;
+                    isJumping = false;
+                    audio.playStep();
+                }
+            }
+
+            // --- FÍSICA PROCEDURAL DAS MALHAS 3D REATIVAS (FOLHAS E JUBA) ---
+            const speedFactor = isMovingInput ? 1.0 : 0.0;
+            const runBounce = Math.sin(animTime * 15) * 0.22 * speedFactor;
+            const windDrag = isMovingInput ? 0.38 : 0.0;
+
+            let verticalImpact = 0;
+            if (isJumping) verticalImpact = jumpVelocity * 0.05;
+
+            let attackImpact = 0;
+            if (currentAnim === 'attack') attackImpact = Math.sin(animTime * 8) * 0.6;
+
+            let tauntImpact = 0;
+            if (currentAnim === 'taunt') tauntImpact = Math.sin(animTime * 12) * 0.4;
+
+            let hitImpact = 0;
+            if (currentAnim === 'hit') hitImpact = Math.sin(animTime * 15) * 0.7;
+
+            // Atualizar Folhas e Tufos de Pelo Reativos
+            animatedCloth.forEach(cloth => {
+                const wind = Math.sin(animTime * 4 + cloth.offset) * 0.08;
+                let targetRx = cloth.baseRx + wind;
+                let targetRz = cloth.baseRz + Math.cos(animTime * 3 + cloth.offset) * 0.04;
+
+                targetRx += verticalImpact * cloth.reactY;
+                targetRx += windDrag * cloth.reactDrag;
+                targetRx += runBounce * cloth.reactRun;
+                targetRx += attackImpact * cloth.reactAttack;
+                targetRx += tauntImpact * cloth.reactTaunt;
+                targetRx += hitImpact * cloth.reactHit;
+
+                cloth.mesh.rotation.x += (targetRx - cloth.mesh.rotation.x) * 14 * delta;
+                cloth.mesh.rotation.z += (targetRz - cloth.mesh.rotation.z) * 14 * delta;
+            });
+
+            // Atualizar Física da Cauda Articulada de Lobo
+            tailSegments.forEach((seg, idx) => {
+                const waveFreq = 8;
+                const waveDelay = idx * 0.25;
+                const tailWaveY = Math.sin(animTime * waveFreq - waveDelay) * (0.15 + idx * 0.05);
+                const tailWaveX = Math.cos(animTime * (waveFreq * 0.5) - waveDelay) * 0.08;
+
+                let targetRy = seg.baseRy + tailWaveY;
+                let targetRx = seg.baseRx + tailWaveX;
+
+                if (isMovingInput) {
+                    targetRy += Math.sin(animTime * 15 - waveDelay) * 0.35;
+                }
+                if (currentAnim === 'attack') {
+                    targetRy += Math.sin(animTime * 10 - waveDelay) * 0.5;
+                }
+                if (currentAnim === 'taunt') {
+                    targetRx -= 0.15 * idx;
+                }
+
+                seg.group.rotation.y = THREE.MathUtils.lerp(seg.group.rotation.y, targetRy, 12 * delta);
+                seg.group.rotation.x = THREE.MathUtils.lerp(seg.group.rotation.x, targetRx, 12 * delta);
+            });
+
+            // POSE IDLE
+            if (currentAnim === 'idle') {
+                const breath = Math.sin(animTime * 2.8) * 0.04;
+                hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY + breath, lerpSpeed);
+                
+                torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.3 + breath * 0.5, lerpSpeed);
+                headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.15, lerpSpeed);
+                headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(animTime * 1.4) * 0.22, lerpSpeed);
+
+                leftWolfEarGroup.rotation.z = THREE.MathUtils.lerp(leftWolfEarGroup.rotation.z, Math.sin(animTime * 3) * 0.08, lerpSpeed);
+                rightWolfEarGroup.rotation.z = THREE.MathUtils.lerp(rightWolfEarGroup.rotation.z, -Math.sin(animTime * 3) * 0.08, lerpSpeed);
+
+                leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, 0.3, lerpSpeed);
+                rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, -0.4, lerpSpeed);
+                rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -0.7, lerpSpeed);
+
+                leftHip.rotation.x = THREE.MathUtils.lerp(leftHip.rotation.x, -0.25, lerpSpeed);
+                rightHip.rotation.x = THREE.MathUtils.lerp(rightHip.rotation.x, -0.25, lerpSpeed);
+                leftKnee.rotation.x = THREE.MathUtils.lerp(leftKnee.rotation.x, 0.45, lerpSpeed);
+                rightKnee.rotation.x = THREE.MathUtils.lerp(rightKnee.rotation.x, 0.45, lerpSpeed);
+            }
+
+            // POSE TROTE / CORRIDA
+            else if (currentAnim === 'run') {
+                const runFreq = 15;
+                const bob = Math.abs(Math.sin(animTime * runFreq)) * 0.13;
+                hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY - 0.08 + bob, lerpSpeed);
+
+                torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.5, lerpSpeed);
+                headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.3, lerpSpeed);
+
+                const legAngle = Math.sin(animTime * runFreq) * 0.8;
+                leftHip.rotation.x = legAngle;
+                rightHip.rotation.x = -legAngle;
+
+                leftKnee.rotation.x = legAngle > 0 ? 0.85 : 0.25;
+                rightKnee.rotation.x = legAngle < 0 ? 0.85 : 0.25;
+
+                leftShoulder.rotation.x = -legAngle * 0.85;
+                rightShoulder.rotation.x = legAngle * 0.85 - 0.2;
+                rightElbow.rotation.x = -0.95;
+
+                leftWolfEarGroup.rotation.x = -0.3;
+                rightWolfEarGroup.rotation.x = -0.3;
+            }
+
+            // POSE ATAQUE DE BASTÃO (PANCADA DE CIMA PARA BAIXO COM TODA A FORÇA)
+            else if (currentAnim === 'attack') {
+                const strikeTime = animTime * 8;
+                if (strikeTime < Math.PI * 0.9) {
+                    // Ergue o bastão lá no alto atrás da cabeça e arqueia tronco
+                    rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, -2.4, lerpSpeed * 2.0);
+                    rightShoulder.rotation.y = THREE.MathUtils.lerp(rightShoulder.rotation.y, 0.2, lerpSpeed * 2.0);
+                    rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -0.9, lerpSpeed * 2.0);
+                    
+                    leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, -1.8, lerpSpeed * 2.0);
+                    leftShoulder.rotation.y = THREE.MathUtils.lerp(leftShoulder.rotation.y, -0.3, lerpSpeed * 2.0);
+
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, -0.35, lerpSpeed * 2.0);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.4, lerpSpeed * 2.0);
+                    hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY + 0.1, lerpSpeed * 2.0);
+                } else if (strikeTime < Math.PI * 2.0) {
+                    // Pancada violenta de cima para baixo
+                    rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, 1.8, lerpSpeed * 3.5);
+                    rightShoulder.rotation.y = THREE.MathUtils.lerp(rightShoulder.rotation.y, -0.1, lerpSpeed * 3.5);
+                    rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -0.1, lerpSpeed * 3.5);
+
+                    leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, 0.8, lerpSpeed * 3.5);
+
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.75, lerpSpeed * 3.5);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0.35, lerpSpeed * 3.5);
+                    hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY - 0.2, lerpSpeed * 3.5);
+                } else {
+                    currentAnim = 'idle';
+                    rightShoulder.rotation.y = 0;
+                    leftShoulder.rotation.y = 0;
+                    torso.rotation.y = 0;
+                    leftWolfEarGroup.rotation.x = 0;
+                    rightWolfEarGroup.rotation.x = 0;
+                }
+            }
+
+            // POSE UIVO / PROVOCAR
+            else if (currentAnim === 'taunt') {
+                const tauntCycle = Math.sin(animTime * 12);
+                hips.position.y = baseHipsY + Math.abs(tauntCycle) * 0.16;
+                torso.rotation.x = -0.35;
+                headGroup.rotation.x = -0.7 + tauntCycle * 0.15;
+
+                leftShoulder.rotation.x = -1.4 + tauntCycle * 0.3;
+                rightShoulder.rotation.x = -1.4 - tauntCycle * 0.3;
+                leftShoulder.rotation.z = -0.6;
+                rightShoulder.rotation.z = 0.6;
+
+                if (animTime > 1.8) {
+                    leftShoulder.rotation.z = 0;
+                    rightShoulder.rotation.z = 0;
+                    currentAnim = 'idle';
+                }
+            }
+
+            // POSE DANO
+            else if (currentAnim === 'hit') {
+                if (animTime < 0.4) {
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, -0.55, lerpSpeed * 2);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0.45, lerpSpeed * 2);
+                    hips.position.z = THREE.MathUtils.lerp(hips.position.z, -0.25, lerpSpeed * 2);
+                    leftShoulder.rotation.z = -0.85;
+                    rightShoulder.rotation.z = 0.85;
+                } else {
+                    hips.position.z = 0;
+                    leftShoulder.rotation.z = 0;
+                    rightShoulder.rotation.z = 0;
+                    currentAnim = 'idle';
+                }
+            }
+        }
+
+        // --- LOOP PRINCIPAL ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            updateAnimations(delta);
+
+            forestGlow.intensity = 1.8 + Math.sin(clock.getElapsedTime() * 7) * 0.3 + Math.random() * 0.1;
+
+            const positions = particleSystem.geometry.attributes.position.array;
+            for (let i = 1; i < particleCount * 3; i += 3) {
+                positions[i] += delta * 0.35;
+                if (positions[i] > 5) positions[i] = 0;
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

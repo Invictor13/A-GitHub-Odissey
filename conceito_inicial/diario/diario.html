@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A GitHub Odyssey - Diário do Explorador</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Three.js para Renderização 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --category-accent: #00f0ff;
+      --category-glow: rgba(0, 240, 255, 0.15);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #05070a;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(circle at 50% 0%, var(--category-glow) 0%, transparent 60%),
+        linear-gradient(to bottom, #05070a, #080c14);
+      background-attachment: fixed;
+      transition: background-image 0.5s ease-in-out;
+    }
+
+    .font-cinzel { font-family: 'Cinzel', serif; }
+
+    /* Scrollbar Moderna */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #080c14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--category-accent); }
+
+    /* Painéis Glassmorphism */
+    .glass-panel {
+      background: rgba(10, 14, 23, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+
+    .glass-card {
+      background: linear-gradient(135deg, rgba(18, 25, 38, 0.6) 0%, rgba(9, 13, 21, 0.85) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-card:hover {
+      border-color: var(--category-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-card-active {
+      border-color: var(--category-accent) !important;
+      background: linear-gradient(135deg, rgba(28, 38, 58, 0.85) 0%, rgba(14, 20, 32, 0.95) 100%) !important;
+      box-shadow: 0 0 25px var(--category-glow) !important;
+    }
+
+    /* Placa Estilo Pergaminho Místico */
+    .parchment-plate {
+      background: linear-gradient(135deg, #18130c 0%, #0f0c08 100%);
+      border: 1px solid #785a28;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9), 0 4px 14px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    .parchment-plate::before, .parchment-plate::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border: 1px solid #f5c542;
+    }
+    .parchment-plate::before { top: 2px; left: 2px; border-right: none; border-bottom: none; }
+    .parchment-plate::after { bottom: 2px; right: 2px; border-left: none; border-top: none; }
+
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #fff9e6 0%, #f5c542 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Animação Suave de Entrada */
+    .animate-fade-in {
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #three-canvas { width: 100%; height: 100%; cursor: grab; }
+    #three-canvas:active { cursor: grabbing; }
+
+    .rarity-common { background: rgba(148, 163, 184, 0.1); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2); }
+    .rarity-rare { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .rarity-legendary { background: rgba(245, 197, 66, 0.15); color: #f5c542; border: 1px solid rgba(245, 197, 66, 0.45); }
+  </style>
+</head>
+<body class="min-h-screen p-3 lg:p-6 flex flex-col justify-between max-w-[1650px] mx-auto antialiased">
+
+  <!-- CABEÇALHO MODERNO DARK FANTASY -->
+  <header class="w-full mb-4 glass-panel rounded-2xl p-4 lg:p-5 flex flex-col md:flex-row justify-between items-center gap-4 transition-all duration-300">
+    <div class="flex items-center gap-4">
+      <div id="header-icon-box" class="w-11 h-11 rounded-xl bg-cyan-950/50 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg transition-colors duration-300">
+        <i data-lucide="book-open" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-xl md:text-2xl font-bold font-cinzel gold-gradient-text tracking-wide">Diário do Explorador</h1>
+          <span id="category-badge" class="text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 transition-colors duration-300">CÓDICE: BESTAS</span>
+        </div>
+        <p class="text-xs text-slate-400">Registros físicos permanentes que resistem à redefinição cósmica do Purgatório</p>
+      </div>
+    </div>
+
+    <!-- Progresso Geral & Ferramentas -->
+    <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] text-slate-400 font-cinzel uppercase tracking-widest">Compêndio Ativo</span>
+        <div class="flex items-center gap-2.5 mt-1">
+          <div class="w-32 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div id="overall-progress-bar" class="bg-gradient-to-r from-cyan-500 to-amber-400 h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <span id="overall-progress-text" class="text-xs font-bold text-amber-300 font-mono">0/0</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 border-l border-slate-800/80 pl-4">
+        <button id="btn-sound" onclick="toggleSound()" title="Efeitos Sonoros" class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-amber-300 hover:border-amber-500/40 transition">
+          <i id="sound-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleDevPanel()" title="Simulador Dev" class="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-400 hover:bg-amber-900/30 transition">
+          <i data-lucide="flask-conical" class="w-4 h-4"></i>
+        </button>
+        <button onclick="resetAllProgress()" title="Resetar Códice" class="p-2.5 rounded-xl bg-rose-950/20 border border-rose-900/30 text-rose-400 hover:bg-rose-900/30 transition">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA PRINCIPAL DO COMPÊNDIO -->
+  <main class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 mb-3">
+
+    <!-- COLUNA DA ESQUERDA: LISTAGEM E NAVEGAÇÃO (5 COLS) -->
+    <section class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col h-[750px]">
+      
+      <!-- ABAS DE CATEGORIA -->
+      <div class="grid grid-cols-6 gap-1 p-1 bg-slate-950/90 rounded-xl border border-slate-800/80 mb-3 text-center">
+        <button onclick="switchCategory('inimigos')" id="tab-inimigos" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-amber-300 bg-slate-800/80 border border-amber-500/40 shadow-sm">
+          <i data-lucide="skull" class="w-3.5 h-3.5"></i> Bestas
+        </button>
+        <button onclick="switchCategory('equipamentos')" id="tab-equipamentos" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-slate-400 hover:text-slate-200">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i> Itens
+        </button>
+        <button onclick="switchCategory('magias')" id="tab-magias" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-slate-400 hover:text-slate-200">
+          <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Magias
+        </button>
+        <button onclick="switchCategory('ecossistema')" id="tab-ecossistema" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-slate-400 hover:text-slate-200">
+          <i data-lucide="leaf" class="w-3.5 h-3.5"></i> Coleta
+        </button>
+        <button onclick="switchCategory('npcs')" id="tab-npcs" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-slate-400 hover:text-slate-200">
+          <i data-lucide="users" class="w-3.5 h-3.5"></i> NPCs
+        </button>
+        <button onclick="switchCategory('quests')" id="tab-quests" class="category-tab py-2 rounded-lg text-[11px] font-cinzel font-bold flex flex-col items-center gap-1 transition text-slate-400 hover:text-slate-200">
+          <i data-lucide="scroll" class="w-3.5 h-3.5"></i> Quests
+        </button>
+      </div>
+
+      <!-- BUSCA E FILTROS -->
+      <div class="flex gap-2 mb-3">
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500"></i>
+          <input type="text" id="search-input" oninput="renderList()" placeholder="Buscar por nome, bioma ou efeito..." 
+                 class="w-full pl-9 pr-3 py-1.5 bg-slate-950/90 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500/60 placeholder-slate-600">
+        </div>
+        <select id="status-filter" onchange="renderList()" class="bg-slate-950/90 border border-slate-800 rounded-xl text-xs text-slate-300 px-2.5 focus:outline-none focus:border-amber-500/60">
+          <option value="all">Todos</option>
+          <option value="unlocked">Desbloqueados</option>
+          <option value="locked">Ocultos</option>
+        </select>
+      </div>
+
+      <!-- CONTAINER DA LISTAGEM -->
+      <div id="codex-list" class="flex-1 overflow-y-auto pr-1 space-y-2">
+        <!-- Inserido dinamicamente -->
+      </div>
+    </section>
+
+    <!-- COLUNA DA DIREITA: VIEWPORT 3D + CARDS PERSONALIZADOS (7 COLS) -->
+    <section class="lg:col-span-7 glass-panel rounded-2xl p-5 flex flex-col h-[750px] relative overflow-hidden">
+      
+      <!-- VIEWPORT 3D EXPANDIDO E CENTRALIZADO -->
+      <div class="w-full h-[280px] rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 relative overflow-hidden flex-shrink-0 shadow-2xl group">
+        <!-- Canvas Three.js -->
+        <canvas id="three-canvas"></canvas>
+
+        <!-- TOP-LEFT: PLACA ESTILO PERGAMINHO MÍSTICO -->
+        <div class="absolute top-3 left-3 max-w-[260px] md:max-w-[340px] parchment-plate rounded-lg px-3 py-2 pointer-events-none">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sparkle" class="w-3.5 h-3.5 text-amber-400"></i>
+            <h3 id="sprite-title" class="text-xs font-bold font-cinzel text-amber-200 tracking-wide">Placa de Registro</h3>
+          </div>
+          <p id="sprite-desc" class="text-[10px] text-amber-100/70 italic mt-0.5 line-clamp-1">Subtítulo ou Bioma</p>
+        </div>
+
+        <!-- TOP-RIGHT: BADGE EM DESTAQUE COM O CONTADOR -->
+        <div class="absolute top-3 right-3 bg-slate-950/90 border border-amber-500/40 backdrop-blur-md rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-lg">
+          <i id="sprite-count-icon" data-lucide="skull" class="w-4 h-4 text-amber-400"></i>
+          <div>
+            <span id="sprite-count-label" class="block text-[9px] uppercase font-cinzel text-slate-400 font-semibold">Total Abates</span>
+            <span id="sprite-count-value" class="text-sm font-bold font-mono text-amber-300">12x</span>
+          </div>
+        </div>
+
+        <!-- BOTTOM-LEFT: CHIPS DE VARIAÇÃO EM TEMPO REAL -->
+        <div class="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+          <span class="text-[10px] font-cinzel text-slate-400 uppercase tracking-wider">Variação:</span>
+          <div id="variation-chips" class="flex items-center gap-1.5">
+            <!-- Chips JS -->
+          </div>
+        </div>
+
+        <!-- BOTTOM-RIGHT: INTERAÇÃO 3D -->
+        <div class="absolute bottom-3 right-3 opacity-60 group-hover:opacity-100 transition text-[10px] text-slate-400 flex items-center gap-1.5 pointer-events-none bg-slate-950/70 px-2 py-1 rounded-md">
+          <i data-lucide="move" class="w-3 h-3 text-amber-400"></i> Rotação 3D Livre
+        </div>
+      </div>
+
+      <!-- PAINEL DE CONTEÚDO ADAPTÁVEL POR CATEGORIA -->
+      <div id="detail-container" class="flex-1 overflow-y-auto mt-4 pr-1 space-y-3 animate-fade-in">
+        <!-- Conteúdo dinâmico -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- DRAWER DO SIMULADOR DEV -->
+  <div id="dev-drawer" class="hidden glass-panel rounded-2xl p-4 mb-3 border border-amber-500/30">
+    <div class="flex items-center justify-between mb-2 border-b border-slate-800 pb-2">
+      <div class="flex items-center gap-2">
+        <i data-lucide="flask-conical" class="w-4 h-4 text-amber-400"></i>
+        <span class="text-xs font-cinzel font-bold text-amber-300">Simulador de Ações do Purgatório (Dev Mode)</span>
+      </div>
+      <button onclick="toggleDevPanel()" class="text-slate-400 hover:text-slate-200 text-xs">✕ Fechar</button>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="text-xs text-slate-400">Simule interações do jogo para testar receitas, recompensas e diálogos:</p>
+      <div class="flex items-center gap-2">
+        <button onclick="simulateInteraction()" class="px-3 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-xs font-semibold text-amber-200 flex items-center gap-1.5 transition">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> <span id="sim-btn-text">+1 Abate / Ação</span>
+        </button>
+        <button onclick="simulateMaxRank()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition">
+          Revelar Tudo (Max)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="w-full text-center text-[11px] text-slate-600 font-cinzel py-1">
+    A GitHub Odyssey • Códice Permanente do Purgatório • Serverless Architecture
+  </footer>
+
+  <!-- SCRIPT LÓGICO COMPLETO + ENGINE THREE.JS -->
+  <script>
+    /* ==========================================================================
+       1. BANCO DE DADOS DETALHADO POR CATEGORIA
+       ========================================================================== */
+    const CODEX_DATABASE = {
+      inimigos: [
+        {
+          id: "slime_floresta",
+          name: "Gosma de Musgo",
+          category: "inimigos",
+          biome: "Floresta_1 (Nó #02 ao #06)",
+          icon: "bug",
+          modelType: "slime",
+          subtitle: "Criatura Amorfa Cíclica",
+          description: "Massa gelatinosa que absorve os resíduos mágicos do Purgatório. Quando atacada por lâminas pesadas, se divide em frações menores.",
+          variations: [
+            { name: "Verde Musgo", color: 0x38b000 },
+            { name: "Vermelho Lava", color: 0xd90429 },
+            { name: "Roxo Tóxico", color: 0x7209b7 },
+            { name: "Ciano Astral", color: 0x00f0ff }
+          ],
+          lootTable: [
+            { name: "Musgo Mágico", chance: "85%", rarity: "common", icon: "leaf", desc: "Reagente Alquímico" },
+            { name: "Essência Astral", chance: "20%", rarity: "rare", icon: "sparkles", desc: "Ingrediente de Elixir" },
+            { name: "Núcleo Gelatinoso", chance: "5%", rarity: "legendary", icon: "gem", desc: "Forja de Acessórios" }
+          ],
+          stats: { hp: "45 HP", damage: "6 Dano", weakness: "Fogo / Corte" },
+          reqLevel1: 1, reqLevel2: 5, reqLevel3: 15
+        },
+        {
+          id: "espectro_cinzas",
+          name: "Espectro de Cinzas",
+          category: "inimigos",
+          biome: "Planalto das Almas",
+          icon: "ghost",
+          modelType: "ghost",
+          subtitle: "Eco das Falhas Passadas",
+          description: "Projeção de um penitente sucumbido ao esquecimento. Flutua velozmente e desfere cortes mágicos em área.",
+          variations: [
+            { name: "Etéreo Azul", color: 0x00b4d8 },
+            { name: "Sombrio Violeta", color: 0x5c068c },
+            { name: "Escarlate", color: 0x9e2a2b }
+          ],
+          lootTable: [
+            { name: "Poeira de Cinzas", chance: "90%", rarity: "common", icon: "wind", desc: "Poeira de Alquimia" },
+            { name: "Fragmento de Alma", chance: "35%", rarity: "rare", icon: "moon", desc: "Moeda de Troca" },
+            { name: "Anel do Esquecido", chance: "3%", rarity: "legendary", icon: "disc", desc: "Acessório Raro" }
+          ],
+          stats: { hp: "110 HP", damage: "18 Dano Mágico", weakness: "Ataques Astrais" },
+          reqLevel1: 1, reqLevel2: 5, reqLevel3: 15
+        },
+        {
+          id: "guardiao_forja",
+          name: "Guardião da Forja",
+          category: "inimigos",
+          biome: "Fortaleza Caída (Boss)",
+          icon: "swords",
+          modelType: "boss",
+          subtitle: "Boss de Bioma",
+          description: "Autômato de ferro gigante selado no coração da fortaleza celestial. Peitoral blindado superaquece periodicamente.",
+          variations: [
+            { name: "Ferro Cobre", color: 0x4a3b32 },
+            { name: "Aço Negro", color: 0x111111 },
+            { name: "Ouro Rúnico", color: 0xb8860b }
+          ],
+          lootTable: [
+            { name: "Lingote Celestial", chance: "100%", rarity: "rare", icon: "box", desc: "Material de Elite" },
+            { name: "Coração do Autômato", chance: "100%", rarity: "legendary", icon: "heart-pulse", desc: "Núcleo Místico" }
+          ],
+          stats: { hp: "850 HP", damage: "45 Dano", weakness: "Magia de Gelo" },
+          reqLevel1: 1, reqLevel2: 3, reqLevel3: 8
+        }
+      ],
+      equipamentos: [
+        {
+          id: "espada_penitente",
+          name: "Espada do Penitente",
+          category: "equipamentos",
+          biome: "Forja Central (Hub) / Oficina",
+          icon: "sword",
+          modelType: "sword",
+          subtitle: "Lâmina Rústica de Aço",
+          description: "Espada inicial equilibrada com peso ideal. Concede bônus de investida quando portada com o conjunto do Santuário.",
+          craftingStation: "Casa do Ferreiro (Hub Celeste - Nível 1)",
+          materialsNeeded: [
+            { name: "Minério de Ferro", qty: 4, owned: 8, icon: "hammer" },
+            { name: "Madeira Ancestral", qty: 2, owned: 15, icon: "trees" },
+            { name: "Poeira de Cinzas", qty: 1, owned: 3, icon: "wind" }
+          ],
+          variations: [
+            { name: "Aço Forjado", color: 0xdddddd },
+            { name: "Banhada a Ouro", color: 0xf5c542 },
+            { name: "Aço Negro", color: 0x222222 }
+          ],
+          stats: { attack: "+28 Dano de Ataque", weight: "2.5 kg", durability: "100/100", setBonus: "+10% Dano de Investida (Conjunto Santuário)" },
+          reqLevel1: 1, reqLevel2: 3, reqLevel3: 10
+        },
+        {
+          id: "tunica_santuario",
+          name: "Túnica do Santuário",
+          category: "equipamentos",
+          biome: "Bancada de Alfaiate (Hub)",
+          icon: "shirt",
+          modelType: "armor",
+          subtitle: "Vestimenta de Tecido Rúnico",
+          description: "Manto tecido com fibras místicas das nuvens. Leve e flexível, reduz o desgaste de estamina em corridas.",
+          craftingStation: "Bancada de Alfaiataria (Hub Celeste)",
+          materialsNeeded: [
+            { name: "Pele de Besta", qty: 8, owned: 12, icon: "feather" },
+            { name: "Linho Místico", qty: 4, owned: 6, icon: "scissors" }
+          ],
+          variations: [
+            { name: "Manto do Purgatório", color: 0x3d2b1f },
+            { name: "Manto Astral", color: 0x00f0ff },
+            { name: "Manto Rubro", color: 0x9e2a2b }
+          ],
+          stats: { attack: "+8 Proteção Física", weight: "1.2 kg", durability: "80/80", setBonus: "+5% Velocidade no Mapa-Múndi" },
+          reqLevel1: 1, reqLevel2: 3, reqLevel3: 10
+        }
+      ],
+      magias: [
+        {
+          id: "elixir_celeste",
+          name: "Elixir Celeste",
+          category: "magias",
+          biome: "Bancada Alquímica (Incursão ou Hub)",
+          icon: "flask-round",
+          modelType: "flask",
+          subtitle: "Fórmula de Restauração",
+          description: "Infusão mística que regenera a vitalidade, estanca a fome e interrompe a inanição em tempo real.",
+          craftingStation: "Bancada Alquímica ou Crafting no Campo",
+          effects: [
+            { name: "Restauração Vital", value: "+40 HP Instantâneo", icon: "heart", color: "text-rose-400" },
+            { name: "Hidratação", value: "+30% Barra de Sede", icon: "droplet", color: "text-cyan-400" },
+            { name: "Buff de Carga", value: "+10% Capacidade (60s)", icon: "zap", color: "text-amber-400" }
+          ],
+          reagentsNeeded: [
+            { name: "Erva Astral", qty: 4, owned: 15, icon: "leaf" },
+            { name: "Essência Astral", qty: 1, owned: 3, icon: "sparkles" }
+          ],
+          variations: [
+            { name: "Elixir Celeste (Ciano)", color: 0x00f0ff },
+            { name: "Poção Vital (Verde)", color: 0x38b000 },
+            { name: "Tônico Rúnico (Roxo)", color: 0x9d4edd }
+          ],
+          reqLevel1: 1, reqLevel2: 5, reqLevel3: 15
+        },
+        {
+          id: "chama_absolvicao",
+          name: "Chama da Absolvição",
+          category: "magias",
+          biome: "Grimório de Feitiços",
+          icon: "flame",
+          modelType: "fire",
+          subtitle: "Encantamento Ofensivo Térmico",
+          description: "Conjura um projétil espiral de fogo purificador que explode ao impactar o inimigo, aplicando queimadura mágica.",
+          craftingStation: "Maestria de Alquimia / Magia (Nível 14)",
+          effects: [
+            { name: "Dano Impacto", value: "35 Dano Térmico", icon: "flame", color: "text-orange-400" },
+            { name: "Efeito Queimadura", value: "5 Dano/s por 4s", icon: "clock", color: "text-red-400" },
+            { name: "Custo Mágico", value: "20 Pontos de Mana", icon: "wand-2", color: "text-purple-400" }
+          ],
+          reagentsNeeded: [
+            { name: "Poeira de Cinzas", qty: 2, owned: 5, icon: "wind" },
+            { name: "Gema de Éter", qty: 1, owned: 2, icon: "gem" }
+          ],
+          variations: [
+            { name: "Chama Solar", color: 0xff4500 },
+            { name: "Fogo Astral", color: 0x00f0ff },
+            { name: "Chama Negra", color: 0x8b008b }
+          ],
+          reqLevel1: 1, reqLevel2: 5, reqLevel3: 15
+        }
+      ],
+      ecossistema: [
+        {
+          id: "madeira_ancestral",
+          name: "Madeira Ancestral",
+          category: "ecossistema",
+          biome: "Biomas de Floresta & Bosques Celestes",
+          icon: "trees",
+          modelType: "wood",
+          subtitle: "Matéria-Prima Espiritual",
+          description: "Troncos colhidos das árvores celestes que flutuam sobre as nuvens. Fibras alinhadas ideais para carpintaria.",
+          harvestTool: "Machado de Lenhador (Maestria Nível 1+)",
+          whereToUse: [
+            { name: "Expansão da Base", desc: "Construção da Casa do Ferreiro e Galinheiro no Hub", icon: "home" },
+            { name: "Criação de Armas", desc: "Cabos de Espadas, Machados e Escudos", icon: "hammer" },
+            { name: "Processamento", desc: "Transformado na Casa do Lenhador em Tábuas", icon: "box" }
+          ],
+          variations: [
+            { name: "Tronco de Bétula", color: 0x8d5b4c },
+            { name: "Carvalho Ancestral", color: 0x4a2e1b },
+            { name: "Madeira Astral", color: 0x2b4c3f }
+          ],
+          reqLevel1: 1, reqLevel2: 10, reqLevel3: 30
+        },
+        {
+          id: "minerio_eter",
+          name: "Minério de Éter",
+          category: "ecossistema",
+          biome: "Cavernas Flutuantes & Penhascos Místicos",
+          icon: "gem",
+          modelType: "crystal",
+          subtitle: "Recurso Mineral Energizado",
+          description: "Cristais celestes que crescem sob a luz direta das nuvens. Encontrados em depósitos cintilantes no mapa-múndi.",
+          harvestTool: "Picareta de Mineração (Maestria Nível 5+)",
+          whereToUse: [
+            { name: "Forja Metalúrgica", desc: "Fundição de Lingotes e Equipamentos de Ferro", icon: "anvil" },
+            { name: "Catalisadores", desc: "Reagente essencial para feitiços e poções avançadas", icon: "wand-2" },
+            { name: "Evolução da Base", desc: "Melhoria de instalações permanentes do Hub", icon: "arrow-up-circle" }
+          ],
+          variations: [
+            { name: "Éter Ciano", color: 0x00f0ff },
+            { name: "Cristal Rubro", color: 0xff0055 },
+            { name: "Topázio Dourado", color: 0xf5c542 }
+          ],
+          reqLevel1: 1, reqLevel2: 10, reqLevel3: 25
+        }
+      ],
+      npcs: [
+        {
+          id: "capitao_cimentado",
+          name: "Capitão Cimentado",
+          category: "npcs",
+          biome: "Santuário Celeste (Base Permanante)",
+          icon: "dog",
+          modelType: "npc_bulldog",
+          subtitle: "Mestre de Obras Canino",
+          description: "Buldogue Francês Preto robusto com capacete de obras e cinto de utilitários. Demonstra autoridade e gerencia a expansão da base.",
+          locationInfo: {
+            habitualSpot: "Santuário Celeste (ao lado da Fogueira Inicial)",
+            mobility: "Fixo na Base (Lugar Seguro)",
+            amnesiaState: "Imune à Amnésia Cósmica (Reconhece o Penitente sempre)"
+          },
+          servicesAndFavors: [
+            { name: "Terraforming Modular", desc: "Projeta e encaixa novos blocos 3D na ilha flutuante", icon: "grid" },
+            { name: "Gestão de Estruturas", desc: "Abre o menu de construção do Ferreiro, Fazenda e Taverna", icon: "hammer" },
+            { name: "Diálogos e Filosofia", desc: "Exibe balões de texto filosóficos sobre os pecados do Penitente", icon: "message-square" }
+          ],
+          variations: [
+            { name: "Preto Ébano", color: 0x1f1915 },
+            { name: "Capacete Dourado", color: 0xf5c542 }
+          ],
+          reqLevel1: 1, reqLevel2: 3, reqLevel3: 8
+        },
+        {
+          id: "viajante_amnesico",
+          name: "Mercador Itinerante",
+          category: "npcs",
+          biome: "Vilarejos e Assentamentos no Mapa-Múndi",
+          icon: "user",
+          modelType: "npc_wanderer",
+          subtitle: "Nômade do Purgatório",
+          description: "Encontrado em áreas seguras da rota. A cada morte do jogador, a redefinição cósmica apaga totalmente suas memórias de quem você é.",
+          locationInfo: {
+            habitualSpot: "Vilarejos e Pontos de Cocheiro aleatórios",
+            mobility: "Itinerante (Muda a cada nova Run procedural)",
+            amnesiaState: "Amnésia Cósmica Total (Exige reconstruir a relação a cada ciclo)"
+          },
+          servicesAndFavors: [
+            { name: "Comércio de Suprimentos", desc: "Vende poções, rações de viagem e ferramentas por Moedas de Almas", icon: "shopping-bag" },
+            { name: "Venda de Relíquias", desc: "Adquire itens sobressalentes acumulados no seu Alforje", icon: "coins" },
+            { name: "Dicas de Rota", desc: "Revela biomas adjacentes ocultos no mapa-múndi", icon: "map-pin" }
+          ],
+          variations: [
+            { name: "Manto Cinza", color: 0x4a5568 },
+            { name: "Manto Escarlate", color: 0x9b2c2c }
+          ],
+          reqLevel1: 1, reqLevel2: 5, reqLevel3: 15
+        }
+      ],
+      quests: [
+        {
+          id: "quest_forja_caida",
+          name: "O Segredo da Forja Caída",
+          category: "quests",
+          biome: "Fortaleza Caída (Quadrante #08)",
+          icon: "scroll",
+          modelType: "quest_scroll",
+          subtitle: "Missão Principal de Bioma",
+          description: "Os arquivos da base mencionam um projeto lendário mantido na fortaleza. Derrote o autômato protetor e recupere os esquemas celestes.",
+          questDetails: {
+            location: "Fortaleza Caída (Setor do Chefe de Bioma)",
+            status: "Em Andamento (1/2 Passos Concluídos)",
+            objective: "Derrotar o Guardião da Forja e recuperar a Planta do Ferreiro"
+          },
+          rewardsList: [
+            { name: "+300 Ouro do Purgatório", icon: "coins", desc: "Moeda do Hub Celeste" },
+            { name: "Planta do Ferreiro", icon: "file-text", desc: "Desbloqueia a Casa do Ferreiro no Hub" },
+            { name: "+50 XP de Maestria", icon: "award", desc: "Evolução Permanente" }
+          ],
+          variations: [
+            { name: "Pergaminho Antigo", color: 0xf5c542 }
+          ],
+          reqLevel1: 1, reqLevel2: 2, reqLevel3: 5
+        },
+        {
+          id: "quest_purificacao_almas",
+          name: "Purificação das Almas",
+          category: "quests",
+          biome: "Planalto das Almas",
+          icon: "file-text",
+          modelType: "quest_scroll",
+          subtitle: "Rumor do Mural da Taverna",
+          description: "Uma horda de espectros de cinzas bloqueou o nó do portal de progressão. Purifique a área para liberar o avanço.",
+          questDetails: {
+            location: "Planalto das Almas (Nó #04)",
+            status: "Disponível no Mural de Rumores",
+            objective: "Eliminar 10 Espectros de Cinzas no mesmo ciclo"
+          },
+          rewardsList: [
+            { name: "+150 Ouro do Purgatório", icon: "coins", desc: "Moeda de Comércio" },
+            { name: "2x Fragmento de Alma", icon: "moon", desc: "Reagente Raro" }
+          ],
+          variations: [
+            { name: "Selo de Sangue", color: 0xe53e3e }
+          ],
+          reqLevel1: 1, reqLevel2: 3, reqLevel3: 10
+        }
+      ]
+    };
+
+    /* ==========================================================================
+       2. CONFIGURAÇÕES DE CORES E TEMAS POR CATEGORIA
+       ========================================================================== */
+    const CATEGORY_THEMES = {
+      inimigos: { accent: '#ef4444', glow: 'rgba(239, 68, 68, 0.18)', badge: 'CÓDICE: BESTAS' },
+      equipamentos: { accent: '#06b6d4', glow: 'rgba(6, 182, 212, 0.18)', badge: 'CÓDICE: FORJA & ARMADURAS' },
+      magias: { accent: '#a855f7', glow: 'rgba(168, 85, 247, 0.18)', badge: 'CÓDICE: MAGIAS & ELIXIRES' },
+      ecossistema: { accent: '#10b981', glow: 'rgba(16, 185, 129, 0.18)', badge: 'CÓDICE: RECURSOS & COLETA' },
+      npcs: { accent: '#f59e0b', glow: 'rgba(245, 158, 11, 0.18)', badge: 'CÓDICE: NPCS ITINERANTES' },
+      quests: { accent: '#6366f1', glow: 'rgba(99, 102, 241, 0.18)', badge: 'CÓDICE: MURAL DE QUESTS' }
+    };
+
+    /* ==========================================================================
+       3. ESTADO E PERSISTÊNCIA LOCALSTORAGE
+       ========================================================================== */
+    let currentCategory = 'inimigos';
+    let selectedId = null;
+    let selectedVariationIndex = 0;
+    let soundEnabled = true;
+    let userProgress = {};
+    const STORAGE_KEY = 'github_odyssey_diario_v3.0';
+
+    function loadProgress() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try { userProgress = JSON.parse(saved); } catch (e) { userProgress = {}; }
+      } else {
+        userProgress = {
+          "slime_floresta": { count: 12 },
+          "capitao_cimentado": { count: 3 },
+          "espada_penitente": { count: 5 }
+        };
+        saveProgress();
+      }
+    }
+
+    function saveProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userProgress));
+      updateOverallProgress();
+    }
+
+    function getItemCount(id) {
+      return userProgress[id] ? userProgress[id].count || 0 : 0;
+    }
+
+    function getItemRank(item) {
+      const count = getItemCount(item.id);
+      if (count >= item.reqLevel3) return 3;
+      if (count >= item.reqLevel2) return 2;
+      if (count >= item.reqLevel1) return 1;
+      return 0;
+    }
+
+    /* ==========================================================================
+       4. ÁUDIO SINTETIZADO (Web Audio API)
+       ========================================================================== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+
+      if (type === 'page') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+      } else if (type === 'unlock') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        osc.frequency.setValueAtTime(783.99, now + 0.16);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'click') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(130, now + 0.04);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.04);
+        osc.start(now); osc.stop(now + 0.04);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').setAttribute('data-lucide', soundEnabled ? 'volume-2' : 'volume-x');
+      lucide.createIcons();
+      playSound('click');
+    }
+
+    /* ==========================================================================
+       5. ENGINE THREE.JS - MODELOS 3D CENTRALIZADOS
+       ========================================================================== */
+    let scene, camera, renderer, currentMeshGroup;
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    function init3D() {
+      const container = document.getElementById('three-canvas').parentElement;
+      const canvas = document.getElementById('three-canvas');
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 0, 4.2);
+      camera.lookAt(0, 0, 0);
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00f0ff, 1.2);
+      dirLight.position.set(5, 5, 5);
+      scene.add(dirLight);
+
+      const warmLight = new THREE.PointLight(0xf5c542, 1.5, 10);
+      warmLight.position.set(-4, -2, 2);
+      scene.add(warmLight);
+
+      currentMeshGroup = new THREE.Group();
+      scene.add(currentMeshGroup);
+
+      canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener('mouseup', () => { isDragging = false; });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging || !currentMeshGroup) return;
+        const deltaMove = { x: e.clientX - previousMousePosition.x, y: e.clientY - previousMousePosition.y };
+        currentMeshGroup.rotation.y += deltaMove.x * 0.01;
+        currentMeshGroup.rotation.x += deltaMove.y * 0.01;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener('resize', () => {
+        if (!container) return;
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      animate3D();
+    }
+
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+      if (currentMeshGroup && !isDragging) {
+        currentMeshGroup.rotation.y += 0.005;
+      }
+      renderer.render(scene, camera);
+    }
+
+    function update3DModel(item, varIndex = 0) {
+      if (!currentMeshGroup) return;
+
+      while (currentMeshGroup.children.length > 0) {
+        currentMeshGroup.remove(currentMeshGroup.children[0]);
+      }
+
+      currentMeshGroup.rotation.set(0, 0, 0);
+      currentMeshGroup.position.set(0, 0, 0);
+
+      if (!item) return;
+
+      const rank = getItemRank(item);
+      const isLocked = rank === 0;
+
+      if (isLocked) {
+        const geo = new THREE.BoxGeometry(1, 1.3, 0.4);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+        const lockMesh = new THREE.Mesh(geo, mat);
+        currentMeshGroup.add(lockMesh);
+        return;
+      }
+
+      let customColor = 0x38b000;
+      if (item.variations && item.variations[varIndex]) {
+        customColor = item.variations[varIndex].color;
+      }
+
+      const type = item.modelType || 'slime';
+
+      if (type === 'slime') {
+        const geo = new THREE.SphereGeometry(0.95, 16, 16);
+        geo.scale(1, 0.75, 1);
+        const mat = new THREE.MeshStandardMaterial({ color: customColor, roughness: 0.15, transparent: true, opacity: 0.9 });
+        const slime = new THREE.Mesh(geo, mat);
+
+        const eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
+        const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye1.position.set(-0.32, 0.1, 0.82);
+        const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+        eye2.position.set(0.32, 0.1, 0.82);
+
+        slime.add(eye1); slime.add(eye2);
+        currentMeshGroup.add(slime);
+
+      } else if (type === 'ghost') {
+        const geo = new THREE.ConeGeometry(0.85, 1.6, 16);
+        const mat = new THREE.MeshStandardMaterial({ color: customColor, transparent: true, opacity: 0.7, roughness: 0.1 });
+        const ghost = new THREE.Mesh(geo, mat);
+        ghost.rotation.x = Math.PI;
+        currentMeshGroup.add(ghost);
+
+      } else if (type === 'boss') {
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.3, 1.2);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: customColor, metalness: 0.8, roughness: 0.2 });
+        const boss = new THREE.Mesh(bodyGeo, bodyMat);
+        boss.position.y = -0.2;
+
+        const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x9e2a2b, metalness: 0.9 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.0;
+
+        boss.add(head);
+        currentMeshGroup.add(boss);
+
+      } else if (type === 'sword') {
+        const bladeGeo = new THREE.BoxGeometry(0.12, 2.0, 0.04);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: customColor, metalness: 0.9, roughness: 0.1 });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+
+        const guardGeo = new THREE.BoxGeometry(0.75, 0.08, 0.12);
+        const guardMat = new THREE.MeshStandardMaterial({ color: 0xf5c542, metalness: 0.9 });
+        const guard = new THREE.Mesh(guardGeo, guardMat);
+        guard.position.y = -1.0;
+
+        const swordGroup = new THREE.Group();
+        swordGroup.add(blade); swordGroup.add(guard);
+        swordGroup.rotation.z = -Math.PI / 4;
+        currentMeshGroup.add(swordGroup);
+
+      } else if (type === 'npc_bulldog') {
+        const headGeo = new THREE.BoxGeometry(1.1, 0.9, 0.9);
+        const headMat = new THREE.MeshStandardMaterial({ color: customColor, roughness: 0.7 });
+        const bulldog = new THREE.Mesh(headGeo, headMat);
+
+        const helmetGeo = new THREE.SphereGeometry(0.65, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+        const helmetMat = new THREE.MeshStandardMaterial({ color: 0xf5c542, metalness: 0.3 });
+        const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+        helmet.position.y = 0.25;
+
+        bulldog.add(helmet);
+        currentMeshGroup.add(bulldog);
+
+      } else {
+        const geo = new THREE.OctahedronGeometry(1.0, 0);
+        const mat = new THREE.MeshStandardMaterial({ color: customColor, metalness: 0.5, roughness: 0.1 });
+        const crystal = new THREE.Mesh(geo, mat);
+        currentMeshGroup.add(crystal);
+      }
+    }
+
+    /* ==========================================================================
+       6. NAVEGAÇÃO E RE-ESTILIZAÇÃO DINÂMICA
+       ========================================================================== */
+    function switchCategory(cat) {
+      currentCategory = cat;
+      selectedVariationIndex = 0;
+      playSound('page');
+
+      // Atualiza variáveis CSS do tema
+      const theme = CATEGORY_THEMES[cat];
+      document.documentElement.style.setProperty('--category-accent', theme.accent);
+      document.documentElement.style.setProperty('--category-glow', theme.glow);
+
+      document.getElementById('category-badge').innerText = theme.badge;
+
+      // Estilização das abas
+      document.querySelectorAll('.category-tab').forEach(btn => {
+        btn.classList.remove('text-amber-300', 'bg-slate-800/80', 'border', 'border-amber-500/40', 'shadow-sm');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`tab-${cat}`);
+      activeBtn.classList.remove('text-slate-400');
+      activeBtn.classList.add('text-amber-300', 'bg-slate-800/80', 'border', 'border-amber-500/40', 'shadow-sm');
+
+      renderList();
+    }
+
+    function renderList() {
+      const listContainer = document.getElementById('codex-list');
+      const searchVal = document.getElementById('search-input').value.toLowerCase();
+      const filterVal = document.getElementById('status-filter').value;
+
+      const items = CODEX_DATABASE[currentCategory] || [];
+      listContainer.innerHTML = '';
+
+      let filteredItems = items.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchVal) || item.description.toLowerCase().includes(searchVal);
+        const rank = getItemRank(item);
+
+        if (filterVal === 'unlocked') return matchesSearch && rank > 0;
+        if (filterVal === 'locked') return matchesSearch && rank === 0;
+        return matchesSearch;
+      });
+
+      if (filteredItems.length === 0) {
+        listContainer.innerHTML = `<div class="text-center py-16 text-slate-600 font-cinzel text-xs">Nenhum registro nesta categoria.</div>`;
+        return;
+      }
+
+      if (!selectedId || !filteredItems.find(i => i.id === selectedId)) {
+        selectedId = filteredItems[0].id;
+      }
+
+      filteredItems.forEach(item => {
+        const rank = getItemRank(item);
+        const isSelected = item.id === selectedId;
+
+        const card = document.createElement('div');
+        card.className = `glass-card p-3 rounded-xl cursor-pointer flex items-center justify-between ${isSelected ? 'glass-card-active' : ''}`;
+        card.onclick = () => {
+          selectedId = item.id;
+          selectedVariationIndex = 0;
+          playSound('click');
+          renderList();
+        };
+
+        let badgeHtml = rank > 0 
+          ? `<span class="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">Lv.${rank}</span>`
+          : `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-slate-600"><i data-lucide="lock" class="w-3 h-3 inline"></i></span>`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg ${rank > 0 ? 'bg-cyan-950/40 border border-cyan-500/30 text-cyan-300' : 'bg-slate-950 border border-slate-800 text-slate-700'} flex items-center justify-center">
+              <i data-lucide="${rank > 0 ? item.icon : 'help-circle'}" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold font-cinzel ${rank > 0 ? 'text-slate-100' : 'text-slate-500'}">${rank > 0 ? item.name : '??? Oculto'}</h4>
+              <p class="text-[10px] text-slate-500">${item.biome}</p>
+            </div>
+          </div>
+          <div>${badgeHtml}</div>
+        `;
+
+        listContainer.appendChild(card);
+      });
+
+      lucide.createIcons();
+      renderDetail();
+    }
+
+    /* ==========================================================================
+       7. RENDERIZAÇÃO PERSONALIZADA DO CONTEÚDO DE DETALHES
+       ========================================================================== */
+    function renderDetail() {
+      const container = document.getElementById('detail-container');
+      const allCategoryItems = Object.values(CODEX_DATABASE).flat();
+      const item = allCategoryItems.find(i => i.id === selectedId);
+
+      if (!item) return;
+
+      const count = getItemCount(item.id);
+      const rank = getItemRank(item);
+
+      // Atualiza Placa de Pergaminho no Viewport 3D
+      document.getElementById('sprite-title').innerText = rank > 0 ? item.name : '??? (Memória Selada)';
+      document.getElementById('sprite-desc').innerText = rank > 0 ? `${item.subtitle} • ${item.biome}` : 'Explore o purgatório para revelar.';
+
+      // Atualiza Badge do Contador Topo Direito
+      let countLabelText = 'Total Abates';
+      let countIcon = 'skull';
+      if (currentCategory === 'equipamentos') { countLabelText = 'Fabricados'; countIcon = 'hammer'; }
+      if (currentCategory === 'magias') { countLabelText = 'Conjurados'; countIcon = 'wand-2'; }
+      if (currentCategory === 'ecossistema') { countLabelText = 'Coletados'; countIcon = 'pickaxe'; }
+      if (currentCategory === 'npcs') { countLabelText = 'Interações'; countIcon = 'users'; }
+      if (currentCategory === 'quests') { countLabelText = 'Concluídas'; countIcon = 'scroll'; }
+
+      document.getElementById('sprite-count-label').innerText = countLabelText;
+      document.getElementById('sprite-count-value').innerText = `${count}x`;
+      document.getElementById('sprite-count-icon').setAttribute('data-lucide', countIcon);
+
+      // Chips de Variação
+      const variationContainer = document.getElementById('variation-chips');
+      variationContainer.innerHTML = '';
+
+      if (rank > 0 && item.variations && item.variations.length > 0) {
+        item.variations.forEach((varObj, idx) => {
+          const chip = document.createElement('button');
+          const isVarSelected = idx === selectedVariationIndex;
+          chip.className = `w-4 h-4 rounded-full border transition transform ${isVarSelected ? 'scale-125 border-white ring-2 ring-amber-400' : 'border-slate-700 opacity-60 hover:opacity-100'}`;
+          chip.style.backgroundColor = `#${varObj.color.toString(16).padStart(6, '0')}`;
+          chip.title = varObj.name;
+          chip.onclick = () => {
+            selectedVariationIndex = idx;
+            playSound('click');
+            renderDetail();
+          };
+          variationContainer.appendChild(chip);
+        });
+      } else {
+        variationContainer.innerHTML = `<span class="text-[10px] text-slate-600">Padrão</span>`;
+      }
+
+      update3DModel(item, selectedVariationIndex);
+
+      // GERAÇÃO DE CARDS ADAPTADOS À CATEGORIA SELECIONADA
+      let customCardsHtml = '';
+
+      // === CATEGORIA 1: BESTAS (INIMIGOS) ===
+      if (currentCategory === 'inimigos') {
+        const lootRows = rank >= 1 && item.lootTable ? item.lootTable.map(loot => `
+          <div class="glass-card p-2.5 rounded-xl flex items-center justify-between border border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-amber-300">
+                <i data-lucide="${loot.icon}" class="w-3.5 h-3.5"></i>
+              </div>
+              <div>
+                <span class="text-xs font-semibold text-slate-200 block">${loot.name}</span>
+                <span class="text-[9px] text-slate-500">${loot.desc}</span>
+              </div>
+            </div>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded ${loot.rarity === 'legendary' ? 'rarity-legendary' : loot.rarity === 'rare' ? 'rarity-rare' : 'rarity-common'}">${loot.chance}</span>
+          </div>
+        `).join('') : '<p class="text-xs text-slate-500 italic py-2">Derrote para revelar os drops.</p>';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-red-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-red-400 flex items-center gap-1.5"><i data-lucide="package" class="w-4 h-4"></i> Tabela de Espólios & Drops</span>
+              <span class="text-[10px] text-slate-500 font-mono">Taxa de Drop</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">${lootRows}</div>
+          </div>
+        `;
+      }
+
+      // === CATEGORIA 2: EQUIPAMENTOS E ARMAS ===
+      else if (currentCategory === 'equipamentos') {
+        const matRows = rank >= 1 && item.materialsNeeded ? item.materialsNeeded.map(m => `
+          <div class="glass-card p-2.5 rounded-xl flex items-center justify-between border border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-300">
+                <i data-lucide="${m.icon}" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="text-xs font-semibold text-slate-200">${m.name}</span>
+            </div>
+            <span class="text-xs font-mono font-bold ${m.owned >= m.qty ? 'text-emerald-400' : 'text-amber-400'}">${m.owned}/${m.qty} un</span>
+          </div>
+        `).join('') : '<p class="text-xs text-slate-500 italic py-2">Descubra como fabricar.</p>';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-cyan-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-cyan-400 flex items-center gap-1.5"><i data-lucide="hammer" class="w-4 h-4"></i> Receita de Fabricação & Materiais</span>
+              <span class="text-[10px] text-slate-400 font-mono">${item.craftingStation || 'Oficina'}</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">${matRows}</div>
+          </div>
+        `;
+      }
+
+      // === CATEGORIA 3: MAGIAS E ELIXIRES ===
+      else if (currentCategory === 'magias') {
+        const effectRows = rank >= 1 && item.effects ? item.effects.map(e => `
+          <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center ${e.color}">
+              <i data-lucide="${e.icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span class="text-[9px] text-slate-500 uppercase block">${e.name}</span>
+              <span class="text-xs font-bold font-mono ${e.color}">${e.value}</span>
+            </div>
+          </div>
+        `).join('') : '<p class="text-xs text-slate-500 italic py-2">Efeitos ocultos.</p>';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-purple-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-purple-400 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4"></i> Efeitos & Propriedades Ativas</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-1">${effectRows}</div>
+          </div>
+        `;
+      }
+
+      // === CATEGORIA 4: COLETA E RECURSOS ===
+      else if (currentCategory === 'ecossistema') {
+        const useRows = rank >= 1 && item.whereToUse ? item.whereToUse.map(u => `
+          <div class="glass-card p-2.5 rounded-xl flex items-center gap-2.5 border border-slate-800">
+            <div class="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-emerald-400">
+              <i data-lucide="${u.icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-slate-200 block">${u.name}</span>
+              <span class="text-[9px] text-slate-500">${u.desc}</span>
+            </div>
+          </div>
+        `).join('') : '<p class="text-xs text-slate-500 italic py-2">Aplicações desconhecidas.</p>';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-emerald-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-emerald-400 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4"></i> Onde Usar & Aplicações na Base</span>
+              <span class="text-[10px] text-slate-400 font-mono">${item.harvestTool || 'Ferramenta'}</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">${useRows}</div>
+          </div>
+        `;
+      }
+
+      // === CATEGORIA 5: NPCS ITINERANTES ===
+      else if (currentCategory === 'npcs') {
+        const favorRows = rank >= 1 && item.servicesAndFavors ? item.servicesAndFavors.map(f => `
+          <div class="glass-card p-2.5 rounded-xl flex items-center gap-2.5 border border-slate-800">
+            <div class="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-amber-400">
+              <i data-lucide="${f.icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-slate-200 block">${f.name}</span>
+              <span class="text-[9px] text-slate-500">${f.desc}</span>
+            </div>
+          </div>
+        `).join('') : '';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-amber-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-amber-400 flex items-center gap-1.5"><i data-lucide="users" class="w-4 h-4"></i> Serviços, Ofertas & Favores</span>
+              <span class="text-[10px] text-amber-300 font-mono">${item.locationInfo?.amnesiaState || ''}</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">${favorRows}</div>
+          </div>
+        `;
+      }
+
+      // === CATEGORIA 6: QUESTS E RUMORES ===
+      else if (currentCategory === 'quests') {
+        const rewardRows = rank >= 1 && item.rewardsList ? item.rewardsList.map(r => `
+          <div class="glass-card p-2.5 rounded-xl flex items-center gap-2.5 border border-slate-800">
+            <div class="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-indigo-400">
+              <i data-lucide="${r.icon}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-slate-200 block">${r.name}</span>
+              <span class="text-[9px] text-slate-500">${r.desc}</span>
+            </div>
+          </div>
+        `).join('') : '';
+
+        customCardsHtml = `
+          <div class="glass-card p-3.5 rounded-2xl space-y-2 border-indigo-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span class="text-xs font-bold font-cinzel text-indigo-400 flex items-center gap-1.5"><i data-lucide="gift" class="w-4 h-4"></i> Recompensas da Conclusão</span>
+              <span class="text-[10px] text-indigo-300 font-mono">${item.questDetails?.status || ''}</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">${rewardRows}</div>
+          </div>
+        `;
+      }
+
+      // RENDERIZADOR DO BLOCO INFERIOR (LORE + STATUS)
+      container.innerHTML = `
+        ${customCardsHtml}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- Lore Descritiva -->
+          <div class="glass-card p-3.5 rounded-xl space-y-1.5 ${rank < 1 ? 'opacity-40' : ''}">
+            <span class="text-[10px] font-cinzel font-bold text-amber-400 uppercase tracking-wider block">Registro do Códice</span>
+            <p class="text-xs text-slate-300 leading-relaxed italic">
+              "${rank >= 1 ? item.description : 'Página apagada pela amnésia do Purgatório.'}"
+            </p>
+          </div>
+
+          <!-- Atributos Chave -->
+          <div class="glass-card p-3.5 rounded-xl space-y-1.5 ${rank < 2 ? 'opacity-40' : ''}">
+            <span class="text-[10px] font-cinzel font-bold text-amber-400 uppercase tracking-wider block">Propriedades Especiais</span>
+            ${rank >= 2 ? `
+              <div class="grid grid-cols-3 gap-1.5 text-center text-[11px] font-mono pt-1">
+                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                  <span class="block text-[8px] text-slate-500">RESISTÊNCIA / TIPO</span>
+                  <span class="text-amber-200">${item.stats?.hp || item.stats?.attack || 'N/A'}</span>
+                </div>
+                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                  <span class="block text-[8px] text-slate-500">PODER / PESO</span>
+                  <span class="text-amber-200">${item.stats?.damage || item.stats?.weight || 'N/A'}</span>
+                </div>
+                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                  <span class="block text-[8px] text-slate-500">PROPRIEDADE</span>
+                  <span class="text-amber-200">${item.stats?.weakness || item.stats?.durability || 'N/A'}</span>
+                </div>
+              </div>
+            ` : `<p class="text-xs text-slate-500 italic">Requer Nível 2 de pesquisa para revelar propriedades.</p>`}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('sim-btn-text').innerText = `+1 ${countLabelText.split(' ')[0]}`;
+      lucide.createIcons();
+    }
+
+    /* ==========================================================================
+       8. SIMULADOR & PROGRESSO GERAL
+       ========================================================================== */
+    function updateOverallProgress() {
+      const allItems = Object.values(CODEX_DATABASE).flat();
+      let unlockedCount = 0;
+      allItems.forEach(item => { if (getItemRank(item) > 0) unlockedCount++; });
+
+      const percentage = Math.floor((unlockedCount / allItems.length) * 100);
+      document.getElementById('overall-progress-bar').style.width = `${percentage}%`;
+      document.getElementById('overall-progress-text').innerText = `${unlockedCount}/${allItems.length}`;
+    }
+
+    function simulateInteraction() {
+      if (!selectedId) return;
+      if (!userProgress[selectedId]) userProgress[selectedId] = { count: 0 };
+
+      const allItems = Object.values(CODEX_DATABASE).flat();
+      const item = allItems.find(i => i.id === selectedId);
+
+      const oldRank = getItemRank(item);
+      userProgress[selectedId].count += 1;
+      const newRank = getItemRank(item);
+
+      if (newRank > oldRank) playSound('unlock');
+      else playSound('click');
+
+      saveProgress();
+      renderList();
+    }
+
+    function simulateMaxRank() {
+      if (!selectedId) return;
+      const allItems = Object.values(CODEX_DATABASE).flat();
+      const item = allItems.find(i => i.id === selectedId);
+
+      userProgress[selectedId] = { count: item.reqLevel3 };
+      playSound('unlock');
+      saveProgress();
+      renderList();
+    }
+
+    function resetAllProgress() {
+      if (confirm('Deseja resetar todas as memórias salvas no Códice?')) {
+        userProgress = {};
+        saveProgress();
+        playSound('page');
+        renderList();
+      }
+    }
+
+    function toggleDevPanel() {
+      document.getElementById('dev-drawer').classList.toggle('hidden');
+    }
+
+    window.onload = function() {
+      loadProgress();
+      init3D();
+      switchCategory('inimigos');
+      updateOverallProgress();
+    };
+  </script>
+</body>
+</html>

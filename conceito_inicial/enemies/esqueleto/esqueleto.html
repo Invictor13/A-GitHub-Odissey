@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Esqueleto Saqueador - A GitHub Odyssey</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background-color: #0b0914; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        
+        #ui-overlay { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(16, 12, 28, 0.88); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(138, 75, 255, 0.4); 
+            color: white; 
+            padding: 16px 24px; 
+            border-radius: 14px; 
+            text-align: center; 
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8); 
+            pointer-events: auto; 
+            z-index: 10; 
+            width: 92%;
+            max-width: 680px;
+        }
+
+        h1 { margin: 0 0 4px 0; font-size: 19px; color: #b27aff; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; text-shadow: 0 0 10px rgba(178, 122, 255, 0.4); }
+        p.subtitle { margin: 0 0 12px 0; font-size: 13px; color: #c4b5e8; }
+        
+        .action-bar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+        .btn {
+            background: #201736;
+            border: 1px solid #5a3399;
+            color: #e2d1ff;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover { background: #3d236e; color: #fff; border-color: #b27aff; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(178,122,255,0.3); }
+        .btn:active { transform: translateY(1px); }
+
+        /* Controles Virtuais D-Pad */
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 10px;
+            gap: 15px;
+        }
+
+        .dpad-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        .dpad-row {
+            display: flex;
+            gap: 3px;
+        }
+        .dpad-btn {
+            width: 32px;
+            height: 32px;
+            background: #201736;
+            border: 1px solid #5a3399;
+            color: #b27aff;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .dpad-btn:active, .dpad-btn.active {
+            background: #b27aff;
+            color: #0b0914;
+        }
+
+        .controls-hint { 
+            display: flex; 
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px; 
+            color: #a092c4; 
+            text-align: left;
+        }
+        .key { background: #2f214f; color: #dcbfff; padding: 2px 6px; border-radius: 4px; border: 1px solid #4d337d; font-family: monospace; font-weight: bold; }
+
+        #audio-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(16, 12, 28, 0.85);
+            border: 1px solid rgba(138, 75, 255, 0.4);
+            color: #b27aff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 13px;
+            backdrop-filter: blur(8px);
+        }
+
+        #badge-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(16, 12, 28, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            padding: 8px 14px;
+            border-radius: 8px;
+            z-index: 10;
+            font-size: 12px;
+            backdrop-filter: blur(8px);
+        }
+        #badge-info strong { color: #b27aff; }
+    </style>
+
+    <!-- Three.js e OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="badge-info">
+        Inimigo: <strong>Esqueleto Saqueador</strong> | Malha 3D Reativa
+    </div>
+
+    <button id="audio-toggle">🔊 Áudio: ON</button>
+
+    <div id="ui-overlay">
+        <h1>Esqueleto Saqueador</h1>
+        <p class="subtitle">A GitHub Odyssey — Galeria de Modelos 3D</p>
+        
+        <div class="action-bar">
+            <button class="btn" onclick="triggerAnimation('idle')">Parado</button>
+            <button class="btn" onclick="triggerAnimation('run')">Marcha / Corrida</button>
+            <button class="btn" onclick="triggerAnimation('attack')">Golpe de Machado</button>
+            <button class="btn" onclick="triggerAnimation('taunt')">Grito Espectral</button>
+            <button class="btn" onclick="triggerAnimation('hit')">Receber Dano</button>
+            <button class="btn" onclick="triggerJump()">Pular</button>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="controls-hint">
+                <span><span class="key">WASD</span> / <span class="key">Setas</span> Mover Esqueleto</span>
+                <span><span class="key">Espaço</span> Pular | <span class="key">J</span> Atacar com Machado</span>
+                <span><span class="key">K</span> Rugido | <span class="key">L</span> Dano</span>
+            </div>
+
+            <!-- D-Pad Virtual de Movimentação -->
+            <div class="dpad-container">
+                <button class="dpad-btn" id="btn-up" onpointerdown="setVirtualKey('up', true)" onpointerup="setVirtualKey('up', false)" onpointerleave="setVirtualKey('up', false)">▲</button>
+                <div class="dpad-row">
+                    <button class="dpad-btn" id="btn-left" onpointerdown="setVirtualKey('left', true)" onpointerup="setVirtualKey('left', false)" onpointerleave="setVirtualKey('left', false)">◄</button>
+                    <button class="dpad-btn" id="btn-down" onpointerdown="setVirtualKey('down', true)" onpointerup="setVirtualKey('down', false)" onpointerleave="setVirtualKey('down', false)">▼</button>
+                    <button class="dpad-btn" id="btn-right" onpointerdown="setVirtualKey('right', true)" onpointerup="setVirtualKey('right', false)" onpointerleave="setVirtualKey('right', false)">►</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SINTETIZADOR DE ÁUDIO PROCEDURAL DE OSSOS & ESPECTRO ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playStep() {
+                if (!this.enabled || !this.ctx) return;
+                // Estalido seco de ossos batendo no chão
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(280 + Math.random() * 80, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playAttack() {
+                if (!this.enabled || !this.ctx) return;
+                // Zunido pesado de machado caindo
+                const bufferSize = this.ctx.sampleRate * 0.25;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(1600, this.ctx.currentTime + 0.12);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+
+                // Som espectral de esqueleto atacando
+                const osc = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(200, this.ctx.currentTime + 0.22);
+                oscGain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+                osc.connect(oscGain);
+                oscGain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.22);
+            }
+
+            playTaunt() {
+                if (!this.enabled || !this.ctx) return;
+                // Urro espectral da tumba
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(650, now + 0.2);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.5);
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+
+            playHit() {
+                if (!this.enabled || !this.ctx) return;
+                // Concussão de ossos rangendo
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+            }
+
+            playJump() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(520, this.ctx.currentTime + 0.14);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.14);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.14);
+            }
+        }
+
+        const audio = new SoundFX();
+        const audioBtn = document.getElementById('audio-toggle');
+        audioBtn.addEventListener('click', () => {
+            audio.init();
+            audio.enabled = !audio.enabled;
+            audioBtn.innerText = audio.enabled ? '🔊 Áudio: ON' : '🔇 Áudio: OFF';
+        });
+
+        // --- GERADORES DE TEXTURA PROCEDURAL ---
+        function createPixelTexture(baseHex, detailHex, size = 64, noiseDensity = 0.25) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = baseHex;
+            ctx.fillRect(0, 0, size, size);
+
+            const grid = 4;
+            for (let x = 0; x < size; x += grid) {
+                for (let y = 0; y < size; y += grid) {
+                    if (Math.random() < noiseDensity) {
+                        ctx.fillStyle = detailHex;
+                        ctx.globalAlpha = 0.15 + Math.random() * 0.35;
+                        ctx.fillRect(x, y, grid, grid);
+                    }
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        // --- TEXTURAS ÓSSETAS, METAIS E FARRPOS ---
+        const boneTex = createPixelTexture('#d6d0c2', '#9c9586', 64, 0.4); // Ossos envelhecidos
+        const clothTex = createPixelTexture('#2c223b', '#171324', 64, 0.35); // Pano taterado roxo escuro
+        const leatherTex = createPixelTexture('#2b1c16', '#140c08', 64, 0.35); // Couro antigo
+        const metalTex = createPixelTexture('#595f69', '#2e3238', 64, 0.45); // Aço de tumba oxidado
+        const woodTex = createPixelTexture('#3b2513', '#1e1106', 64, 0.4); // Madeira do machado
+        const spectralEyeTex = createPixelTexture('#a855ff', '#00ffff', 32, 0.6); // Brilho de alma roxo/ciano
+
+        // Materiais
+        const boneMat = new THREE.MeshStandardMaterial({ map: boneTex, roughness: 0.75, flatShading: true });
+        const clothMat = new THREE.MeshStandardMaterial({ map: clothTex, roughness: 0.9, flatShading: true, side: THREE.DoubleSide });
+        const leatherMat = new THREE.MeshStandardMaterial({ map: leatherTex, roughness: 0.8, flatShading: true });
+        const metalMat = new THREE.MeshStandardMaterial({ map: metalTex, roughness: 0.4, metalness: 0.85, flatShading: true });
+        const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9, flatShading: true });
+        const eyeMat = new THREE.MeshBasicMaterial({ map: spectralEyeTex });
+
+        // --- CENA, CÂMERA & RENDERIZADOR ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0b0914');
+        scene.fog = new THREE.FogExp2('#0b0914', 0.025);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 4, 11);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 25;
+        controls.target.set(0, 1.8, 0);
+
+        // --- ILUMINAÇÃO ESPECTRAL ---
+        const ambientLight = new THREE.AmbientLight('#271f45', 0.9);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight('#d3c2ff', 1.2);
+        dirLight.position.set(8, 15, 10);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.0005;
+        scene.add(dirLight);
+
+        // Luz da névoa espectral
+        const spectralGlow = new THREE.PointLight('#9d44ff', 2.0, 13);
+        spectralGlow.position.set(-2, 3.5, 2);
+        spectralGlow.castShadow = true;
+        scene.add(spectralGlow);
+
+        // --- PLATAFORMA ROCHOSA DA CRIPTA ---
+        const pedestalGroup = new THREE.Group();
+
+        const baseGeo = new THREE.CylinderGeometry(4.5, 5, 1, 12);
+        const stoneTex = createPixelTexture('#1a1626', '#0d0d17', 128, 0.45);
+        const baseMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.9, flatShading: true });
+        const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+        baseMesh.position.y = -0.5;
+        baseMesh.receiveShadow = true;
+        pedestalGroup.add(baseMesh);
+
+        // Pedras de tumba destruídas no chão
+        for (let i = 0; i < 5; i++) {
+            const rockGeo = new THREE.BoxGeometry(0.3 + Math.random() * 0.3, 0.4, 0.2 + Math.random() * 0.2);
+            const rock = new THREE.Mesh(rockGeo, baseMat);
+            const angle = (i / 5) * Math.PI * 2 + 0.2;
+            const dist = 2.4 + Math.random() * 1.5;
+            rock.position.set(Math.cos(angle) * dist, 0.15, Math.sin(angle) * dist);
+            rock.rotation.set(Math.random() * 0.4, Math.random(), Math.random() * 0.4);
+            rock.castShadow = true;
+            pedestalGroup.add(rock);
+        }
+
+        scene.add(pedestalGroup);
+
+        // --- CONSTRUÇÃO DO PERSONAGEM: ESQUELETO SAQUEADOR ---
+        const skeleton = new THREE.Group();
+
+        const hips = new THREE.Group();
+        hips.position.y = 1.5;
+        skeleton.add(hips);
+
+        // Pélvis óssea
+        const pelvisGeo = new THREE.BoxGeometry(0.5, 0.25, 0.35);
+        const pelvis = new THREE.Mesh(pelvisGeo, boneMat);
+        pelvis.castShadow = true;
+        hips.add(pelvis);
+
+        // Cinto de couro gasto com fivela de ferro
+        const beltGeo = new THREE.BoxGeometry(0.56, 0.12, 0.4);
+        const beltMesh = new THREE.Mesh(beltGeo, leatherMat);
+        beltMesh.position.y = 0.08;
+        hips.add(beltMesh);
+
+        const buckleGeo = new THREE.BoxGeometry(0.14, 0.15, 0.44);
+        const buckleMesh = new THREE.Mesh(buckleGeo, metalMat);
+        buckleMesh.position.y = 0.08;
+        hips.add(buckleMesh);
+
+        // Torso / Coluna Vertebral & Caixa Torácica
+        const torso = new THREE.Group();
+        torso.position.y = 0.15;
+        hips.add(torso);
+
+        // Coluna Vertebral (Spine)
+        const spineGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.7, 6);
+        const spineMesh = new THREE.Mesh(spineGeo, boneMat);
+        spineMesh.position.y = 0.35;
+        torso.add(spineMesh);
+
+        // Caixa Torácica (Ribcage)
+        const ribcageGroup = new THREE.Group();
+        ribcageGroup.position.set(0, 0.4, 0);
+        torso.add(ribcageGroup);
+
+        for (let i = 0; i < 4; i++) {
+            const ribGeo = new THREE.TorusGeometry(0.28 - i * 0.02, 0.04, 5, 8, Math.PI * 1.5);
+            const rib = new THREE.Mesh(ribGeo, boneMat);
+            rib.position.y = (i - 1.5) * 0.12;
+            rib.rotation.x = Math.PI / 2 + 0.1;
+            rib.rotation.z = Math.PI / 4;
+            rib.castShadow = true;
+            ribcageGroup.add(rib);
+        }
+
+        // Esterno (Sternum)
+        const sternumGeo = new THREE.BoxGeometry(0.08, 0.48, 0.06);
+        const sternum = new THREE.Mesh(sternumGeo, boneMat);
+        sternum.position.set(0, 0, 0.28);
+        ribcageGroup.add(sternum);
+
+        // Couraça / Restos de Colete de Batalha
+        const vestGeo = new THREE.BoxGeometry(0.68, 0.5, 0.48);
+        const vest = new THREE.Mesh(vestGeo, clothMat);
+        vest.position.y = 0.38;
+        vest.castShadow = true;
+        torso.add(vest);
+
+        // --- SISTEMA DE MALHA 3D REATIVA: VESTES DE FARRA POS ---
+        const animatedCloth = [];
+
+        function createStripGeo(width, height) {
+            const geo = new THREE.BoxGeometry(width, height, 0.03);
+            geo.translate(0, -height / 2, 0);
+            return geo;
+        }
+
+        // 1. Tanga de Farrapos Taterados na Cintura (6 Tiras)
+        const loinclothGroup = new THREE.Group();
+        loinclothGroup.position.set(0, -0.05, 0);
+        hips.add(loinclothGroup);
+
+        for (let i = 0; i < 6; i++) {
+            const isFront = i < 3;
+            const idx = i % 3;
+            const x = (idx - 1) * 0.15;
+            const z = isFront ? 0.22 : -0.22;
+            
+            const stripWidth = 0.14 + Math.random() * 0.04;
+            const stripHeight = 0.55 + Math.random() * 0.2;
+            
+            const stripGeo = createStripGeo(stripWidth, stripHeight);
+            const stripMesh = new THREE.Mesh(stripGeo, clothMat);
+            stripMesh.position.set(x, 0, z);
+
+            const baseRx = isFront ? 0.1 : -0.1;
+            const baseRz = (idx - 1) * 0.05;
+            stripMesh.rotation.set(baseRx, isFront ? 0 : Math.PI, baseRz);
+            stripMesh.castShadow = true;
+
+            loinclothGroup.add(stripMesh);
+
+            animatedCloth.push({
+                mesh: stripMesh,
+                baseRx: baseRx,
+                baseRz: baseRz,
+                baseRy: isFront ? 0 : Math.PI,
+                offset: i * 0.3,
+                reactY: isFront ? 0.6 : -0.6,
+                reactDrag: isFront ? 1.5 : -1.5,
+                reactRun: 0.9,
+                reactAttack: isFront ? 1.2 : -0.8,
+                reactHit: isFront ? -0.8 : 1.2,
+                reactTaunt: 0.6
+            });
+        }
+
+        // 2. Manto Taterado de Saqueador nos Ombros
+        const capeGroup = new THREE.Group();
+        capeGroup.position.set(0, 0.58, -0.24);
+        torso.add(capeGroup);
+
+        for (let i = 0; i < 5; i++) {
+            const span = (i / 4 - 0.5) * 0.55;
+            const stripWidth = 0.14 + Math.random() * 0.04;
+            const stripHeight = 0.65 + Math.random() * 0.2;
+            
+            const stripGeo = createStripGeo(stripWidth, stripHeight);
+            const stripMesh = new THREE.Mesh(stripGeo, clothMat);
+            stripMesh.position.set(span, 0, 0);
+
+            const baseRx = -0.18 - Math.random() * 0.1;
+            const baseRz = span * 0.25;
+            stripMesh.rotation.set(baseRx, 0, baseRz);
+            stripMesh.castShadow = true;
+
+            capeGroup.add(stripMesh);
+
+            animatedCloth.push({
+                mesh: stripMesh,
+                baseRx: baseRx,
+                baseRz: baseRz,
+                baseRy: 0,
+                offset: i * 0.4 + 1.2,
+                reactY: -0.8,
+                reactDrag: -2.2,
+                reactRun: 1.0,
+                reactAttack: -1.3,
+                reactHit: 1.3,
+                reactTaunt: -1.0
+            });
+        }
+
+        // --- CABEÇA / CRÂNIO DO ESQUELETO ---
+        const neck = new THREE.Group();
+        neck.position.set(0, 0.65, 0.08);
+        torso.add(neck);
+
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 0.1, 0.05);
+        neck.add(headGroup);
+
+        // Crânio (Cranium)
+        const craniumGeo = new THREE.BoxGeometry(0.48, 0.38, 0.45);
+        const craniumMesh = new THREE.Mesh(craniumGeo, boneMat);
+        craniumMesh.castShadow = true;
+        headGroup.add(craniumMesh);
+
+        // Cavidades das Órbitas dos Olhos (Eye Sockets)
+        const socketGeo = new THREE.BoxGeometry(0.14, 0.12, 0.08);
+        const socketMat = new THREE.MeshStandardMaterial({ color: '#0d0b14', roughness: 0.9 });
+        const leftSocket = new THREE.Mesh(socketGeo, socketMat);
+        leftSocket.position.set(-0.14, 0.05, 0.22);
+        const rightSocket = new THREE.Mesh(socketGeo, socketMat);
+        rightSocket.position.set(0.14, 0.05, 0.22);
+        headGroup.add(leftSocket, rightSocket);
+
+        // Olhos Espectrais Brilhantes nas Órbitas
+        const spectralEyeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+        const leftSpectralEye = new THREE.Mesh(spectralEyeGeo, eyeMat);
+        leftSpectralEye.position.set(-0.14, 0.05, 0.24);
+        const rightSpectralEye = new THREE.Mesh(spectralEyeGeo, eyeMat);
+        rightSpectralEye.position.set(0.14, 0.05, 0.24);
+        headGroup.add(leftSpectralEye, rightSpectralEye);
+
+        // Cavidade Nasal
+        const noseSocketGeo = new THREE.ConeGeometry(0.05, 0.1, 3);
+        const noseSocket = new THREE.Mesh(noseSocketGeo, socketMat);
+        noseSocket.position.set(0, -0.06, 0.23);
+        noseSocket.rotation.x = Math.PI;
+        headGroup.add(noseSocket);
+
+        // Mandíbula Inferior Articulada (Jawbone)
+        const jawGroup = new THREE.Group();
+        jawGroup.position.set(0, -0.15, 0.08);
+        headGroup.add(jawGroup);
+
+        const jawGeo = new THREE.BoxGeometry(0.4, 0.12, 0.35);
+        const jawMesh = new THREE.Mesh(jawGeo, boneMat);
+        jawMesh.position.set(0, -0.04, 0.1);
+        jawMesh.castShadow = true;
+        jawGroup.add(jawMesh);
+
+        // Dentes da Mandíbula Superior e Inferior
+        const teethGeo = new THREE.BoxGeometry(0.28, 0.04, 0.05);
+        const teethMat = new THREE.MeshStandardMaterial({ color: '#f0ece1', roughness: 0.5 });
+        
+        const upperTeeth = new THREE.Mesh(teethGeo, teethMat);
+        upperTeeth.position.set(0, -0.15, 0.22);
+        headGroup.add(upperTeeth);
+
+        const lowerTeeth = new THREE.Mesh(teethGeo, teethMat);
+        lowerTeeth.position.set(0, 0.02, 0.26);
+        jawGroup.add(lowerTeeth);
+
+        // BRAÇOS (ÚMERO, RÁDIO/ÚLNA E OMBREIRAS)
+        // Ombreiras de Ferro Oxidado (Pauldrons)
+        const pauldronGeo = new THREE.SphereGeometry(0.22, 6, 6, 0, Math.PI * 2, 0, Math.PI / 1.8);
+        
+        const leftShoulder = new THREE.Group();
+        leftShoulder.position.set(-0.38, 0.5, 0);
+        torso.add(leftShoulder);
+
+        const leftPauldron = new THREE.Mesh(pauldronGeo, metalMat);
+        leftPauldron.position.set(-0.08, 0.08, 0);
+        leftPauldron.rotation.z = 0.4;
+        leftPauldron.castShadow = true;
+        leftShoulder.add(leftPauldron);
+
+        const armBoneGeo = new THREE.CylinderGeometry(0.05, 0.04, 0.42, 6);
+        const leftArm = new THREE.Mesh(armBoneGeo, boneMat);
+        leftArm.position.y = -0.2;
+        leftArm.castShadow = true;
+        leftShoulder.add(leftArm);
+
+        const leftElbow = new THREE.Group();
+        leftElbow.position.y = -0.38;
+        leftShoulder.add(leftElbow);
+
+        const leftForearm = new THREE.Mesh(armBoneGeo, boneMat);
+        leftForearm.position.y = -0.2;
+        leftForearm.castShadow = true;
+        leftElbow.add(leftForearm);
+
+        const bracerGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.2, 6);
+        const bracerL = new THREE.Mesh(bracerGeo, leatherMat);
+        bracerL.position.y = -0.16;
+        leftForearm.add(bracerL);
+
+        const rightShoulder = new THREE.Group();
+        rightShoulder.position.set(0.38, 0.5, 0);
+        torso.add(rightShoulder);
+
+        const rightPauldron = new THREE.Mesh(pauldronGeo, metalMat);
+        rightPauldron.position.set(0.08, 0.08, 0);
+        rightPauldron.rotation.z = -0.4;
+        rightPauldron.castShadow = true;
+        rightShoulder.add(rightPauldron);
+
+        const rightArm = new THREE.Mesh(armBoneGeo, boneMat);
+        rightArm.position.y = -0.2;
+        rightArm.castShadow = true;
+        rightShoulder.add(rightArm);
+
+        const rightElbow = new THREE.Group();
+        rightElbow.position.y = -0.38;
+        rightShoulder.add(rightElbow);
+
+        const rightForearm = new THREE.Mesh(armBoneGeo, boneMat);
+        rightForearm.position.y = -0.2;
+        rightForearm.castShadow = true;
+        rightElbow.add(rightForearm);
+
+        const bracerR = new THREE.Mesh(bracerGeo, leatherMat);
+        bracerR.position.y = -0.16;
+        rightForearm.add(bracerR);
+
+        const rightHand = new THREE.Group();
+        rightHand.position.y = -0.4;
+        rightElbow.add(rightHand);
+
+        // --- ARMA: MACHADO DE SAQUEADOR (RAIDER AXE) ---
+        const raiderAxeGroup = new THREE.Group();
+        
+        // Cabo longo do machado
+        const axeShaftGeo = new THREE.CylinderGeometry(0.038, 0.038, 1.35, 7);
+        const axeShaft = new THREE.Mesh(axeShaftGeo, woodMat);
+        axeShaft.rotation.x = Math.PI / 2;
+        raiderAxeGroup.add(axeShaft);
+
+        // Proteção e reforço de metal no topo
+        const axeBindingGeo = new THREE.BoxGeometry(0.12, 0.16, 0.16);
+        const axeBinding = new THREE.Mesh(axeBindingGeo, metalMat);
+        axeBinding.position.z = 0.48;
+        raiderAxeGroup.add(axeBinding);
+
+        // Lâmina Larga Curvada de Saqueador
+        const bladeShape = new THREE.Shape();
+        bladeShape.moveTo(0, -0.1);
+        bladeShape.lineTo(0.45, -0.45);
+        bladeShape.lineTo(0.55, 0);
+        bladeShape.lineTo(0.45, 0.45);
+        bladeShape.lineTo(0, 0.1);
+        bladeShape.closePath();
+
+        const extrudeSettings = { depth: 0.04, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 };
+        const axeBladeGeo = new THREE.ExtrudeGeometry(bladeShape, extrudeSettings);
+        axeBladeGeo.center();
+
+        const axeBlade = new THREE.Mesh(axeBladeGeo, metalMat);
+        axeBlade.position.set(0.25, 0, 0.48);
+        axeBlade.rotation.y = Math.PI / 2;
+        axeBlade.castShadow = true;
+        raiderAxeGroup.add(axeBlade);
+
+        // Espigão Traseiro do Machado
+        const axeSpikeGeo = new THREE.ConeGeometry(0.06, 0.35, 4);
+        const axeSpike = new THREE.Mesh(axeSpikeGeo, metalMat);
+        axeSpike.position.set(-0.2, 0, 0.48);
+        axeSpike.rotation.z = Math.PI / 2;
+        axeSpike.castShadow = true;
+        raiderAxeGroup.add(axeSpike);
+
+        rightHand.add(raiderAxeGroup);
+
+        // PERNAS ÓSSEAS (FÊMUR, TÍBIA/FÍBULA E PÉS ÓSSEOS)
+        const leftHip = new THREE.Group();
+        leftHip.position.set(-0.2, -0.1, 0);
+        hips.add(leftHip);
+
+        const legBoneGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.48, 6);
+        const leftThigh = new THREE.Mesh(legBoneGeo, boneMat);
+        leftThigh.position.y = -0.22;
+        leftThigh.castShadow = true;
+        leftHip.add(leftThigh);
+
+        const leftKnee = new THREE.Group();
+        leftKnee.position.y = -0.42;
+        leftHip.add(leftKnee);
+
+        const leftShin = new THREE.Mesh(legBoneGeo, boneMat);
+        leftShin.position.y = -0.22;
+        leftShin.castShadow = true;
+        leftKnee.add(leftShin);
+
+        const footBoneGeo = new THREE.BoxGeometry(0.12, 0.07, 0.32);
+        const leftFoot = new THREE.Mesh(footBoneGeo, boneMat);
+        leftFoot.position.set(0, -0.45, 0.08);
+        leftFoot.castShadow = true;
+        leftKnee.add(leftFoot);
+
+        const rightHip = new THREE.Group();
+        rightHip.position.set(0.2, -0.1, 0);
+        hips.add(rightHip);
+
+        const rightThigh = new THREE.Mesh(legBoneGeo, boneMat);
+        rightThigh.position.y = -0.22;
+        rightThigh.castShadow = true;
+        rightHip.add(rightThigh);
+
+        const rightKnee = new THREE.Group();
+        rightKnee.position.y = -0.42;
+        rightHip.add(rightKnee);
+
+        const rightShin = new THREE.Mesh(legBoneGeo, boneMat);
+        rightShin.position.y = -0.22;
+        rightShin.castShadow = true;
+        rightKnee.add(rightShin);
+
+        const rightFoot = new THREE.Mesh(footBoneGeo, boneMat);
+        rightFoot.position.set(0, -0.45, 0.08);
+        rightFoot.castShadow = true;
+        rightKnee.add(rightFoot);
+
+        scene.add(skeleton);
+
+        // --- PARTÍCULAS (BRASAS DE ALMA ESPECTRAL) ---
+        const particleCount = 45;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePos = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            particlePos[i] = (Math.random() - 0.5) * 8;
+            particlePos[i + 1] = Math.random() * 5;
+            particlePos[i + 2] = (Math.random() - 0.5) * 8;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+
+        const particleMat = new THREE.PointsMaterial({
+            color: '#a855ff',
+            size: 0.07,
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending
+        });
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+        // --- CONTROLES TECLADO E D-PAD ---
+        const activeKeys = {};
+        const virtualKeys = { up: false, down: false, left: false, right: false };
+
+        window.addEventListener('keydown', (e) => {
+            audio.init();
+            const key = e.key.toLowerCase();
+            activeKeys[key] = true;
+            activeKeys[e.code] = true;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', ' '].includes(e.key) || ['KeyW','KeyA','KeyS','KeyD'].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            if (e.key === ' ' || e.code === 'Space') { triggerJump(); }
+            if (key === 'j') { triggerAnimation('attack'); }
+            if (key === 'k') { triggerAnimation('taunt'); }
+            if (key === 'l') { triggerAnimation('hit'); }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            activeKeys[key] = false;
+            activeKeys[e.code] = false;
+        });
+
+        window.addEventListener('pointerdown', () => window.focus());
+
+        function setVirtualKey(dir, state) {
+            audio.init();
+            virtualKeys[dir] = state;
+            const btn = document.getElementById(`btn-${dir}`);
+            if (btn) {
+                if (state) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        }
+
+        let currentAnim = 'idle';
+        let animTime = 0;
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const gravity = -18;
+        const baseHipsY = 1.5;
+
+        const skeletonPos = new THREE.Vector3(0, 0, 0);
+        let rotationTarget = 0;
+
+        function triggerAnimation(name) {
+            audio.init();
+            currentAnim = name;
+            animTime = 0;
+
+            if (name === 'attack') audio.playAttack();
+            if (name === 'taunt') audio.playTaunt();
+            if (name === 'hit') audio.playHit();
+        }
+
+        function triggerJump() {
+            if (!isJumping) {
+                audio.init();
+                isJumping = true;
+                jumpVelocity = 6.0;
+                audio.playJump();
+            }
+        }
+
+        // --- MÁQUINA DE ANIMAÇÃO PROCEDURAL ESQUELÉTICA ---
+        function updateAnimations(delta) {
+            animTime += delta;
+
+            const moveUp = activeKeys['w'] || activeKeys['arrowup'] || activeKeys['KeyW'] || activeKeys['ArrowUp'] || virtualKeys.up;
+            const moveDown = activeKeys['s'] || activeKeys['arrowdown'] || activeKeys['KeyS'] || activeKeys['ArrowDown'] || virtualKeys.down;
+            const moveLeft = activeKeys['a'] || activeKeys['arrowleft'] || activeKeys['KeyA'] || activeKeys['ArrowLeft'] || virtualKeys.left;
+            const moveRight = activeKeys['d'] || activeKeys['arrowright'] || activeKeys['KeyD'] || activeKeys['ArrowRight'] || virtualKeys.right;
+
+            const isMovingInput = moveUp || moveDown || moveLeft || moveRight;
+
+            if (isMovingInput && currentAnim !== 'attack' && currentAnim !== 'hit') {
+                currentAnim = 'run';
+            } else if (!isMovingInput && currentAnim === 'run') {
+                currentAnim = 'idle';
+            }
+
+            const lerpSpeed = 10 * delta;
+
+            // VETOR DE MOVIMENTO
+            let moveX = 0;
+            let moveZ = 0;
+            if (moveUp) moveZ -= 1;
+            if (moveDown) moveZ += 1;
+            if (moveLeft) moveX -= 1;
+            if (moveRight) moveX += 1;
+
+            if (moveX !== 0 || moveZ !== 0) {
+                const moveVec = new THREE.Vector3(moveX, 0, moveZ).normalize();
+                rotationTarget = Math.atan2(moveVec.x, moveVec.z);
+                
+                const nextPos = skeletonPos.clone().addScaledVector(moveVec, 3.4 * delta);
+                if (nextPos.distanceTo(new THREE.Vector3(0, 0, 0)) < 3.8) {
+                    skeletonPos.copy(nextPos);
+                }
+
+                if (Math.sin(animTime * 15) > 0.8) {
+                    audio.playStep();
+                }
+            }
+
+            // Suavizar Rotação do Corpo
+            let diff = rotationTarget - skeleton.rotation.y;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            skeleton.rotation.y += diff * lerpSpeed;
+            skeleton.position.x = skeletonPos.x;
+            skeleton.position.z = skeletonPos.z;
+
+            // Câmera
+            controls.target.x = THREE.MathUtils.lerp(controls.target.x, skeleton.position.x, 6 * delta);
+            controls.target.z = THREE.MathUtils.lerp(controls.target.z, skeleton.position.z, 6 * delta);
+
+            // Física do Pulo
+            if (isJumping) {
+                skeleton.position.y += jumpVelocity * delta;
+                jumpVelocity += gravity * delta;
+                if (skeleton.position.y <= 0) {
+                    skeleton.position.y = 0;
+                    isJumping = false;
+                    audio.playStep();
+                }
+            }
+
+            // --- FÍSICA PROCEDURAL DAS MALHAS 3D REATIVAS (FARRA POS) ---
+            const speedFactor = isMovingInput ? 1.0 : 0.0;
+            const runBounce = Math.sin(animTime * 15) * 0.22 * speedFactor;
+            const windDrag = isMovingInput ? 0.38 : 0.0;
+
+            let verticalImpact = 0;
+            if (isJumping) verticalImpact = jumpVelocity * 0.05;
+
+            let attackImpact = 0;
+            if (currentAnim === 'attack') attackImpact = Math.sin(animTime * 8) * 0.6;
+
+            let tauntImpact = 0;
+            if (currentAnim === 'taunt') tauntImpact = Math.sin(animTime * 12) * 0.4;
+
+            let hitImpact = 0;
+            if (currentAnim === 'hit') hitImpact = Math.sin(animTime * 15) * 0.7;
+
+            // Atualizar Farrapos de Pano
+            animatedCloth.forEach(cloth => {
+                const wind = Math.sin(animTime * 4 + cloth.offset) * 0.08;
+                let targetRx = cloth.baseRx + wind;
+                let targetRz = cloth.baseRz + Math.cos(animTime * 3 + cloth.offset) * 0.04;
+
+                targetRx += verticalImpact * cloth.reactY;
+                targetRx += windDrag * cloth.reactDrag;
+                targetRx += runBounce * cloth.reactRun;
+                targetRx += attackImpact * cloth.reactAttack;
+                targetRx += tauntImpact * cloth.reactTaunt;
+                targetRx += hitImpact * cloth.reactHit;
+
+                cloth.mesh.rotation.x += (targetRx - cloth.mesh.rotation.x) * 14 * delta;
+                cloth.mesh.rotation.z += (targetRz - cloth.mesh.rotation.z) * 14 * delta;
+            });
+
+            // POSE IDLE (Respiração rígida / ranger de ossos)
+            if (currentAnim === 'idle') {
+                const breath = Math.sin(animTime * 2.5) * 0.03;
+                hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY + breath, lerpSpeed);
+                
+                torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.15 + breath * 0.4, lerpSpeed);
+                headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.08, lerpSpeed);
+                headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.sin(animTime * 1.2) * 0.18, lerpSpeed);
+
+                // Mandíbula rangendo levemente
+                jawGroup.rotation.x = THREE.MathUtils.lerp(jawGroup.rotation.x, Math.sin(animTime * 5) * 0.05, lerpSpeed);
+
+                leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, 0.2, lerpSpeed);
+                rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, -0.35, lerpSpeed);
+                rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -0.7, lerpSpeed);
+
+                leftHip.rotation.x = THREE.MathUtils.lerp(leftHip.rotation.x, -0.15, lerpSpeed);
+                rightHip.rotation.x = THREE.MathUtils.lerp(rightHip.rotation.x, -0.15, lerpSpeed);
+                leftKnee.rotation.x = THREE.MathUtils.lerp(leftKnee.rotation.x, 0.3, lerpSpeed);
+                rightKnee.rotation.x = THREE.MathUtils.lerp(rightKnee.rotation.x, 0.3, lerpSpeed);
+            }
+
+            // POSE MARCHA / CORRIDA
+            else if (currentAnim === 'run') {
+                const runFreq = 15;
+                const bob = Math.abs(Math.sin(animTime * runFreq)) * 0.12;
+                hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY - 0.06 + bob, lerpSpeed);
+
+                torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.35, lerpSpeed);
+                headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.2, lerpSpeed);
+
+                const legAngle = Math.sin(animTime * runFreq) * 0.75;
+                leftHip.rotation.x = legAngle;
+                rightHip.rotation.x = -legAngle;
+
+                leftKnee.rotation.x = legAngle > 0 ? 0.8 : 0.2;
+                rightKnee.rotation.x = legAngle < 0 ? 0.8 : 0.2;
+
+                leftShoulder.rotation.x = -legAngle * 0.8;
+                rightShoulder.rotation.x = legAngle * 0.8 - 0.2;
+                rightElbow.rotation.x = -0.9;
+            }
+
+            // POSE ATAQUE DE MACHADO (GOLPE DE CIMA PARA BAIXO COM VIOLÊNCIA)
+            else if (currentAnim === 'attack') {
+                const strikeTime = animTime * 8;
+                if (strikeTime < Math.PI * 0.9) {
+                    // Ergue o machado lá no alto atrás da cabeça
+                    rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, -2.5, lerpSpeed * 2.0);
+                    rightShoulder.rotation.y = THREE.MathUtils.lerp(rightShoulder.rotation.y, 0.2, lerpSpeed * 2.0);
+                    rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -1.0, lerpSpeed * 2.0);
+                    
+                    leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, -2.0, lerpSpeed * 2.0);
+                    leftShoulder.rotation.y = THREE.MathUtils.lerp(leftShoulder.rotation.y, -0.3, lerpSpeed * 2.0);
+
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, -0.4, lerpSpeed * 2.0);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, -0.45, lerpSpeed * 2.0);
+                    jawGroup.rotation.x = THREE.MathUtils.lerp(jawGroup.rotation.x, 0.35, lerpSpeed * 2.0); // Abre boca no ataque
+                    hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY + 0.12, lerpSpeed * 2.0);
+                } else if (strikeTime < Math.PI * 2.0) {
+                    // Cortada violenta do machado
+                    rightShoulder.rotation.x = THREE.MathUtils.lerp(rightShoulder.rotation.x, 1.9, lerpSpeed * 3.5);
+                    rightShoulder.rotation.y = THREE.MathUtils.lerp(rightShoulder.rotation.y, -0.1, lerpSpeed * 3.5);
+                    rightElbow.rotation.x = THREE.MathUtils.lerp(rightElbow.rotation.x, -0.1, lerpSpeed * 3.5);
+
+                    leftShoulder.rotation.x = THREE.MathUtils.lerp(leftShoulder.rotation.x, 0.9, lerpSpeed * 3.5);
+
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, 0.8, lerpSpeed * 3.5);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0.3, lerpSpeed * 3.5);
+                    jawGroup.rotation.x = THREE.MathUtils.lerp(jawGroup.rotation.x, 0.1, lerpSpeed * 3.5);
+                    hips.position.y = THREE.MathUtils.lerp(hips.position.y, baseHipsY - 0.22, lerpSpeed * 3.5);
+                } else {
+                    currentAnim = 'idle';
+                    rightShoulder.rotation.y = 0;
+                    leftShoulder.rotation.y = 0;
+                    torso.rotation.y = 0;
+                    jawGroup.rotation.x = 0;
+                }
+            }
+
+            // POSE GRITO ESPECTRAL / PROVOCAR
+            else if (currentAnim === 'taunt') {
+                const tauntCycle = Math.sin(animTime * 12);
+                hips.position.y = baseHipsY + Math.abs(tauntCycle) * 0.16;
+                torso.rotation.x = -0.35;
+                headGroup.rotation.x = -0.65 + tauntCycle * 0.15;
+                jawGroup.rotation.x = 0.45; // Abre a boca escancarada no uivo espectral
+
+                leftShoulder.rotation.x = -1.5 + tauntCycle * 0.3;
+                rightShoulder.rotation.x = -1.5 - tauntCycle * 0.3;
+                leftShoulder.rotation.z = -0.6;
+                rightShoulder.rotation.z = 0.6;
+
+                if (animTime > 1.8) {
+                    leftShoulder.rotation.z = 0;
+                    rightShoulder.rotation.z = 0;
+                    jawGroup.rotation.x = 0;
+                    currentAnim = 'idle';
+                }
+            }
+
+            // POSE DANO
+            else if (currentAnim === 'hit') {
+                if (animTime < 0.4) {
+                    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, -0.6, lerpSpeed * 2);
+                    headGroup.rotation.x = THREE.MathUtils.lerp(headGroup.rotation.x, 0.5, lerpSpeed * 2);
+                    jawGroup.rotation.x = 0.4;
+                    hips.position.z = THREE.MathUtils.lerp(hips.position.z, -0.25, lerpSpeed * 2);
+                    leftShoulder.rotation.z = -0.85;
+                    rightShoulder.rotation.z = 0.85;
+                } else {
+                    hips.position.z = 0;
+                    leftShoulder.rotation.z = 0;
+                    rightShoulder.rotation.z = 0;
+                    jawGroup.rotation.x = 0;
+                    currentAnim = 'idle';
+                }
+            }
+        }
+
+        // --- LOOP PRINCIPAL ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            updateAnimations(delta);
+
+            spectralGlow.intensity = 1.8 + Math.sin(clock.getElapsedTime() * 7) * 0.3 + Math.random() * 0.1;
+
+            const positions = particleSystem.geometry.attributes.position.array;
+            for (let i = 1; i < particleCount * 3; i += 3) {
+                positions[i] += delta * 0.35;
+                if (positions[i] > 5) positions[i] = 0;
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
