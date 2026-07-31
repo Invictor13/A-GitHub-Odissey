@@ -1,4 +1,5 @@
-import { InventoryUI } from './src/ui/InventoryUI.js';
+
+import { SurvivalSystem } from './src/systems/SurvivalSystem.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Penitent } from './characters/Penitent.js';
@@ -94,14 +95,25 @@ const btnEmbarkModal = document.getElementById('btnEmbarkModal');
 
 
 // Initialize Inventory UI
-const inventoryUI = new InventoryUI();
+let inventoryUI = null;
+try {
+    import('./src/ui/InventoryUI.js').then(module => {
+        inventoryUI = new module.InventoryUI();
+    }).catch(err => {
+        console.warn("Could not load InventoryUI, playing without it.", err);
+    });
+} catch (e) {
+    console.warn("Could not dynamically import InventoryUI", e);
+}
 
 // Inventory Toggle Event
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
         e.preventDefault();
-        inventoryUI.toggle();
-        controls.enabled = !inventoryUI.isOpen;
+        if (inventoryUI) {
+            inventoryUI.toggle();
+            controls.enabled = !inventoryUI.isOpen;
+        }
     }
 });
 
@@ -136,6 +148,8 @@ if(btnEmbarkModal) {
 
 // Initialize Background Scene for Menu
 currentEnvironment = new HubEnvironment(scene);
+
+const survivalSystem = new SurvivalSystem();
 
 if(btnPlay) {
     btnPlay.addEventListener('click', () => {
@@ -212,6 +226,10 @@ function animate() {
 
     if (currentEnvironment && currentEnvironment.update) {
         currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, penitent ? penitent.playerGroup.position : new THREE.Vector3());
+    }
+
+    if (GAME_STATE !== 'MENU') {
+        survivalSystem.update(window.gameState.delta);
     }
 
     renderer.render(scene, camera);
