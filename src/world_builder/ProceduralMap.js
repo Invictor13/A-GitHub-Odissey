@@ -26,6 +26,11 @@ export class ProceduralMap {
         this.CHUNK_SIZE = 16;
         this.RENDER_CHUNK_RADIUS = 3;
 
+        this.exitPortal = null;
+        this.portalSpawned = false;
+        this.portalActive = false;
+        this.currentIslandData = null; // Store current node info
+
         this.setupMaterials();
     }
 
@@ -88,7 +93,8 @@ export class ProceduralMap {
         this.grassGeo.computeVertexNormals();
     }
 
-    generateGrid(size) {
+    generateGrid(size, islandData = null) {
+        this.currentIslandData = islandData;
         console.log(`Generating procedural grid of size ${size}`);
         this.gridSize = size;
         this.grid = new Array(size).fill(0).map(() => new Array(size).fill(0).map(() => ({ type: this.TILE_SOLID, elev: 0 })));
@@ -320,7 +326,12 @@ export class ProceduralMap {
 
     spawnEnemies() {
         const numEnemies = Math.floor(Math.random() * 4) + 8;
-        for (let i = 0; i < numEnemies; i++) {
+        // Keep track of total enemies created
+        let enemiesCreated = 0;
+
+        for (let i = 0; i < numEnemies * 2; i++) { // Give it some leeway to find spots
+            if (enemiesCreated >= numEnemies) break;
+
             const tileX = (Math.random() - 0.5) * (this.gridSize * 0.8);
             const tileZ = (Math.random() - 0.5) * (this.gridSize * 0.8);
 
@@ -350,15 +361,52 @@ export class ProceduralMap {
             }
 
             this.enemies.push(enemy);
+            enemiesCreated++;
         }
+    }
+
+    spawnPortal() {
+        if (this.portalSpawned) return;
+        this.portalSpawned = true;
+
+        this.exitPortal = new THREE.Group();
+
+        // A glowing ring/cylinder
+        const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
+        const portalMat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+        const portalMesh = new THREE.Mesh(portalGeo, portalMat);
+        portalMesh.rotation.x = Math.PI / 2;
+        portalMesh.position.y = 1.0;
+
+        const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+        innerMesh.position.y = 2.0;
+
+        const light = new THREE.PointLight(0x60a5fa, 2, 10);
+        light.position.y = 2.0;
+
+        this.exitPortal.add(portalMesh);
+        this.exitPortal.add(innerMesh);
+        this.exitPortal.add(light);
+
+        this.exitPortal.position.set(0, this.getFloorY(new THREE.Vector3(0,0,0)), 0);
+        this.mapGroup.add(this.exitPortal);
+        this.portalActive = true;
     }
 
     cleanup() {
         this.scene.remove(this.mapGroup);
         for (const enemy of this.enemies) {
-            enemy.destroy();
+            if (enemy && typeof enemy.destroy === 'function') {
+                enemy.destroy();
+            }
         }
         this.enemies = [];
+        if (this.exitPortal) {
+            this.mapGroup.remove(this.exitPortal);
+            this.exitPortal = null;
+        }
     }
 
     updateAntiOcclusion(delta, camera, playerPos) {
@@ -440,8 +488,44 @@ export class ProceduralMap {
 
         this.updateAntiOcclusion(delta, camera, playerPos);
 
-        for (const enemy of this.enemies) {
-            enemy.update(delta, playerPos);
+        let allDead = true;
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+            if (enemy.hp > 0) {
+                allDead = false;
+                enemy.update(delta, playerPos);
+            }
+        }
+
+        // Spawn portal if all enemies are defeated and it hasn't spawned yet
+        if (allDead && this.enemies.length > 0 && !this.portalSpawned) {
+            this.spawnPortal();
+        }
+
+        // Portal animation and collision check
+        if (this.portalActive && this.exitPortal) {
+            this.exitPortal.children[0].rotation.z += delta * 2;
+            this.exitPortal.children[1].rotation.y -= delta;
+
+            // Check collision with player
+            if (playerPos && playerPos.distanceTo(this.exitPortal.position) < 1.5) {
+                this.portalActive = false; // Prevent multiple triggers
+
+                // Track completion in GameState
+                import('../core/GameState.js').then(({ default: gameState }) => {
+                    if (this.currentIslandData) {
+                        const nodeId = `${this.currentIslandData.gridX},${this.currentIslandData.gridZ}`;
+                        if (!gameState.completedNodes.includes(nodeId)) {
+                            gameState.completedNodes.push(nodeId);
+                            gameState.pendingUnlocks = this.currentIslandData;
+                            gameState.save();
+                        }
+                    }
+
+                    // Transition back to world map
+                    window.changeGameState('WORLD_MAP');
+                });
+            }
         }
     }
 

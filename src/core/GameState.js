@@ -43,6 +43,9 @@ class GameState {
             farm: false,
             animal: false
         };
+
+        this.completedNodes = [];
+        this.pendingUnlocks = null; // Track if we need to unlock adjacent islands upon returning to WorldMap
     }
 
     save() {
@@ -52,7 +55,9 @@ class GameState {
             backpackState: this.backpackState,
             equipmentState: this.equipmentState,
             masteries: this.masteries,
-            buildingsBuilt: this.buildingsBuilt
+            buildingsBuilt: this.buildingsBuilt,
+            completedNodes: this.completedNodes,
+            pendingUnlocks: this.pendingUnlocks
         };
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -73,6 +78,8 @@ class GameState {
                 if (parsedData.equipmentState) this.equipmentState = parsedData.equipmentState;
                 if (parsedData.masteries) this.masteries = parsedData.masteries;
                 if (parsedData.buildingsBuilt) this.buildingsBuilt = parsedData.buildingsBuilt;
+                if (parsedData.completedNodes) this.completedNodes = parsedData.completedNodes;
+                if (parsedData.pendingUnlocks !== undefined) this.pendingUnlocks = parsedData.pendingUnlocks;
                 console.log('Game state loaded successfully.');
                 return true;
             }
