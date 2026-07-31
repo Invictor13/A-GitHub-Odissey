@@ -484,17 +484,19 @@ export class ProceduralMap {
     }
 
     update(delta, time, camera, playerPos) {
-        this.grassUniforms.uTime.value = time;
-        if (playerPos) this.grassUniforms.uPlayerPos.value.copy(playerPos);
+        const targetPos = playerPos || new THREE.Vector3(0, 0, 0);
 
-        this.updateAntiOcclusion(delta, camera, playerPos);
+        this.grassUniforms.uTime.value = time;
+        this.grassUniforms.uPlayerPos.value.copy(targetPos);
+
+        this.updateAntiOcclusion(delta, camera, targetPos);
 
         let allDead = true;
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             if (enemy.hp > 0) {
                 allDead = false;
-                enemy.update(delta, playerPos);
+                enemy.update(delta, targetPos);
             }
         }
 
@@ -509,7 +511,7 @@ export class ProceduralMap {
             this.exitPortal.children[1].rotation.y -= delta;
 
             // Check collision with player
-            if (playerPos && playerPos.distanceTo(this.exitPortal.position) < 1.5) {
+            if (targetPos.distanceTo(this.exitPortal.position) < 1.5) {
                 this.portalActive = false; // Prevent multiple triggers
 
                 // Track completion in GameState
