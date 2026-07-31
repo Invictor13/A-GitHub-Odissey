@@ -96,7 +96,16 @@ const btnPlayNew = document.getElementById('btn-play-new');
 function transitionToMainMenu() {
     if (introContainer && introContainer.style.display === 'none') return;
 
-    // Fade-out da Intro cinematográfica
+    // Primeiro preparamos o Menu em Loop por trás (visível, mas sob a Intro)
+    if (menuContainer) {
+        menuContainer.style.display = 'block';
+        menuContainer.style.opacity = '1';
+    }
+    if (menuBgVideo) {
+        menuBgVideo.play().catch(err => console.log("Autoplay interceptado pelo navegador:", err));
+    }
+
+    // Fade-out da Intro cinematográfica (agora com o menu preparado por baixo)
     if (introContainer) {
         introContainer.style.opacity = '0';
     }
@@ -108,21 +117,6 @@ function transitionToMainMenu() {
         if (introVideo) {
             introVideo.pause();
         }
-
-        // Inicializa e faz o Fade-in do Menu em Loop
-        if (menuContainer) {
-            menuContainer.style.display = 'block';
-        }
-        if (menuBgVideo) {
-            menuBgVideo.play().catch(err => console.log("Autoplay interceptado pelo navegador:", err));
-        }
-
-        // Pequeno timeout para garantir que o display block foi processado antes do opacidade 1
-        setTimeout(() => {
-            if (menuContainer) {
-                menuContainer.style.opacity = '1';
-            }
-        }, 50);
     }, 1000); // Duração sincronizada com o CSS transition
 }
 
@@ -158,6 +152,9 @@ if (btnPlayNew) {
 
             const instructions = document.getElementById('instructions');
             if (instructions) instructions.style.display = 'block';
+
+            const uiOverlay = document.getElementById('ui-overlay');
+            if (uiOverlay) uiOverlay.style.display = 'flex';
 
             window.changeGameState('HUB');
         }, 1200);
