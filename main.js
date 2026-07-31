@@ -1,3 +1,4 @@
+import { InventoryUI } from './src/ui/InventoryUI.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Penitent } from './characters/Penitent.js';
@@ -90,6 +91,19 @@ const btnPlay = document.getElementById('btn-play');
 const buildModal = document.getElementById('build-modal');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const btnEmbarkModal = document.getElementById('btnEmbarkModal');
+
+
+// Initialize Inventory UI
+const inventoryUI = new InventoryUI();
+
+// Inventory Toggle Event
+window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
+        e.preventDefault();
+        inventoryUI.toggle();
+        controls.enabled = !inventoryUI.isOpen;
+    }
+});
 
 // Hub Interactions
 window.addEventListener('keydown', (e) => {
