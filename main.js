@@ -220,7 +220,7 @@ function animate() {
 
         if (penitent.group && penitent.group.visible) {
             const prevTarget = controls.target.clone();
-            controls.target.lerp(penitent.playerGroup.position, 8 * window.gameState.delta);
+            controls.target.lerp(penitent.group.position, 8 * window.gameState.delta);
             const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
             camera.position.add(camShift);
             controls.update();
@@ -228,7 +228,7 @@ function animate() {
     }
 
     if (currentEnvironment && currentEnvironment.update) {
-        currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, penitent ? penitent.playerGroup.position : new THREE.Vector3());
+        currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, penitent ? penitent.group.position : new THREE.Vector3());
     }
 
     if (GAME_STATE !== 'MENU') {

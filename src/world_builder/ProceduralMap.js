@@ -162,8 +162,9 @@ export class ProceduralMap {
     }
 
     build3DGeometry(biome) {
-        console.log(`Building 3D geometry for biome: ${biome}`);
-        this.currentBiome = biome;
+        const activeBiome = biome || 'floresta';
+        console.log(`Building 3D geometry for biome: ${activeBiome}`);
+        this.currentBiome = activeBiome;
 
         // Clear previous
         while (this.terrainGroup.children.length > 0) {
