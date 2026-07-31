@@ -86,14 +86,84 @@ let currentEnvironment = null;
 let penitent = null;
 
 // UI Elements
-const mainMenu = document.getElementById('main-menu');
-const btnPlay = document.getElementById('btn-play');
+// Captura dos novos elementos da Intro e Menu
+const introContainer = document.getElementById('intro-container');
+const introVideo = document.getElementById('intro-video');
+const menuContainer = document.getElementById('main-menu-container');
+const menuBgVideo = document.getElementById('menu-bg-video');
+const btnPlayNew = document.getElementById('btn-play-new');
 
-if (btnPlay) {
-    btnPlay.addEventListener('click', () => {
-        mainMenu.style.display = 'none';
-        if (instructions) instructions.style.display = 'block';
-        window.changeGameState('HUB');
+function transitionToMainMenu() {
+    if (introContainer && introContainer.style.display === 'none') return;
+
+    // Fade-out da Intro cinematográfica
+    if (introContainer) {
+        introContainer.style.opacity = '0';
+    }
+
+    setTimeout(() => {
+        if (introContainer) {
+            introContainer.style.display = 'none';
+        }
+        if (introVideo) {
+            introVideo.pause();
+        }
+
+        // Inicializa e faz o Fade-in do Menu em Loop
+        if (menuContainer) {
+            menuContainer.style.display = 'block';
+        }
+        if (menuBgVideo) {
+            menuBgVideo.play().catch(err => console.log("Autoplay interceptado pelo navegador:", err));
+        }
+
+        // Pequeno timeout para garantir que o display block foi processado antes do opacidade 1
+        setTimeout(() => {
+            if (menuContainer) {
+                menuContainer.style.opacity = '1';
+            }
+        }, 50);
+    }, 1000); // Duração sincronizada com o CSS transition
+}
+
+// Ouvintes de evento para transição da intro
+if (introVideo) {
+    introVideo.addEventListener('ended', transitionToMainMenu);
+}
+if (introContainer) {
+    introContainer.addEventListener('click', transitionToMainMenu);
+}
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        if (introContainer && introContainer.style.display !== 'none') {
+            e.preventDefault();
+            transitionToMainMenu();
+        }
+    }
+});
+
+// Ação de iniciar o jogo a partir do novo menu principal
+if (btnPlayNew) {
+    btnPlayNew.addEventListener('click', () => {
+        if (menuContainer) {
+            menuContainer.style.opacity = '0';
+        }
+        setTimeout(() => {
+            if (menuContainer) {
+                menuContainer.style.display = 'none';
+            }
+            if (menuBgVideo) {
+                menuBgVideo.pause();
+            }
+
+            const mainContent = document.getElementById('inventory-modal');
+            if (mainContent) mainContent.classList.remove('hidden');
+
+            const instructions = document.getElementById('instructions');
+            if (instructions) instructions.style.display = 'block';
+
+            window.changeGameState('HUB');
+        }, 1200);
     });
 }
 
