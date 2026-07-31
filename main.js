@@ -11,7 +11,7 @@ window.addEventListener('error', (e) => {
     if (errBox) {
         errBox.style.display = 'block';
         errBox.innerText = '⚠️ ERRO:\n' + e.message + '\nLinha: ' + e.lineno;
-    }
+
 });
 
 // --- CORE SYSTEM SETUP ---
@@ -99,7 +99,7 @@ function transitionToMainMenu() {
     // Fade-out da Intro cinematográfica
     if (introContainer) {
         introContainer.style.opacity = '0';
-    }
+
 
     setTimeout(() => {
         if (introContainer) {
@@ -139,7 +139,7 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             transitionToMainMenu();
         }
-    }
+
 });
 
 // Ação de iniciar o jogo a partir do novo menu principal
@@ -188,7 +188,7 @@ window.addEventListener('keydown', (e) => {
             inventoryUI.toggle();
             controls.enabled = !inventoryUI.isOpen;
         }
-    }
+
 });
 
 // Hub Interactions
@@ -200,7 +200,7 @@ window.addEventListener('keydown', (e) => {
             const prompt = document.getElementById('interaction-prompt');
             if (prompt) prompt.style.opacity = '0';
         }
-    }
+
 });
 
 if (btnCloseModal) {
@@ -231,7 +231,7 @@ window.changeGameState = function(newState, params) {
     // Cleanup previous environment
     if (currentEnvironment && typeof currentEnvironment.cleanup === 'function') {
         currentEnvironment.cleanup();
-    }
+
 
     if (GAME_STATE === 'HUB') {
         currentEnvironment = new HubEnvironment(scene);
@@ -253,12 +253,13 @@ window.changeGameState = function(newState, params) {
         console.log("Transição para o WORLD MAP em progresso...");
     } else if (GAME_STATE === 'ROGUELIKE') {
         currentEnvironment = new ProceduralMap(scene);
-        currentEnvironment.generateGrid(14, params?.islandData);
+        currentEnvironment.generateGrid(100, params?.islandData);
         const biome = params?.biome || 'campos_pastos';
         currentEnvironment.build3DGeometry(biome);
         if (penitent) {
             if (penitent.group) penitent.group.visible = true;
-            penitent.group.position.set(0, 10, 0);
+            const spawnPos = currentEnvironment.getPlayerSpawnPosition();
+            penitent.group.position.copy(spawnPos);
         }
     }
 };
@@ -288,7 +289,7 @@ function animate() {
             camera.position.add(camShift);
             controls.update();
         }
-    }
+
 
     // Trava de segurança para a posição do jogador
     const playerPos = (penitent && penitent.group && penitent.group.position && typeof penitent.group.position.x === 'number')
@@ -297,11 +298,11 @@ function animate() {
 
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
         currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, playerPos);
-    }
+
 
     if (GAME_STATE !== 'MENU') {
         survivalSystem.update(window.gameState.delta);
-    }
+
 
     renderer.render(scene, camera);
 }

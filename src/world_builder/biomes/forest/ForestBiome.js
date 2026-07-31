@@ -72,7 +72,7 @@ export class ForestBiome extends BiomeBase {
         const offsetX = -this.gridSize/2;
         const offsetZ = -this.gridSize/2;
 
-        const baseGrassColor = new THREE.Color(0x064e3b); // Dark forest green
+        const baseGrassColor = new THREE.Color(0x2e5c1e);
         const baseDirtColor = new THREE.Color(0x271c19);
         const tempColor = new THREE.Color();
 
@@ -100,26 +100,38 @@ export class ForestBiome extends BiomeBase {
                         const cell = this.grid[x][z];
                         if (cell.type === this.TILE_EMPTY) continue;
 
-                        let surfaceY = cell.elev;
+                        let surfaceY = cell.elev * this.STEP_HEIGHT;
+                        let dirtTop = cell.type === this.TILE_WATER ? -0.5 : surfaceY;
 
-                        if (cell.type === this.TILE_SOLID) {
-                            const dirtDepth = surfaceY + 1.5;
-                            const dGeo = new THREE.BoxGeometry(1, dirtDepth, 1);
-                            dGeo.translate(px, surfaceY - (dirtDepth/2), pz);
-                            dirtGeos.push(dGeo);
+                        let minDistToRoom = 999;
+                        if (this.map.rooms) {
+                            this.map.rooms.forEach(r => { let d = Math.hypot(x - r.cx, z - r.cy); if (d < minDistToRoom) minDistToRoom = d; });
+                        }
+                        const depthFactor = Math.max(0, 1.0 - (minDistToRoom / 20.0));
+                        const distToPathMult = (cell.type === this.TILE_SOLID && cell.distToPath !== undefined) ? Math.max(0.2, 1.0 - (cell.distToPath * 0.2)) : 1.0;
+                        const islandThickness = (8.0 + (18.0 * depthFactor) + Math.random() * 3.0) * distToPathMult;
 
-                            // Check if near floor to spawn trees (high chance for forest)
-                            let nearFloor = false;
-                            for(let dx=-2; dx<=2; dx++) {
-                                for(let dz=-2; dz<=2; dz++) {
+                        const dirtDepth = dirtTop + islandThickness;
+                        const dGeo = new THREE.BoxGeometry(1, dirtDepth, 1);
+                        dGeo.translate(px, dirtTop - (dirtDepth/2) - 0.02, pz);
+                        if (dirtDepth > 0) dirtGeos.push(dGeo);
+
+                        let isBoundary = false;
+                        if (cell.type === this.TILE_SOLID && cell.distToPath <= 2) {
+                            isBoundary = true;
+                        } else if (cell.type === this.TILE_FLOOR) {
+                            for(let dx=-1; dx<=1; dx+=2) {
+                                for(let dz=-1; dz<=1; dz+=2) {
                                     let nx = x+dx, nz = z+dz;
-                                    if(nx>=0 && nx<this.gridSize && nz>=0 && nz<this.gridSize && this.grid[nx][nz].type === this.TILE_FLOOR) {
-                                        nearFloor = true;
+                                    if (nx>=0 && nx<this.gridSize && nz>=0 && nz<this.gridSize && (this.grid[nx][nz].type === this.TILE_TRAIL || this.grid[nx][nz].type === this.TILE_SOLID)) {
+                                        isBoundary = true;
                                     }
                                 }
                             }
+                        }
 
-                            if (nearFloor && Math.random() < 0.35) { // 35% chance for tree
+                        if (cell.type === this.TILE_SOLID) {
+                            if (cell.distToPath <= 4 && Math.random() < 0.35) { // more trees in forest
                                 let rndX = px + (Math.random()-0.5)*0.9;
                                 let rndZ = pz + (Math.random()-0.5)*0.9;
 
@@ -137,7 +149,7 @@ export class ForestBiome extends BiomeBase {
                                 trunkData.push({ pos: new THREE.Vector3(rndX, surfaceY + 2.5, rndZ) });
                             }
 
-                            if (nearFloor && Math.random() < 0.2) {
+                            if (cell.distToPath <= 3 && Math.random() < 0.35) {
                                 let rx = px + (Math.random()-0.5)*0.8;
                                 let rz = pz + (Math.random()-0.5)*0.8;
                                 dummy.position.set(rx, surfaceY + 0.4, rz);
@@ -146,7 +158,7 @@ export class ForestBiome extends BiomeBase {
                                 rockData.push({ pos: new THREE.Vector3(rx, surfaceY + 0.4, rz) });
                             }
 
-                        } else if (cell.type === this.TILE_FLOOR) {
+                        } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
                             const vColors = []; const vCount = fGeo.attributes.position.count;
 
@@ -158,7 +170,7 @@ export class ForestBiome extends BiomeBase {
                             fGeo.setAttribute('color', new THREE.Float32BufferAttribute(vColors, 3));
                             floorGeos.push(fGeo);
 
-                            for(let i=0; i<4; i++) { // More grass in forest
+                            for(let i=0; i<4; i++) {
                                 dummy.position.set(px + (Math.random()-0.5)*0.9, surfaceY, pz + (Math.random()-0.5)*0.9);
                                 dummy.rotation.y = Math.random() * Math.PI; dummy.scale.setScalar(0.8 + Math.random()*0.8);
                                 dummy.updateMatrix(); grassMatrices.push({ matrix: dummy.matrix.clone(), color: baseGrassColor });
@@ -215,44 +227,31 @@ export class ForestBiome extends BiomeBase {
     }
 
     spawnEnemies(enemiesArray) {
-        const numEnemies = Math.floor(Math.random() * 4) + 8;
+        const numEnemies = Math.floor(Math.random() * 5) + 8;
         let enemiesCreated = 0;
 
-        for (let i = 0; i < numEnemies * 2; i++) {
-            if (enemiesCreated >= numEnemies) break;
+        if (this.map.rooms && this.map.rooms.length > 1) {
+            for (let rIdx = 1; rIdx < this.map.rooms.length; rIdx++) {
+                if (enemiesCreated >= numEnemies) break;
+                const r = this.map.rooms[rIdx];
+                const spawnX = r.x + Math.floor(Math.random() * r.w);
+                const spawnZ = r.y + Math.floor(Math.random() * r.h);
 
-            const tileX = (Math.random() - 0.5) * (this.gridSize * 0.8);
-            const tileZ = (Math.random() - 0.5) * (this.gridSize * 0.8);
+                if (this.grid[spawnX] && this.grid[spawnX][spawnZ] && this.grid[spawnX][spawnZ].type === this.TILE_FLOOR) {
+                    const px = spawnX - this.gridSize / 2;
+                    const pz = spawnZ - this.gridSize / 2;
+                    const py = this.grid[spawnX][spawnZ].elev * this.STEP_HEIGHT;
 
-            // Avoid spawning in the center
-            if (Math.abs(tileX) < this.gridSize * 0.25 && Math.abs(tileZ) < this.gridSize * 0.25) {
-                continue;
-            }
+                    const rand = Math.random();
+                    let enemy;
+                    if (rand < 0.4) enemy = new Slime(this.scene, new THREE.Vector3(px, py, pz));
+                    else if (rand < 0.7) enemy = new Goblin(this.scene, new THREE.Vector3(px, py, pz));
+                    else enemy = new Skeleton(this.scene, new THREE.Vector3(px, py, pz));
 
-            let gX = Math.round(tileX + this.gridSize/2);
-            let gZ = Math.round(tileZ + this.gridSize/2);
-            if (gX >= 0 && gX < this.gridSize && gZ >= 0 && gZ < this.gridSize) {
-                if(this.grid[gX][gZ].type !== this.TILE_FLOOR) {
-                    continue;
+                    enemiesArray.push(enemy);
+                    enemiesCreated++;
                 }
-            } else {
-                continue;
             }
-
-            const pos = new THREE.Vector3(tileX, 0, tileZ);
-
-            const rand = Math.random();
-            let enemy;
-            if (rand < 0.4) {
-                enemy = new Slime(this.scene, pos);
-            } else if (rand < 0.8) {
-                enemy = new Skeleton(this.scene, pos);
-            } else {
-                enemy = new Goblin(this.scene, pos);
-            }
-
-            enemiesArray.push(enemy);
-            enemiesCreated++;
         }
     }
 }
