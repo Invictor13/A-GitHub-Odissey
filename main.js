@@ -2,10 +2,10 @@
 import { SurvivalSystem } from './src/systems/SurvivalSystem.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Penitent } from './characters/Penitent.js';
-import { HubEnvironment } from './world_builder/HubEnvironment.js';
-import { ProceduralMap } from './world_builder/ProceduralMap.js';
-import { WorldMap } from './world_builder/WorldMap.js';
+import { Penitent } from './src/characters/Penitent.js';
+import { HubEnvironment } from './src/world_builder/HubEnvironment.js';
+import { ProceduralMap } from './src/world_builder/ProceduralMap.js';
+import { WorldMap } from './src/world_builder/WorldMap.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -89,6 +89,15 @@ let penitent = null;
 // UI Elements
 const mainMenu = document.getElementById('main-menu');
 const btnPlay = document.getElementById('btn-play');
+
+if(btnPlay) {
+    btnPlay.addEventListener('click', () => {
+        mainMenu.style.display = 'none';
+        if(instructions) instructions.style.display = 'block';
+        window.changeGameState('HUB');
+    });
+}
+
 const buildModal = document.getElementById('build-modal');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const btnEmbarkModal = document.getElementById('btnEmbarkModal');
@@ -151,13 +160,7 @@ currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();
 
-if(btnPlay) {
-    btnPlay.addEventListener('click', () => {
-        mainMenu.style.display = 'none';
-        if(instructions) instructions.style.display = 'block';
-        window.changeGameState('HUB');
-    });
-}
+
 
 window.changeGameState = function(newState, params) {
     GAME_STATE = newState;
