@@ -7,9 +7,11 @@ export class ProceduralMap {
     constructor(scene) {
         this.scene = scene;
         this.mapGroup = new THREE.Group();
+        this.mapGroup.scale.set(1.0, 1.0, 1.0);
         this.scene.add(this.mapGroup);
 
         this.terrainGroup = new THREE.Group();
+        this.terrainGroup.scale.set(1.0, 1.0, 1.0);
         this.mapGroup.add(this.terrainGroup);
 
         this.grid = [];
@@ -18,9 +20,14 @@ export class ProceduralMap {
         this.gridSize = 0;
         this.currentBiomeId = 'floresta';
 
-        this.TILE_EMPTY = -1;
+                this.TILE_EMPTY = -1;
         this.TILE_SOLID = 0;
         this.TILE_FLOOR = 1;
+        this.TILE_WATER = 2;
+        this.TILE_BRIDGE = 3;
+        this.TILE_TRAIL = 4;
+
+        this.STEP_HEIGHT = 1.0;
 
         this.CHUNK_SIZE = 16;
         this.RENDER_CHUNK_RADIUS = 3;
@@ -39,31 +46,45 @@ export class ProceduralMap {
 
     generateGrid(size, islandData = null) {
         this.currentIslandData = islandData;
-        console.log(`Generating procedural grid of size ${size}`);
+        size = 100; // Force size 100 as per requirement
         this.gridSize = size;
-        this.grid = new Array(size).fill(0).map(() => new Array(size).fill(0).map(() => ({ type: this.TILE_SOLID, elev: 0 })));
+        console.log(`Generating procedural grid of size ${size}`);
 
-        const targetRooms = Math.floor(size / 10);
+        this.grid = new Array(size).fill(0).map(() => new Array(size).fill(0).map(() => ({ type: this.TILE_SOLID, elev: 0, distToPath: 999 })));
+
+        const targetRooms = Math.floor(Math.random() * 3) + 12; // 12 to 14 rooms
         this.rooms = [];
         let attempts = 0;
 
-        while(this.rooms.length < targetRooms && attempts < 200) {
-            let w = Math.min(Math.floor(Math.random() * 10) + 8, size - 4);
-            let h = Math.min(Math.floor(Math.random() * 10) + 8, size - 4);
+        class Room {
+            constructor(x, y, w, h, id, targetRooms) {
+                this.x = x; this.y = y; this.w = w; this.h = h;
+                this.cx = Math.floor(x + w/2); this.cy = Math.floor(y + h/2);
+                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.20);
+                this.elev = this.isLake ? 0 : Math.floor(Math.random() * 2) + 1;
+            }
+            intersects(other) { return (this.x <= other.x + other.w + 2 && this.x + this.w + 2 >= other.x && this.y <= other.y + other.h + 2 && this.y + this.h + 2 >= other.y); }
+        }
+
+        while(this.rooms.length < targetRooms && attempts < 700) {
+            let w = Math.floor(Math.random() * 18) + 18;
+            let h = Math.floor(Math.random() * 18) + 18;
             let x = Math.floor(Math.random() * (size - w - 2)) + 1;
             let y = Math.floor(Math.random() * (size - h - 2)) + 1;
 
-            let r = { x, y, w, h, cx: Math.floor(x + w/2), cy: Math.floor(y + h/2) };
+            let r = new Room(x, y, w, h, this.rooms.length, targetRooms);
 
-            let intersects = this.rooms.some(other => (r.x <= other.x + other.w + 2 && r.x + r.w + 2 >= other.x && r.y <= other.y + other.h + 2 && r.y + r.h + 2 >= other.y));
-
-            if (!intersects) {
+            if (!this.rooms.some(other => r.intersects(other))) {
+                let rType = r.elev === 0 ? this.TILE_WATER : this.TILE_FLOOR;
                 for(let ix = x; ix < x+w; ix++) {
                     for(let iy = y; iy < y+h; iy++) {
-                        if(ix >= 0 && ix < size && iy >= 0 && iy < size) {
-                            if(Math.random() < 0.95) {
-                                this.grid[ix][iy].type = this.TILE_FLOOR;
-                                this.grid[ix][iy].elev = 0;
+                        if(Math.random() < 0.99) {
+                            if (this.grid[ix][iy].type === this.TILE_WATER && rType !== this.TILE_WATER && r.elev > 0) {
+                                this.grid[ix][iy].type = this.TILE_BRIDGE;
+                                this.grid[ix][iy].elev = r.elev;
+                            } else if (this.grid[ix][iy].type !== this.TILE_BRIDGE) {
+                                this.grid[ix][iy].type = rType;
+                                this.grid[ix][iy].elev = r.elev;
                             }
                         }
                     }
@@ -84,13 +105,23 @@ export class ProceduralMap {
                 path.push({x: cx, z: cy});
             }
             for (let j = 0; j < path.length; j++) {
+                let t = j / (path.length - 1 || 1);
+                let elev = Math.round(r1.elev * (1 - t) + r2.elev * t);
                 let px = path[j].x, pz = path[j].z;
-                for(let dx=-2; dx<=2; dx++) {
-                    for(let dz=-2; dz<=2; dz++) {
-                        if (Math.abs(dx) + Math.abs(dz) <= 3) {
-                            if (px+dx >= 0 && px+dx < size && pz+dz >= 0 && pz+dz < size) {
-                                this.grid[px+dx][pz+dz].type = this.TILE_FLOOR;
-                                this.grid[px+dx][pz+dz].elev = 0;
+                let cType = elev === 0 ? this.TILE_WATER : this.TILE_TRAIL;
+
+                for(let dx=-5; dx<=5; dx++) {
+                    for(let dz=-5; dz<=5; dz++) {
+                        if (Math.abs(dx) + Math.abs(dz) <= 6 || Math.random() < 0.9) {
+                            let nx = px+dx, nz = pz+dz;
+                            if (nx >= 0 && nx < size && nz >= 0 && nz < size) {
+                                if (this.grid[nx][nz].type === this.TILE_WATER && cType !== this.TILE_WATER && elev > 0) {
+                                    this.grid[nx][nz].type = this.TILE_BRIDGE;
+                                    this.grid[nx][nz].elev = elev;
+                                } else if (this.grid[nx][nz].type !== this.TILE_BRIDGE) {
+                                    this.grid[nx][nz].type = cType;
+                                    this.grid[nx][nz].elev = elev;
+                                }
                             }
                         }
                     }
@@ -98,11 +129,45 @@ export class ProceduralMap {
             }
         }
 
-        // Make sure center is floor
-        for(let ix = size/2 - 5; ix < size/2 + 5; ix++) {
-            for(let iy = size/2 - 5; iy < size/2 + 5; iy++) {
-                if(ix >= 0 && ix < size && iy >= 0 && iy < size) {
-                    this.grid[ix][iy].type = this.TILE_FLOOR;
+        let dilation = Array.from({length: size}, () => Array(size).fill(999));
+        let queue = [];
+        for (let x = 0; x < size; x++) {
+            for (let z = 0; z < size; z++) {
+                if (this.grid[x][z].type !== this.TILE_SOLID) { dilation[x][z] = 0; queue.push({x: x, z: z}); }
+            }
+        }
+
+        let head = 0;
+        while (head < queue.length) {
+            let p = queue[head++]; let d = dilation[p.x][p.z];
+            if (d >= 8) continue;
+            let dirs = [[0,1], [1,0], [0,-1], [-1,0]];
+            for (let dir of dirs) {
+                let nx = p.x + dir[0], nz = p.z + dir[1];
+                if (nx >= 0 && nx < size && nz >= 0 && nz < size && dilation[nx][nz] > d + 1) {
+                    dilation[nx][nz] = d + 1; queue.push({x: nx, z: nz});
+                }
+            }
+        }
+
+        for (let x = 0; x < size; x++) {
+            for (let z = 0; z < size; z++) {
+                if (this.grid[x][z].type === this.TILE_SOLID) {
+                    if (dilation[x][z] > 8) {
+                        this.grid[x][z].type = this.TILE_EMPTY;
+                    } else {
+                        let maxElev = 0;
+                        for(let dx=-2; dx<=2; dx++) {
+                            for(let dz=-2; dz<=2; dz++) {
+                                let nx = x+dx, nz = z+dz;
+                                if(nx>=0 && nx<size && nz>=0 && nz<size && this.grid[nx][nz].type >= 0 && this.grid[nx][nz].type !== this.TILE_SOLID) {
+                                    maxElev = Math.max(maxElev, this.grid[nx][nz].elev);
+                                }
+                            }
+                        }
+                        this.grid[x][z].elev = maxElev + Math.floor(dilation[x][z]*0.5);
+                        this.grid[x][z].distToPath = dilation[x][z];
+                    }
                 }
             }
         }
@@ -175,6 +240,17 @@ export class ProceduralMap {
         this.exitPortal.position.set(0, this.getFloorY(new THREE.Vector3(0,0,0)), 0);
         this.mapGroup.add(this.exitPortal);
         this.portalActive = true;
+    }
+
+    getPlayerSpawnPosition() {
+        if (this.rooms && this.rooms.length > 0) {
+            const r0 = this.rooms[0];
+            const px = r0.cx - this.gridSize / 2;
+            const pz = r0.cy - this.gridSize / 2;
+            const py = (r0.elev * this.STEP_HEIGHT) + 0.5;
+            return new THREE.Vector3(px, py, pz);
+        }
+        return new THREE.Vector3(0, 10, 0);
     }
 
     cleanup() {

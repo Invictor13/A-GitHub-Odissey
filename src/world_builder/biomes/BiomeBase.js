@@ -11,7 +11,11 @@ export class BiomeBase {
         this.TILE_EMPTY = mapInstance.TILE_EMPTY;
         this.TILE_SOLID = mapInstance.TILE_SOLID;
         this.TILE_FLOOR = mapInstance.TILE_FLOOR;
+        this.TILE_WATER = mapInstance.TILE_WATER;
+        this.TILE_BRIDGE = mapInstance.TILE_BRIDGE;
+        this.TILE_TRAIL = mapInstance.TILE_TRAIL;
         this.CHUNK_SIZE = mapInstance.CHUNK_SIZE;
+        this.STEP_HEIGHT = mapInstance.STEP_HEIGHT;
 
         this.matBase = { roughness: 0.9, flatShading: true };
     }
