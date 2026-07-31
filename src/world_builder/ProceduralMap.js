@@ -324,13 +324,11 @@ export class ProceduralMap {
         this.spawnEnemies();
     }
 
-
     spawnEnemies() {
         const numEnemies = Math.floor(Math.random() * 4) + 8;
-        // Keep track of total enemies created
         let enemiesCreated = 0;
 
-        for (let i = 0; i < numEnemies * 2; i++) { // Give it some leeway to find spots
+        for (let i = 0; i < numEnemies * 2; i++) {
             if (enemiesCreated >= numEnemies) break;
 
             const tileX = (Math.random() - 0.5) * (this.gridSize * 0.8);
@@ -340,7 +338,6 @@ export class ProceduralMap {
                 i--; continue;
             }
 
-            // basic check if it's on floor (roughly)
             let gX = Math.round(tileX + this.gridSize/2);
             let gZ = Math.round(tileZ + this.gridSize/2);
             if (gX >= 0 && gX < this.gridSize && gZ >= 0 && gZ < this.gridSize) {
@@ -372,7 +369,6 @@ export class ProceduralMap {
 
         this.exitPortal = new THREE.Group();
 
-        // A glowing ring/cylinder
         const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
         const portalMat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
         const portalMesh = new THREE.Mesh(portalGeo, portalMat);
@@ -411,11 +407,11 @@ export class ProceduralMap {
     }
 
     updateAntiOcclusion(delta, camera, playerPos) {
-        if (!playerPos) return;
+        const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
 
-        const px = playerPos.x;
-        const py = playerPos.y + 1.8;
-        const pz = playerPos.z;
+        const px = safePos.x;
+        const py = safePos.y + 1.8;
+        const pz = safePos.z;
 
         const cx = camera.position.x;
         const cy = camera.position.y;
@@ -484,7 +480,7 @@ export class ProceduralMap {
     }
 
     update(delta, time, camera, playerPos) {
-        const targetPos = playerPos || new THREE.Vector3(0, 0, 0);
+        const targetPos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
 
         this.grassUniforms.uTime.value = time;
         this.grassUniforms.uPlayerPos.value.copy(targetPos);

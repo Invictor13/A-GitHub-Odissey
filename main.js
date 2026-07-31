@@ -1,4 +1,3 @@
-
 import { SurvivalSystem } from './src/systems/SurvivalSystem.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -63,7 +62,7 @@ scene.add(sunLight.target);
 
 // Temporary Instructions update
 const instructions = document.getElementById('instructions');
-if(instructions) {
+if (instructions) {
     instructions.innerHTML = "WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara";
 }
 
@@ -90,10 +89,10 @@ let penitent = null;
 const mainMenu = document.getElementById('main-menu');
 const btnPlay = document.getElementById('btn-play');
 
-if(btnPlay) {
+if (btnPlay) {
     btnPlay.addEventListener('click', () => {
         mainMenu.style.display = 'none';
-        if(instructions) instructions.style.display = 'block';
+        if (instructions) instructions.style.display = 'block';
         window.changeGameState('HUB');
     });
 }
@@ -101,7 +100,6 @@ if(btnPlay) {
 const buildModal = document.getElementById('build-modal');
 const btnCloseModal = document.getElementById('btnCloseModal');
 const btnEmbarkModal = document.getElementById('btnEmbarkModal');
-
 
 // Initialize Inventory UI
 let inventoryUI = null;
@@ -128,29 +126,29 @@ window.addEventListener('keydown', (e) => {
 
 // Hub Interactions
 window.addEventListener('keydown', (e) => {
-    if(GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearDog) {
-        if(e.key.toLowerCase() === 'e' && !currentEnvironment.isModalOpen) {
+    if (GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearDog) {
+        if (e.key.toLowerCase() === 'e' && !currentEnvironment.isModalOpen) {
             currentEnvironment.isModalOpen = true;
-            if(buildModal) buildModal.style.display = 'flex';
+            if (buildModal) buildModal.style.display = 'flex';
             const prompt = document.getElementById('interaction-prompt');
-            if(prompt) prompt.style.opacity = '0';
+            if (prompt) prompt.style.opacity = '0';
         }
     }
 });
 
-if(btnCloseModal) {
+if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
         buildModal.style.display = 'none';
-        if(currentEnvironment) {
+        if (currentEnvironment) {
             setTimeout(() => { currentEnvironment.isModalOpen = false; }, 100);
         }
     });
 }
 
-if(btnEmbarkModal) {
+if (btnEmbarkModal) {
     btnEmbarkModal.addEventListener('click', () => {
         buildModal.style.display = 'none';
-        if(currentEnvironment) currentEnvironment.isModalOpen = false;
+        if (currentEnvironment) currentEnvironment.isModalOpen = false;
         window.changeGameState('WORLD_MAP');
     });
 }
@@ -159,8 +157,6 @@ if(btnEmbarkModal) {
 currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();
-
-
 
 window.changeGameState = function(newState, params) {
     GAME_STATE = newState;
@@ -227,11 +223,12 @@ function animate() {
         }
     }
 
-    const playerPos = (penitent && penitent.group && penitent.group.position)
+    // Trava de segurança para a posição do jogador
+    const playerPos = (penitent && penitent.group && penitent.group.position && typeof penitent.group.position.x === 'number')
         ? penitent.group.position
         : new THREE.Vector3(0, 0, 0);
 
-    if (currentEnvironment && currentEnvironment.update) {
+    if (currentEnvironment && typeof currentEnvironment.update === 'function') {
         currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, playerPos);
     }
 

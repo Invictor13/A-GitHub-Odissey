@@ -449,8 +449,11 @@ export class HubEnvironment {
     }
 
     update(delta, time, camera, playerPos) {
+        // Trava de segurança para a posição do jogador
+        const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
+
         this.grassUniforms.uTime.value = time;
-        this.grassUniforms.uPlayerPos.value.copy(playerPos);
+        this.grassUniforms.uPlayerPos.value.copy(safePos);
 
         if(this.cloudsGroup) {
             this.cloudsGroup.rotation.y += delta * 0.01;
@@ -458,14 +461,14 @@ export class HubEnvironment {
 
         // Dog Logic
         if(this.dogGroup) {
-            const distToDog = playerPos.distanceTo(this.dogGroup.position);
+            const distToDog = safePos.distanceTo(this.dogGroup.position);
             const prompt = document.getElementById('interaction-prompt');
 
             if (distToDog < 5.0 && !this.isModalOpen) {
                 if(!this.isNearDog && prompt) prompt.style.opacity = '1';
                 this.isNearDog = true;
 
-                const targetAngle = Math.atan2(playerPos.x - this.dogGroup.position.x, playerPos.z - this.dogGroup.position.z);
+                const targetAngle = Math.atan2(safePos.x - this.dogGroup.position.x, safePos.z - this.dogGroup.position.z);
                 let diff = targetAngle - this.dogGroup.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
                 this.dogGroup.rotation.y += diff * 6 * delta;
