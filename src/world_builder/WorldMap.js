@@ -262,7 +262,7 @@ export class WorldMap {
                 <div class="stat-row"><div class="stat-icon">🦌</div> Caça: <span class="stat-value" id="m-animals">Cervos, Javalis</span></div>
                 <div class="stat-row"><div class="stat-icon">🐟</div> Pesca: <span class="stat-value" id="m-fishes">Truta, Salmão</span></div>
                 <div class="stat-row"><div class="stat-icon">⛏️</div> Recursos: <span class="stat-value" id="m-minerals">Madeira, Ferro</span></div>
-                <button class="btn-entrar" id="btn-entrar">Explorar e Expandir</button>
+                <button class="btn-entrar" id="btn-entrar">Iniciar Aventura</button>
             </div>
         `;
         document.body.appendChild(this.rpgModal);
@@ -537,18 +537,7 @@ export class WorldMap {
             this._onBtnEntrar = () => {
                 this.closeModal();
                 if (this.activeIslandData) {
-                    this.playCreationEffect(this.activeIslandData.center);
-                    const clickedMesh = this.interactableObjects.find(obj => obj.userData.gridX === this.activeIslandData.gridX && obj.userData.gridZ === this.activeIslandData.gridZ);
-                    if(clickedMesh) clickedMesh.userData.isClickable = false;
-
-                    setTimeout(() => {
-                        const dirs = [ {dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1} ];
-                        dirs.forEach((dir, index) => {
-                            setTimeout(() => this.spawnIsland(this.activeIslandData.gridX + dir.dx, this.activeIslandData.gridZ + dir.dz, this.activeIslandData.gridX, this.activeIslandData.gridZ), index * 300);
-                        });
-
-                        setTimeout(() => window.changeGameState('ROGUELIKE', { biome: this.activeIslandData.biomeId }), 800);
-                    }, 400);
+                    window.changeGameState('ROGUELIKE', { biome: this.activeIslandData.biomeId, islandData: this.activeIslandData });
                 }
             };
             btnEntrar.addEventListener('click', this._onBtnEntrar);
@@ -581,11 +570,53 @@ export class WorldMap {
     }
 
     initWorld() {
-        this.spawnIsland(0, 0, null, null, true);
-        setTimeout(() => this.spawnIsland(1, 0, 0, 0), 200);
-        setTimeout(() => this.spawnIsland(0, 1, 0, 0), 400);
-        setTimeout(() => this.spawnIsland(-1, 0, 0, 0), 600);
-        setTimeout(() => this.spawnIsland(0, -1, 0, 0), 800);
+        import('../core/GameState.js').then(({ default: gameState }) => {
+            // First spawn base hub and default adjacent
+            this.spawnIsland(0, 0, null, null, true);
+            this.spawnIsland(1, 0, 0, 0);
+            this.spawnIsland(0, 1, 0, 0);
+            this.spawnIsland(-1, 0, 0, 0);
+            this.spawnIsland(0, -1, 0, 0);
+
+            // Spawn any previously completed nodes and their adjacencies WITHOUT animation
+            if (gameState.completedNodes && gameState.completedNodes.length > 0) {
+                // (Optional feature to re-generate the entire map structure based on completed nodes,
+                // but for now we just process the completed ones)
+                gameState.completedNodes.forEach(nodeId => {
+                    const [nx, nz] = nodeId.split(',').map(Number);
+                    this.spawnIsland(nx, nz, 0, 0); // Need to link back, simple logic for now
+
+                    // Mark completed node as unclickable
+                    const mesh = this.interactableObjects.find(obj => obj.userData.gridX === nx && obj.userData.gridZ === nz);
+                    if (mesh) mesh.userData.isClickable = false;
+
+                    // Reveal adjacent
+                    const dirs = [ {dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1} ];
+                    dirs.forEach(dir => {
+                        this.spawnIsland(nx + dir.dx, nz + dir.dz, nx, nz);
+                    });
+                });
+            }
+
+            // Check if there are pending unlocks to animate
+            if (gameState.pendingUnlocks) {
+                const node = gameState.pendingUnlocks;
+                // Wait a moment for scene to settle, then play animation
+                setTimeout(() => {
+                    this.playCreationEffect(new THREE.Vector3(node.gridX * this.islandSpacing, 0, node.gridZ * this.islandSpacing));
+
+                    setTimeout(() => {
+                        const dirs = [ {dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1} ];
+                        dirs.forEach((dir, index) => {
+                            setTimeout(() => this.spawnIsland(node.gridX + dir.dx, node.gridZ + dir.dz, node.gridX, node.gridZ), index * 300);
+                        });
+                    }, 400);
+
+                    gameState.pendingUnlocks = null;
+                    gameState.save();
+                }, 1000);
+            }
+        });
     }
 
     cleanup() {

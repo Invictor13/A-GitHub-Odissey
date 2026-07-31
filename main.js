@@ -190,7 +190,7 @@ window.changeGameState = function(newState, params) {
         console.log("Transição para o WORLD MAP em progresso...");
     } else if (GAME_STATE === 'ROGUELIKE') {
         currentEnvironment = new ProceduralMap(scene);
-        currentEnvironment.generateGrid(14);
+        currentEnvironment.generateGrid(14, params?.islandData);
         const biome = params?.biome || 'campos_pastos';
         currentEnvironment.build3DGeometry(biome);
         if (penitent) {
