@@ -193,7 +193,7 @@ window.addEventListener('keydown', (e) => {
 
 // Hub Interactions
 window.addEventListener('keydown', (e) => {
-    if (GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearDog) {
+    if (GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearEros) {
         if (e.key.toLowerCase() === 'e' && !currentEnvironment.isModalOpen) {
             currentEnvironment.isModalOpen = true;
             if (buildModal) buildModal.style.display = 'flex';

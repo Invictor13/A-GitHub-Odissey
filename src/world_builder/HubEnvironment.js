@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import gameState from '../core/GameState.js';
+import { Eros } from '../characters/Eros.js';
 
 export class HubEnvironment {
     constructor(scene) {
@@ -11,10 +12,10 @@ export class HubEnvironment {
         this.npcs = [];
         this.ISLAND_SIZE = 22.0;
 
-        this.isNearDog = false;
+        this.isNearEros = false;
         this.isModalOpen = false;
-        this.dogWaitTimer = 3.0;
-        this.dogTargetPos = new THREE.Vector3(4.0, 0.4, 4.0);
+        this.erosWaitTimer = 3.0;
+        this.erosTargetPos = new THREE.Vector3(4.0, 0.4, 4.0);
 
         this.expansionSlots = [
             { x: this.ISLAND_SIZE, z: 0 },
@@ -25,7 +26,7 @@ export class HubEnvironment {
 
         this.setupMaterials();
         this.setupEnvironment();
-        this.setupCaptainCimentado();
+        this.setupEros();
 
         // Spawn based on gameState
         this.restoreState();
@@ -60,9 +61,6 @@ export class HubEnvironment {
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x291d16, bumpMap: this.texNoiseBump, bumpScale: 0.08, ...matBase });
         this.matWood = new THREE.MeshStandardMaterial({ color: 0x5c2b0c, bumpMap: this.texLeatherBump, bumpScale: 0.05, ...matBase });
         this.matGrass = new THREE.MeshStandardMaterial({ color: 0x15803d, bumpMap: this.texNoiseBump, bumpScale: 0.03, roughness: 0.8, flatShading: true });
-
-        this.matDogBody = new THREE.MeshStandardMaterial({ color: 0x0f172a, bumpMap: this.texLeatherBump, bumpScale: 0.02, roughness: 0.6, flatShading: true });
-        this.matDogSkin = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, flatShading: true });
 
         // Grass Shader
         this.grassGeo = new THREE.BufferGeometry();
@@ -226,29 +224,14 @@ export class HubEnvironment {
         return group;
     }
 
-    setupCaptainCimentado() {
-        this.dogGroup = new THREE.Group(); this.dogGroup.position.set(4.0, 0.4, 4.0); this.hubGroup.add(this.dogGroup);
-        this.dogSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
-        this.dogSpot.position.set(4.0, 10, 4.0); this.dogSpot.castShadow = true;
-        this.scene.add(this.dogSpot); this.scene.add(this.dogSpot.target);
+    setupEros() {
+        this.eros = new Eros(this.scene, new THREE.Vector3(4.0, 0.4, 4.0));
+        this.eros.group.scale.setScalar(1.5);
+        this.hubGroup.add(this.eros.group);
 
-        this.dogBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.2), this.matDogBody); this.dogBody.position.y = 0.6; this.dogBody.castShadow = true;
-        this.dogHead = new THREE.Group(); this.dogHead.position.set(0, 1.1, 0.55); this.dogGroup.add(this.dogHead);
-
-        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.65, 0.65), this.matDogBody); headMesh.castShadow = true; this.dogHead.add(headMesh);
-        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.35), this.matDogSkin); snout.position.set(0, -0.1, 0.38); snout.castShadow = true; this.dogHead.add(snout);
-        const nose = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.12), new THREE.MeshStandardMaterial({color: 0x000000, roughness:0.2})); nose.position.set(0, 0.12, 0.18); snout.add(nose);
-
-        const earL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.1), this.matDogSkin); earL.position.set(-0.3, 0.45, 0); earL.rotation.z = 0.3; this.dogHead.add(earL);
-        const earR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.5, 0.1), this.matDogSkin); earR.position.set(0.3, 0.45, 0); earR.rotation.z = -0.3; this.dogHead.add(earR);
-
-        const dogLegGeo = new THREE.BoxGeometry(0.25, 0.45, 0.25); dogLegGeo.translate(0, -0.22, 0);
-        this.legL = new THREE.Mesh(dogLegGeo, this.matDogBody); this.legL.position.set(-0.3, 0.45, 0.35); this.dogGroup.add(this.legL);
-        this.legR = new THREE.Mesh(dogLegGeo, this.matDogBody); this.legR.position.set(0.3, 0.45, 0.35); this.dogGroup.add(this.legR);
-        this.legBL = new THREE.Mesh(dogLegGeo, this.matDogBody); this.legBL.position.set(-0.3, 0.45, -0.35); this.dogGroup.add(this.legBL);
-        this.legBR = new THREE.Mesh(dogLegGeo, this.matDogBody); this.legBR.position.set(0.3, 0.45, -0.35); this.dogGroup.add(this.legBR);
-
-        this.dogGroup.add(this.dogBody); this.dogGroup.scale.setScalar(1.5);
+        this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
+        this.erosSpot.position.set(4.0, 10, 4.0); this.erosSpot.castShadow = true;
+        this.scene.add(this.erosSpot); this.scene.add(this.erosSpot.target);
     }
 
     createNPC(type, x, z) {
@@ -364,13 +347,16 @@ export class HubEnvironment {
         }
     }
 
-    triggerDogBark(text) {
+    triggerErosBark(text) {
         const diagBox = document.getElementById('dialogue-box');
-        const dogText = document.getElementById('dog-text');
-        if(!diagBox || !dogText) return;
+        const erosText = document.getElementById('eros-text');
+        if(!diagBox || !erosText) return;
 
-        dogText.innerText = `"${text}"`;
+        erosText.innerText = `"${text}"`;
         diagBox.style.opacity = '1';
+
+        if (this.eros) this.eros.bark();
+
         clearTimeout(this.barkTimeout);
         this.barkTimeout = setTimeout(() => { diagBox.style.opacity = '0'; }, 4000);
     }
@@ -389,7 +375,7 @@ export class HubEnvironment {
                     gameState.save();
                     this.updateResUI();
                     this.triggerIslandExpansion(gameState.buildingsBuilt.island);
-                    this.triggerDogBark("Buf! Mais terra firme abaixo das nossas patas. Trabalho sólido!");
+                    this.triggerErosBark("Buf! Mais terra firme abaixo das nossas patas. Trabalho sólido!");
                 }
             } else if (type === 'forge') {
                 if (!gameState.buildingsBuilt.forge && gameState.resources.wood >= 50 && gameState.resources.ore >= 30) {
@@ -400,7 +386,7 @@ export class HubEnvironment {
                     const btn = document.getElementById('btnBuildForge');
                     if(btn) { btn.innerText = "Construído"; btn.disabled = true; }
                     this.spawnBuildingModel('forge', 14, 0, 0);
-                    this.triggerDogBark("A fornalha arde! E o nosso Ferreiro de confiança chegou.");
+                    this.triggerErosBark("A fornalha arde! E o nosso Ferreiro de confiança chegou.");
                 }
             } else if (type === 'farm') {
                 if (!gameState.buildingsBuilt.farm && gameState.resources.wood >= 25 && gameState.resources.straw >= 20) {
@@ -411,7 +397,7 @@ export class HubEnvironment {
                     const btn = document.getElementById('btnBuildFarm');
                     if(btn) { btn.innerText = "Construído"; btn.disabled = true; }
                     this.spawnBuildingModel('farm', -14, 0, 0);
-                    this.triggerDogBark("Terra arada. O agricultor vai garantir a nossa ração.");
+                    this.triggerErosBark("Terra arada. O agricultor vai garantir a nossa ração.");
                 }
             } else if (type === 'animal') {
                 if (!gameState.buildingsBuilt.animal && gameState.resources.wood >= 40 && gameState.resources.straw >= 30) {
@@ -422,7 +408,7 @@ export class HubEnvironment {
                     const btn = document.getElementById('btnBuildAnimal');
                     if(btn) { btn.innerText = "Construído"; btn.disabled = true; }
                     this.spawnBuildingModel('animal', 0, 0, -14);
-                    this.triggerDogBark("Cercado erguido! Espaço seguro para os bichos.");
+                    this.triggerErosBark("Cercado erguido! Espaço seguro para os bichos.");
                 }
             }
         };
@@ -444,8 +430,8 @@ export class HubEnvironment {
         this.scene.remove(this.hubGroup);
         this.scene.remove(this.skyGroup);
         this.scene.remove(this.cloudsGroup);
-        this.scene.remove(this.dogSpot);
-        if(this.dogSpot && this.dogSpot.target) this.scene.remove(this.dogSpot.target);
+        this.scene.remove(this.erosSpot);
+        if(this.erosSpot && this.erosSpot.target) this.scene.remove(this.erosSpot.target);
     }
 
     update(delta, time, camera, playerPos) {
@@ -459,61 +445,57 @@ export class HubEnvironment {
             this.cloudsGroup.rotation.y += delta * 0.01;
         }
 
-        // Dog Logic
-        if(this.dogGroup) {
-            const distToDog = safePos.distanceTo(this.dogGroup.position);
+        // Eros Logic
+        if(this.eros) {
+            const distToEros = safePos.distanceTo(this.eros.group.position);
             const prompt = document.getElementById('interaction-prompt');
 
-            if (distToDog < 5.0 && !this.isModalOpen) {
-                if(!this.isNearDog && prompt) prompt.style.opacity = '1';
-                this.isNearDog = true;
+            let isMoving = false;
 
-                const targetAngle = Math.atan2(safePos.x - this.dogGroup.position.x, safePos.z - this.dogGroup.position.z);
-                let diff = targetAngle - this.dogGroup.rotation.y;
+            if (distToEros < 5.0 && !this.isModalOpen) {
+                if(!this.isNearEros && prompt) prompt.style.opacity = '1';
+                this.isNearEros = true;
+
+                const targetAngle = Math.atan2(safePos.x - this.eros.group.position.x, safePos.z - this.eros.group.position.z);
+                let diff = targetAngle - this.eros.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                this.dogGroup.rotation.y += diff * 6 * delta;
+                this.eros.group.rotation.y += diff * 6 * delta;
 
-                this.legL.rotation.x = 0; this.legR.rotation.x = 0; this.legBL.rotation.x = 0; this.legBR.rotation.x = 0;
             } else {
-                if(this.isNearDog && prompt) prompt.style.opacity = '0';
-                this.isNearDog = false;
+                if(this.isNearEros && prompt) prompt.style.opacity = '0';
+                this.isNearEros = false;
 
-                if (this.dogWaitTimer > 0) {
-                    this.dogWaitTimer -= delta;
-                    this.legL.rotation.x = 0; this.legR.rotation.x = 0; this.legBL.rotation.x = 0; this.legBR.rotation.x = 0;
+                if (this.erosWaitTimer > 0) {
+                    this.erosWaitTimer -= delta;
                 } else {
-                    const distToTarget = this.dogGroup.position.distanceTo(this.dogTargetPos);
+                    const distToTarget = this.eros.group.position.distanceTo(this.erosTargetPos);
                     if (distToTarget < 0.5) {
-                        this.dogWaitTimer = 2 + Math.random() * 5;
-                        this.dogTargetPos.set((Math.random() - 0.5) * 12, 0.4, (Math.random() - 0.5) * 12);
+                        this.erosWaitTimer = 2 + Math.random() * 5;
+                        this.erosTargetPos.set((Math.random() - 0.5) * 12, 0.4, (Math.random() - 0.5) * 12);
                     } else {
-                        const dogMoveDir = new THREE.Vector3().subVectors(this.dogTargetPos, this.dogGroup.position);
-                        dogMoveDir.y = 0; dogMoveDir.normalize();
-                        this.dogGroup.position.addScaledVector(dogMoveDir, 2.5 * delta);
+                        isMoving = true;
+                        const erosMoveDir = new THREE.Vector3().subVectors(this.erosTargetPos, this.eros.group.position);
+                        erosMoveDir.y = 0; erosMoveDir.normalize();
+                        this.eros.group.position.addScaledVector(erosMoveDir, 2.5 * delta);
 
-                        const targetAngle = Math.atan2(dogMoveDir.x, dogMoveDir.z);
-                        let diff = targetAngle - this.dogGroup.rotation.y;
+                        const targetAngle = Math.atan2(erosMoveDir.x, erosMoveDir.z);
+                        let diff = targetAngle - this.eros.group.rotation.y;
                         while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                        this.dogGroup.rotation.y += diff * 8 * delta;
-
-                        const legAnim = Math.sin(time * 15) * 0.4;
-                        this.legL.rotation.x = legAnim; this.legR.rotation.x = -legAnim;
-                        this.legBL.rotation.x = -legAnim; this.legBR.rotation.x = legAnim;
+                        this.eros.group.rotation.y += diff * 8 * delta;
                     }
                 }
             }
 
-            const dogFloorY = this.getFloorY(this.dogGroup.position);
-            this.dogGroup.position.y += (dogFloorY - this.dogGroup.position.y) * 10 * delta;
+            const erosFloorY = this.getFloorY(this.eros.group.position);
+            this.eros.group.position.y += (erosFloorY - this.eros.group.position.y) * 10 * delta;
 
-            if(this.dogSpot) {
-                this.dogSpot.position.set(this.dogGroup.position.x, 10, this.dogGroup.position.z);
-                this.dogSpot.target.position.copy(this.dogGroup.position);
-                this.dogSpot.target.updateMatrixWorld();
+            if(this.erosSpot) {
+                this.erosSpot.position.set(this.eros.group.position.x, 10, this.eros.group.position.z);
+                this.erosSpot.target.position.copy(this.eros.group.position);
+                this.erosSpot.target.updateMatrixWorld();
             }
 
-            this.dogBody.scale.y = 1.0 + Math.sin(time * 3) * 0.03;
-            if(!this.isNearDog) this.dogHead.rotation.y = Math.sin(time * 0.8) * 0.15;
+            this.eros.update(delta, isMoving, false);
         }
 
         // NPC Animations
