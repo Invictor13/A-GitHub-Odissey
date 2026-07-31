@@ -1,11 +1,19 @@
 export class InventoryUI {
     constructor() {
         this.isOpen = false;
-        console.warn('Mock InventoryUI initialized. A proper implementation should be written.');
+        this.modal = document.getElementById('inventory-modal');
+        if (!this.modal) {
+            console.warn('Inventory modal not found in DOM.');
+        }
     }
 
     toggle() {
+        if (!this.modal) return;
         this.isOpen = !this.isOpen;
-        console.log(`Inventory UI toggled: ${this.isOpen}`);
+        if (this.isOpen) {
+            this.modal.classList.remove('hidden');
+        } else {
+            this.modal.classList.add('hidden');
+        }
     }
 }

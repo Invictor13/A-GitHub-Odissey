@@ -156,9 +156,6 @@ if (btnPlayNew) {
                 menuBgVideo.pause();
             }
 
-            const mainContent = document.getElementById('inventory-modal');
-            if (mainContent) mainContent.classList.remove('hidden');
-
             const instructions = document.getElementById('instructions');
             if (instructions) instructions.style.display = 'block';
 
