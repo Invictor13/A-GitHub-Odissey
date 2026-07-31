@@ -36,6 +36,13 @@ class GameState {
             mining: { level: 1, xp: 0 },
             alchemy: { level: 1, xp: 0 }
         };
+
+        this.buildingsBuilt = {
+            island: 0,
+            forge: false,
+            farm: false,
+            animal: false
+        };
     }
 
     save() {
@@ -44,7 +51,8 @@ class GameState {
             vitals: this.vitals,
             backpackState: this.backpackState,
             equipmentState: this.equipmentState,
-            masteries: this.masteries
+            masteries: this.masteries,
+            buildingsBuilt: this.buildingsBuilt
         };
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -64,6 +72,7 @@ class GameState {
                 if (parsedData.backpackState) this.backpackState = parsedData.backpackState;
                 if (parsedData.equipmentState) this.equipmentState = parsedData.equipmentState;
                 if (parsedData.masteries) this.masteries = parsedData.masteries;
+                if (parsedData.buildingsBuilt) this.buildingsBuilt = parsedData.buildingsBuilt;
                 console.log('Game state loaded successfully.');
                 return true;
             }
