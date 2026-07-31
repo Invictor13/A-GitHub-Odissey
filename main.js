@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Penitent } from './characters/Penitent.js';
 import { HubEnvironment } from './world_builder/HubEnvironment.js';
 import { ProceduralMap } from './world_builder/ProceduralMap.js';
+import { WorldMap } from './world_builder/WorldMap.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -18,6 +19,7 @@ scene.background = new THREE.Color('#0f172a');
 scene.fog = new THREE.FogExp2('#0f172a', 0.007);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+window.camera = camera;
 camera.position.set(0, 20, 26);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -64,7 +66,7 @@ if(instructions) {
 }
 
 // Global state
-export const gameState = {
+window.gameState = {
     clock: new THREE.Clock(),
     delta: 0,
     time: 0
@@ -77,46 +79,127 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Initialize Environment and Character
-// NOTE: Temporarily swapping HubEnvironment for ProceduralMap to test generation
-// const environment = new HubEnvironment(scene);
+// Game State Management
+let GAME_STATE = 'MENU'; // 'MENU', 'HUB', 'WORLD_MAP', 'ROGUELIKE'
+let currentEnvironment = null;
+let penitent = null;
 
-const environment = new ProceduralMap(scene);
-environment.generateGrid(14);
-environment.build3DGeometry('campos_pastos');
+// UI Elements
+const mainMenu = document.getElementById('main-menu');
+const btnPlay = document.getElementById('btn-play');
+const buildModal = document.getElementById('build-modal');
+const btnCloseModal = document.getElementById('btnCloseModal');
+const btnEmbarkModal = document.getElementById('btnEmbarkModal');
 
-const penitent = new Penitent(scene);
-penitent.isGrounded = true; // Let gravity handle it, but hint we are starting on ground.
+// Hub Interactions
+window.addEventListener('keydown', (e) => {
+    if(GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearDog) {
+        if(e.key.toLowerCase() === 'e' && !currentEnvironment.isModalOpen) {
+            currentEnvironment.isModalOpen = true;
+            if(buildModal) buildModal.style.display = 'flex';
+            const prompt = document.getElementById('interaction-prompt');
+            if(prompt) prompt.style.opacity = '0';
+        }
+    }
+});
 
-// Position player at the center of the first generated room
-if (environment.rooms && environment.rooms.length > 0) {
-    const spawn = environment.rooms[0];
-    const offsetX = -environment.mapW/2;
-    const offsetZ = -environment.mapH/2;
-    penitent.playerGroup.position.set(spawn.cx + offsetX, 10, spawn.cy + offsetZ);
+if(btnCloseModal) {
+    btnCloseModal.addEventListener('click', () => {
+        buildModal.style.display = 'none';
+        if(currentEnvironment) {
+            setTimeout(() => { currentEnvironment.isModalOpen = false; }, 100);
+        }
+    });
 }
 
+if(btnEmbarkModal) {
+    btnEmbarkModal.addEventListener('click', () => {
+        buildModal.style.display = 'none';
+        if(currentEnvironment) currentEnvironment.isModalOpen = false;
+        window.changeGameState('WORLD_MAP');
+    });
+}
+
+// Initialize Background Scene for Menu
+currentEnvironment = new HubEnvironment(scene);
+
+if(btnPlay) {
+    btnPlay.addEventListener('click', () => {
+        mainMenu.style.display = 'none';
+        if(instructions) instructions.style.display = 'block';
+        window.changeGameState('HUB');
+    });
+}
+
+window.changeGameState = function(newState, params) {
+    GAME_STATE = newState;
+
+    // Cleanup previous environment
+    if (currentEnvironment && typeof currentEnvironment.cleanup === 'function') {
+        currentEnvironment.cleanup();
+    }
+
+    if (GAME_STATE === 'HUB') {
+        currentEnvironment = new HubEnvironment(scene);
+        if (!penitent) {
+            penitent = new Penitent(scene);
+            penitent.isGrounded = true;
+        } else {
+            if (penitent.group) penitent.group.visible = true;
+            penitent.group.position.set(0, 5, 0);
+        }
+    } else if (GAME_STATE === 'WORLD_MAP') {
+        currentEnvironment = new WorldMap(scene);
+
+        if (penitent && penitent.group) penitent.group.visible = false;
+
+        camera.position.set(60, 70, 80);
+        controls.target.set(0, 5, 0);
+
+        console.log("Transição para o WORLD MAP em progresso...");
+    } else if (GAME_STATE === 'ROGUELIKE') {
+        currentEnvironment = new ProceduralMap(scene);
+        currentEnvironment.generateGrid(14);
+        const biome = params?.biome || 'campos_pastos';
+        currentEnvironment.build3DGeometry(biome);
+        if (penitent) {
+            if (penitent.group) penitent.group.visible = true;
+            penitent.group.position.set(0, 10, 0);
+        }
+    }
+};
 
 // Main Animation Loop
 function animate() {
     requestAnimationFrame(animate);
 
-    gameState.delta = Math.min(gameState.clock.getDelta(), 0.1);
-    gameState.time = gameState.clock.getElapsedTime();
+    window.gameState.delta = Math.min(window.gameState.clock.getDelta(), 0.1);
+    window.gameState.time = window.gameState.clock.getElapsedTime();
 
-    // Update Environment (wind, chunk culling, anti-occlusion)
-    environment.update(gameState.delta, gameState.time, camera, penitent.playerGroup.position);
+    if (GAME_STATE === 'MENU' && currentEnvironment && currentEnvironment.hubGroup) {
+        currentEnvironment.hubGroup.rotation.y += window.gameState.delta * 0.05;
+        camera.position.set(0, 15, 30);
+        controls.target.set(0, 0, 0);
+        controls.update();
+    } else if (GAME_STATE === 'WORLD_MAP') {
+        controls.update();
+    } else if (penitent) {
+        const getFloorFunc = (pos) => (currentEnvironment && currentEnvironment.getFloorY) ? currentEnvironment.getFloorY(pos) : 0;
+        penitent.update(window.gameState.delta, camera, getFloorFunc);
 
-    // Update Character Movement and Animation
-    penitent.update(gameState.delta, camera, (pos) => environment.getFloorY(pos));
+        if (penitent.group && penitent.group.visible) {
+            const prevTarget = controls.target.clone();
+            controls.target.lerp(penitent.playerGroup.position, 8 * window.gameState.delta);
+            const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
+            camera.position.add(camShift);
+            controls.update();
+        }
+    }
 
-    // Camera follow player
-    const prevTarget = controls.target.clone();
-    controls.target.lerp(penitent.playerGroup.position, 8 * gameState.delta);
-    const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
-    camera.position.add(camShift);
+    if (currentEnvironment && currentEnvironment.update) {
+        currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, penitent ? penitent.playerGroup.position : new THREE.Vector3());
+    }
 
-    controls.update();
     renderer.render(scene, camera);
 }
 
