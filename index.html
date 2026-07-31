@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="pt-PT">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>A GitHub Odyssey</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<title>A GitHub Odyssey</title>
+<style>
         body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
         #error-console { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(220, 38, 38, 0.95); color: white; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999; display: none; white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         #instructions { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 24px; border-radius: 20px; font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); pointer-events: none; border: 1px solid rgba(255,255,255,0.1); z-index: 80;}
@@ -53,8 +54,154 @@
         }
         .dialogue-content h4 { margin: 0 0 4px 0; color: #38bdf8; font-size: 13px; text-transform: uppercase; }
         .dialogue-content p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.4; }
-    </style>
-    <script type="importmap">
+
+
+    :root {
+      --font-title: 'Cinzel Decorative', 'Cinzel', serif;
+      --font-sub: 'Cinzel', serif;
+      --font-script: 'MedievalSharp', cursive;
+      --font-game: 'Rajdhani', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: #120b06;
+      /* Pergaminho Antigo com Brilho Quente de Vela e Manchas de Tinta */
+      background-image:
+        radial-gradient(circle at 50% -10%, rgba(245, 180, 80, 0.22) 0%, transparent 60%),
+        radial-gradient(ellipse at 15% 25%, rgba(45, 26, 12, 0.85) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 75%, rgba(35, 18, 8, 0.9) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(190, 140, 75, 0.1) 0%, transparent 70%),
+        repeating-radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.03) 0, rgba(212, 175, 55, 0.03) 2px, transparent 3px, transparent 8px),
+        radial-gradient(circle at 50% 50%, #291b10 0%, #170e07 70%, #0a0502 100%);
+      background-attachment: fixed;
+      color: #f3e4ce;
+      user-select: none;
+      min-height: 100vh;
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
+    }
+
+    h1, h2, h3, .font-title {
+      font-family: var(--font-title);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .font-sub { font-family: var(--font-sub); }
+    .font-script { font-family: var(--font-script); }
+    .font-game { font-family: var(--font-game); }
+
+    /* Custom Scrollbar - Aged Ink Style */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(20, 12, 7, 0.8); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #523924; border-radius: 4px; border: 1px solid #8b6338; }
+    ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+
+    /* Ancient Tome & Parchment Panels */
+    .glass-panel, .parchment-panel {
+      background:
+        radial-gradient(circle at 50% 0%, rgba(65, 42, 24, 0.92), rgba(30, 18, 10, 0.96)),
+        repeating-linear-gradient(0deg, rgba(212, 175, 55, 0.02) 0px, transparent 2px, transparent 4px);
+      border: 2px solid #704d2e;
+      border-image: linear-gradient(to bottom, #a87948, #4a2f18, #a87948) 1;
+      box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.9),
+        inset 0 0 30px rgba(15, 8, 3, 0.85),
+        inset 0 0 4px rgba(212, 175, 55, 0.4);
+      position: relative;
+    }
+
+    .parchment-panel::before, .glass-panel::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      pointer-events: none;
+      border-radius: 4px;
+    }
+
+    /* Inventory Slot Styling */
+    .inventory-slot {
+      position: relative;
+      background: radial-gradient(circle, #24160b 0%, #120904 100%);
+      border: 1px solid #5a3e23;
+      box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(212, 175, 55, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .inventory-slot:hover {
+      border-color: #f3c262;
+      background: radial-gradient(circle, #382110 0%, #1c0f06 100%);
+      box-shadow: inset 0 0 12px rgba(212, 175, 55, 0.4), 0 0 15px rgba(212, 175, 55, 0.35);
+    }
+
+    .inventory-slot.drag-over {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.25) !important;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
+    }
+
+    /* Item Cards */
+    .item-card {
+      cursor: grab;
+      touch-action: none;
+      transition: transform 0.1s ease;
+    }
+    .item-card:active {
+      cursor: grabbing;
+      transform: scale(0.94);
+    }
+
+    /* Rarity Indicators */
+    .rarity-common { border-bottom: 2px solid #8c7a6b; }
+    .rarity-uncommon { border-bottom: 2px solid #38a169; filter: drop-shadow(0 0 2px rgba(56, 161, 105, 0.4)); }
+    .rarity-rare { border-bottom: 2px solid #3182ce; filter: drop-shadow(0 0 3px rgba(49, 130, 206, 0.5)); }
+    .rarity-epic { border-bottom: 2px solid #805ad5; filter: drop-shadow(0 0 5px rgba(128, 90, 213, 0.6)); }
+    .rarity-legendary { border-bottom: 2px solid #d4af37; filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7)); }
+
+    .slot-equip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 55%;
+      opacity: 0.22;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .inventory-slot:hover.slot-equip::before { opacity: 0.4; }
+
+    /* Silhuetas dos slots */
+    .slot-head::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 2C7.5 2 4 5.5 4 10v3c0 3.5 2.5 6.5 6 7.5V22h4v-1.5c3.5-1 6-4 6-7.5v-3c0-4.5-3.5-8-8-8zm0 2.2c3.3 0 5.8 2.3 5.8 5.8v1H6.2V10c0-3.5 2.5-5.8 5.8-5.8zM6.2 12h11.6v1.8H6.2V12zm0 3.8h11.6c-.6 2.6-2.8 4.6-5.8 5.2-3-.6-5.2-2.6-5.8-5.2z'/%3E%3C/svg%3E");
+    }
+    .slot-chest::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M16 2l3 3.5-2.5 3.5H14v12H10V9H7.5L5 5.5 8 2h2.5c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5H16z'/%3E%3C/svg%3E");
+    }
+    .slot-right_hand::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 1l2 3v10h3.5v2H13.5v4h1v3h-5v-3h1v-4H6.5v-2H10V4l2-3zm-1 3.5h2V14h-2V4.5z'/%3E%3C/svg%3E");
+    }
+    .slot-left_hand::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M3 3h7v8c0 4.5-3.5 8-7 9.5 0 0 0-11.5 0-17.5zm2 2v5.5c0 2.2 1.8 4.3 3.5 5.2V5H5zm13-3l-1.5 2v6h-1.5v1.5h1.5v4.5h-1V21h4v-2h-1v-4.5h1.5V10H19.5V4L18 2zm-1 3.5h2V9h-2V5.5z'/%3E%3C/svg%3E");
+    }
+    .slot-feet::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M9 3h6v9l3 2v2c0 2.8-2.2 5-5 5H7c-2.8 0-5-2.2-5-5v-1l6-4V3zm1 2v7.2L4.5 15.5v1.5c0 1.7 1.3 3 3 3h5c1.7 0 3-1.3 3-3v-1.2L13 13V5h-3z'/%3E%3C/svg%3E");
+    }
+    .slot-accessory::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z'/%3E%3C/svg%3E");
+    }
+
+    .fade-in {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+<script type="importmap">
         {
             "imports": {
                 "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -62,68 +209,294 @@
             }
         }
     </script>
-</head>
+<script src="https://cdn.tailwindcss.com"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&amp;family=Cinzel:wght@500;700;900&amp;family=MedievalSharp&amp;family=Rajdhani:wght@500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/></head>
 <body>
-    <div id="error-console"></div>
-    <div id="instructions" style="display: none;">WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara</div>
-
-    <div id="interaction-prompt"><span>E</span> Falar com o Capitão</div>
-
-    <div id="dialogue-box">
-        <div class="dog-avatar" style="border-color: #38bdf8;">🐶</div>
-        <div class="dialogue-content">
-            <h4 id="dog-name">Capitão Cimentado</h4>
-            <p id="dog-text">"..."</p>
-        </div>
-    </div>
-
-    <div id="build-modal">
-        <button class="close-modal" id="btnCloseModal">✕</button>
-        <div class="modal-header">
-            <div class="dog-avatar">🐶</div>
-            <div class="modal-title-area">
-                <h2>Prancheta do Capitão</h2>
-                <p>Gere o Santuário Celeste ou parta para uma Incursão.</p>
-            </div>
-        </div>
-
-        <div class="building-card">
-            <div class="building-info">
-                <h3>➕ Expandir Setor da Ilha</h3>
-                <p>Ergue novos relevos, colinas e caminhos para a base.</p>
-                <div class="building-cost">Custo: 30 Madeira, 15 Minério (Infinito)</div>
-            </div>
-            <button class="btn-construct" id="btnBuildIsland" disabled>Expandir</button>
-        </div>
-
-        <button class="btn-embark" id="btnEmbarkModal">⚔️ Partir para Incursão</button>
-    </div>
-
-    <!-- RPG World Map Modal -->
-    <div id="rpg-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 50; display: none; justify-content: center; align-items: center; pointer-events: auto;">
-        <div class="glass-panel" style="width: 400px; animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 15px; padding: 24px; background: rgba(15, 23, 42, 0.9); border: 2px solid #ffd700; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9); color: #fff;">
-            <button id="rpg-modal-close" class="close-modal">✕</button>
-            <div class="modal-header" style="justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                <div class="biome-title" id="m-title" style="font-size: 22px; font-weight: bold; color: #fff;">Floresta Anciã</div>
-                <div class="difficulty" id="m-diff" style="color: #f87171; font-weight: bold; letter-spacing: 2px;">★★★☆☆</div>
-            </div>
-
-            <div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">⚔️</div> Inimigos: <span class="stat-value" id="m-enemies" style="font-weight: bold; color: #fff;">Lobos, Bandidos</span></div>
-            <div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">🦌</div> Caça: <span class="stat-value" id="m-animals" style="font-weight: bold; color: #fff;">Cervos, Javalis</span></div>
-            <div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">🐟</div> Pesca: <span class="stat-value" id="m-fishes" style="font-weight: bold; color: #fff;">Truta, Salmão</span></div>
-            <div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">⛏️</div> Recursos: <span class="stat-value" id="m-minerals" style="font-weight: bold; color: #fff;">Madeira, Ferro</span></div>
-
-            <button id="btn-entrar" class="btn-embark" style="margin-top: 10px;">Explorar e Expandir</button>
-        </div>
-    </div>
-
-    <!-- Menu Principal UI -->
-    <div id="main-menu" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); z-index: 100;">
-        <h1 style="color: #ffd700; font-size: 4rem; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 40px; text-align: center;">A GitHub Odyssey</h1>
-        <button id="btn-play" style="padding: 15px 50px; font-size: 1.5rem; font-weight: bold; color: #0f172a; background: #38bdf8; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; box-shadow: 0 4px 15px rgba(56,189,248,0.5);">Jogar</button>
-    </div>
-
-    <!-- Ponto de entrada da aplicação modularizada -->
-    <script type="module" src="./main.js"></script>
+<div id="error-console"></div>
+<div id="instructions" style="display: none;">WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara</div>
+<div id="interaction-prompt"><span>E</span> Falar com o Capitão</div>
+<div id="dialogue-box">
+<div class="dog-avatar" style="border-color: #38bdf8;">🐶</div>
+<div class="dialogue-content">
+<h4 id="dog-name">Capitão Cimentado</h4>
+<p id="dog-text">"..."</p>
+</div>
+</div>
+<div id="build-modal">
+<button class="close-modal" id="btnCloseModal">✕</button>
+<div class="modal-header">
+<div class="dog-avatar">🐶</div>
+<div class="modal-title-area">
+<h2>Prancheta do Capitão</h2>
+<p>Gere o Santuário Celeste ou parta para uma Incursão.</p>
+</div>
+</div>
+<div class="building-card">
+<div class="building-info">
+<h3>➕ Expandir Setor da Ilha</h3>
+<p>Ergue novos relevos, colinas e caminhos para a base.</p>
+<div class="building-cost">Custo: 30 Madeira, 15 Minério (Infinito)</div>
+</div>
+<button class="btn-construct" disabled="" id="btnBuildIsland">Expandir</button>
+</div>
+<button class="btn-embark" id="btnEmbarkModal">⚔️ Partir para Incursão</button>
+</div>
+<!-- RPG World Map Modal -->
+<div id="rpg-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 50; display: none; justify-content: center; align-items: center; pointer-events: auto;">
+<div class="glass-panel" style="width: 400px; animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 15px; padding: 24px; background: rgba(15, 23, 42, 0.9); border: 2px solid #ffd700; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9); color: #fff;">
+<button class="close-modal" id="rpg-modal-close">✕</button>
+<div class="modal-header" style="justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+<div class="biome-title" id="m-title" style="font-size: 22px; font-weight: bold; color: #fff;">Floresta Anciã</div>
+<div class="difficulty" id="m-diff" style="color: #f87171; font-weight: bold; letter-spacing: 2px;">★★★☆☆</div>
+</div>
+<div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">⚔️</div> Inimigos: <span class="stat-value" id="m-enemies" style="font-weight: bold; color: #fff;">Lobos, Bandidos</span></div>
+<div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">🦌</div> Caça: <span class="stat-value" id="m-animals" style="font-weight: bold; color: #fff;">Cervos, Javalis</span></div>
+<div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">🐟</div> Pesca: <span class="stat-value" id="m-fishes" style="font-weight: bold; color: #fff;">Truta, Salmão</span></div>
+<div class="stat-row" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px;"><div class="stat-icon" style="width: 24px; text-align: center; font-size: 16px;">⛏️</div> Recursos: <span class="stat-value" id="m-minerals" style="font-weight: bold; color: #fff;">Madeira, Ferro</span></div>
+<button class="btn-embark" id="btn-entrar" style="margin-top: 10px;">Explorar e Expandir</button>
+</div>
+</div>
+<!-- Menu Principal UI -->
+<div id="main-menu" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); z-index: 100;">
+<h1 style="color: #ffd700; font-size: 4rem; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 40px; text-align: center;">A GitHub Odyssey</h1>
+<button id="btn-play" style="padding: 15px 50px; font-size: 1.5rem; font-weight: bold; color: #0f172a; background: #38bdf8; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; box-shadow: 0 4px 15px rgba(56,189,248,0.5);">Jogar</button>
+</div>
+<!-- Ponto de entrada da aplicação modularizada -->
+<div class="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between min-h-screen" id="ui-overlay"><header class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto">
+<div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center gap-4">
+<!-- Player Info -->
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-2xl shadow-lg shadow-amber-950/50">
+<i class="fa-solid fa-book-skull"></i>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-base md:text-lg font-bold tracking-wider text-amber-100 uppercase font-title">Penitente #001</h1>
+<span class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded font-mono font-semibold" id="run-badge">
+              INCURSÃO ATIVA
+            </span>
+</div>
+<p class="text-xs text-amber-200/70 font-script flex items-center gap-2">
+<span><i class="fa-solid fa-compass text-amber-400 mr-1"></i> Local: <strong class="text-amber-100">Planalto das Almas (Nó #04)</strong></span>
+</p>
+</div>
+</div>
+<!-- Player Vitals (HP, Fome, Sede) com Decaimento Ativo -->
+<div class="flex items-center gap-4 md:gap-6 text-sm bg-stone-950/80 px-4 py-2 rounded-xl border border-stone-800">
+<!-- HP -->
+<div class="flex items-center gap-2" title="Pontos de Vida (Drena se Fome ou Sede zerarem)">
+<i class="fa-solid fa-heart text-red-600 text-base"></i>
+<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="bg-gradient-to-r from-red-800 to-red-500 h-2.5 rounded-full transition-all duration-300" id="vital-hp" style="width: 100%"></div>
+</div>
+<span class="text-xs font-mono font-bold w-9 text-right text-red-300" id="txt-hp">100%</span>
+</div>
+<!-- Fome -->
+<div class="flex items-center gap-2" title="Fome (Decai com o tempo)">
+<i class="fa-solid fa-drumstick-bite text-amber-600 text-base"></i>
+<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="bg-gradient-to-r from-amber-800 to-amber-500 h-2.5 rounded-full transition-all duration-300" id="vital-food" style="width: 75%"></div>
+</div>
+<span class="text-xs font-mono font-bold w-9 text-right text-amber-300" id="txt-food">75%</span>
+</div>
+<!-- Sede -->
+<div class="flex items-center gap-2" title="Sede (Decai com o tempo)">
+<i class="fa-solid fa-droplet text-sky-500 text-base"></i>
+<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="bg-gradient-to-r from-sky-800 to-sky-500 h-2.5 rounded-full transition-all duration-300" id="vital-water" style="width: 60%"></div>
+</div>
+<span class="text-xs font-mono font-bold w-9 text-right text-sky-300" id="txt-water">60%</span>
+</div>
+</div>
+<!-- Weight Controls & LocalStorage Actions -->
+<div class="flex items-center gap-3">
+<div class="text-right">
+<span class="text-[10px] text-amber-300/70 uppercase tracking-wider block font-script">Carga do Alforje</span>
+<span class="text-xs font-bold font-mono text-amber-100" id="weight-text">0.0 / 25.0 kg</span>
+</div>
+<div class="w-20 bg-stone-950 border border-stone-800 rounded-lg p-1">
+<div class="h-2 bg-amber-600 rounded transition-all duration-300" id="weight-bar" style="width: 0%"></div>
+</div>
+<!-- Reset Save Button -->
+<button class="text-xs bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1.5 rounded-lg border border-red-800/80 transition flex items-center gap-1 font-mono" title="Reiniciar Progresso (Limpar Dados Guardados)">
+<i class="fa-solid fa-rotate-left"></i>
+</button>
+</div>
+</div>
+</header><main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow pointer-events-auto hidden" id="inventory-modal">
+<!-- LEFT PANEL: Equipamentos & Bônus de Conjunto (3 cols) -->
+<section class="lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col justify-between">
+<div>
+<h2 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 mb-4 flex items-center justify-between font-title">
+<span><i class="fa-solid fa-shield-halved text-amber-400 mr-2"></i>Equipamentos</span>
+<span class="text-[10px] font-normal text-amber-400/60 font-script">Grimório</span>
+</h2>
+<!-- Equipment Slots Grid -->
+<div class="flex flex-col items-center gap-3">
+<!-- Linha 1: Cabeça -->
+<div class="inventory-slot slot-equip slot-head w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="head" id="slot-head"></div>
+<!-- Linha 2: Corpo -->
+<div class="inventory-slot slot-equip slot-chest w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="chest" id="slot-chest"></div>
+<!-- Linha 3: Mão Direita & Mão Esquerda -->
+<div class="flex items-center gap-4">
+<div class="inventory-slot slot-equip slot-right_hand w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="right_hand" id="slot-right_hand"></div>
+<div class="inventory-slot slot-equip slot-left_hand w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="left_hand" id="slot-left_hand"></div>
+</div>
+<!-- Linha 4: Calçados & Acessório -->
+<div class="flex items-center gap-4">
+<div class="inventory-slot slot-equip slot-feet w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="feet" id="slot-feet"></div>
+<div class="inventory-slot slot-equip slot-accessory w-16 h-16 rounded-xl flex items-center justify-center" data-equip-type="accessory" id="slot-accessory"></div>
+</div>
+</div>
+<!-- Calculated Stats & Set Bonus Box -->
+<div class="mt-5 pt-3 border-t border-amber-900/50 bg-stone-950/60 rounded-lg p-3 space-y-2 font-game">
+<h3 class="text-[11px] font-bold text-amber-400/80 uppercase tracking-wider mb-1 flex items-center justify-between font-sub">
+<span>Bônus de Equipamento</span>
+<i class="fa-solid fa-shield-cat text-amber-400"></i>
+</h3>
+<div class="flex justify-between text-xs items-center">
+<span class="text-amber-200/70 flex items-center gap-1">
+<svg class="w-4 h-4 fill-amber-500 inline-block" viewbox="0 0 24 24">
+<path d="M12 1l2 3v10h3.5v2H13.5v4h1v3h-5v-3h1v-4H6.5v-2H10V4l2-3zm-1 3.5h2V14h-2V4.5z"></path>
+</svg>
+              Dano de Ataque:
+            </span>
+<span class="font-mono text-amber-400 font-bold" id="stat-atk">10</span>
+</div>
+<div class="flex justify-between text-xs">
+<span class="text-amber-200/70"><i class="fa-solid fa-shield-halved text-amber-300 w-4"></i> Proteção Física:</span>
+<span class="font-mono text-amber-200 font-bold" id="stat-def">0</span>
+</div>
+<div class="flex justify-between text-xs">
+<span class="text-amber-200/70"><i class="fa-solid fa-wand-magic-sparkles text-purple-400 w-4"></i> Poder Astral:</span>
+<span class="font-mono text-purple-300 font-bold" id="stat-magic">0</span>
+</div>
+<!-- Visualizador de Bônus de Conjunto (Set Bonus) -->
+<div class="mt-2 pt-2 border-t border-amber-900/40 text-[11px]" id="set-bonus-container">
+<!-- Renderizado dinamicamente por JS -->
+</div>
+</div>
+</div>
+<!-- Virtues & Masteries -->
+<div class="mt-5 pt-3 border-t border-amber-900/60 font-game">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider font-sub">
+<i class="fa-solid fa-award mr-1"></i> Virtudes &amp; Maestrias
+          </h3>
+<span class="text-[9px] text-red-400 uppercase font-script">Evolatilia</span>
+</div>
+<div class="space-y-2 max-h-36 overflow-y-auto pr-1" id="masteries-container">
+<!-- Populated dynamically by JS -->
+</div>
+</div>
+</section>
+<!-- CENTER PANEL: Primary Inventory (6 cols) -->
+<section class="lg:col-span-6 glass-panel rounded-xl p-4 flex flex-col justify-between">
+<div class="flex flex-col h-full justify-between" id="view-inventory">
+<!-- Filter, Search & Utility Header -->
+<div class="space-y-2 mb-3 pb-2 border-b border-amber-900/60">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-1 bg-stone-950 p-1 rounded-lg border border-amber-900/50">
+<button class="filter-btn active text-xs px-2.5 py-1 rounded font-medium bg-amber-800 text-amber-100 transition">Todos</button>
+<button class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Armas/Armaduras</button>
+<button class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Elixires</button>
+<button class="filter-btn text-xs px-2.5 py-1 rounded font-medium text-amber-300/70 hover:text-amber-100 transition">Materiais</button>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase text-amber-300 font-sub hidden sm:inline" id="view-mode-title">Alforje do Purgatório</span>
+<button class="text-xs bg-amber-950 hover:bg-amber-900 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-800 transition flex items-center gap-1" title="Ordenar Tomo">
+<i class="fa-solid fa-arrow-down-a-z"></i>
+</button>
+</div>
+</div>
+<!-- CAMPO DE BUSCA RÁPIDA (Search Bar) -->
+<div class="relative w-full">
+<i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-amber-600"></i>
+<input class="w-full bg-stone-950/90 border border-amber-900/60 focus:border-amber-500 rounded-lg pl-8 pr-3 py-1 text-xs text-amber-100 placeholder-amber-700/60 outline-none font-body transition" id="inventory-search" placeholder="Buscar relíquia ou material..." type="text"/>
+</div>
+</div>
+<!-- Inventory Slots Grid -->
+<div class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-5 gap-2 flex-grow auto-rows-max p-1 min-h-[280px]" id="backpack-grid">
+<!-- Rendered dynamically by JS -->
+</div>
+<!-- Quick Hint Footer -->
+<div class="mt-3 pt-2 border-t border-amber-900/40 flex justify-between items-center text-[11px] text-amber-300/70 font-script">
+<span><i class="fa-solid fa-hand-pointer text-amber-400 mr-1"></i> Clique Direito: Menu Contextual</span>
+<span><i class="fa-solid fa-feather text-amber-400 mr-1"></i> Arraste os itens livremente</span>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: Alchemical Workbench (3 cols) -->
+<section class="lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col justify-between gap-4">
+<!-- Crafting Station -->
+<div>
+<h2 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 mb-3 flex items-center justify-between font-title">
+<span><i class="fa-solid fa-flask-vial text-amber-500 mr-2"></i>Bancada Alquímica</span>
+<span class="text-[10px] text-amber-400/60 font-script">Fórmulas</span>
+</h2>
+<div class="space-y-2 max-h-[310px] overflow-y-auto pr-1" id="recipe-list">
+<!-- Recipes loaded by JS -->
+</div>
+</div>
+<!-- Drop Zone / Purge Zone -->
+<div class="border-2 border-dashed border-amber-700/40 hover:border-red-600/80 bg-stone-950/60 hover:bg-red-950/30 rounded-xl p-3 text-center transition flex flex-col items-center justify-center gap-1 cursor-pointer" id="drop-zone">
+<i class="fa-solid fa-fire text-2xl text-amber-500 hover:text-red-500 transition"></i>
+<span class="text-xs font-bold text-amber-200 uppercase tracking-wider font-sub">Oferenda ao Purgatório</span>
+<span class="text-[10px] text-amber-300/60 font-script">Arraste aqui para incinerar o item</span>
+</div>
+</section>
+</main><footer class="max-w-7xl w-full mx-auto mt-4 pointer-events-auto">
+<div class="glass-panel rounded-xl p-3 flex items-center justify-center">
+<div class="flex items-center gap-3">
+<span class="text-xs font-bold uppercase tracking-wider text-amber-300/80 hidden sm:inline font-sub">Atalhos Roteados (1-5):</span>
+<div class="flex gap-2" id="hotbar-grid">
+<!-- Slots 1-5 populated dynamically -->
+</div>
+</div>
+</div>
+</footer><div class="fixed hidden z-50 pointer-events-none glass-panel p-3.5 rounded-xl shadow-2xl max-w-xs border border-amber-800/80 fade-in" id="tooltip">
+<div class="flex justify-between items-start gap-3 mb-1">
+<h3 class="font-bold text-sm text-amber-100 font-title" id="tt-title">Nome do Item</h3>
+<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800" id="tt-rarity">Comum</span>
+</div>
+<div class="text-[10px] text-amber-400 font-medium mb-2 uppercase tracking-wider font-script" id="tt-type">Tipo</div>
+<p class="text-xs text-amber-200/90 mb-2.5 leading-relaxed font-body" id="tt-desc">Descrição manuscrita da relíquia.</p>
+<!-- Item Stats or Effects Box -->
+<div class="text-xs space-y-1 mb-2 pt-2 border-t border-amber-900/60 font-game" id="tt-stats"></div>
+<!-- COMPARADOR DE ATRIBUTOS (Equipment Attribute Comparison) -->
+<div class="hidden text-[11px] bg-stone-950/80 p-2 rounded-lg border border-amber-900/50 mb-2 font-game space-y-0.5" id="tt-comparison">
+<div class="text-[9px] uppercase font-bold text-amber-400 border-b border-amber-900/40 pb-0.5 mb-1">Comparado ao Equipado:</div>
+<div id="tt-compare-diff"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-amber-300/70 pt-2 border-t border-amber-900/60">
+<span>Peso: <strong class="text-amber-100" id="tt-weight">0.5 kg</strong></span>
+<span class="text-amber-400 font-script" id="tt-action-hint">Clique direito: Opções</span>
+</div>
+</div><div class="fixed hidden z-50 glass-panel rounded-lg py-1 border border-amber-700 shadow-2xl min-w-[160px] pointer-events-auto" id="context-menu">
+<button class="w-full text-left px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-900/40 hover:text-amber-200 flex items-center gap-2 font-sub" id="ctx-action">
+<i class="fa-solid fa-play text-xs text-amber-400"></i> <span id="ctx-action-text">Usar / Equipar</span>
+</button>
+<button class="w-full text-left px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-900/40 hover:text-amber-100 flex items-center gap-2 font-sub" id="ctx-split">
+<i class="fa-solid fa-arrows-split-up-and-left text-xs text-amber-400"></i> <span>Dividir Pilha</span>
+</button>
+<button class="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-950/40 flex items-center gap-2 font-sub" id="ctx-drop">
+<i class="fa-solid fa-fire text-xs"></i> <span>Incinerar</span>
+</button>
+</div><div class="fixed inset-0 z-50 hidden bg-black/75 flex items-center justify-center p-4 pointer-events-auto" id="split-modal">
+<div class="glass-panel p-5 rounded-2xl max-w-xs w-full border border-amber-700 shadow-2xl space-y-4">
+<div class="flex justify-between items-center border-b border-amber-900/60 pb-2">
+<h3 class="text-sm font-bold text-amber-100 font-title"><i class="fa-solid fa-arrows-split-up-and-left text-amber-400 mr-2"></i>Dividir Pilha</h3>
+<button class="text-amber-400 hover:text-amber-100 text-xs"><i class="fa-solid fa-xmark text-lg"></i></button>
+</div>
+<p class="text-xs text-amber-200 font-script" id="split-item-name">Escolha a quantidade a retirar:</p>
+<div class="flex items-center justify-center gap-3">
+<input class="w-full accent-amber-600 bg-stone-900 rounded-lg cursor-pointer" id="split-slider" max="1" min="1" type="range" value="1"/>
+<span class="font-mono text-sm font-bold text-amber-300 w-8 text-center bg-stone-950 px-2 py-1 rounded border border-amber-800" id="split-val">1</span>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="w-full bg-amber-800 hover:bg-amber-700 text-amber-100 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider font-sub transition">Confirmar</button>
+<button class="w-full bg-stone-900 hover:bg-stone-800 text-amber-300/70 py-1.5 rounded-lg text-xs font-bold uppercase font-sub transition">Cancelar</button>
+</div>
+</div>
+</div><div class="fixed bottom-20 right-6 z-50 flex flex-col gap-2 pointer-events-none" id="toast-container"></div></div><script src="./main.js" type="module"></script>
 </body>
 </html>
