@@ -3,10 +3,10 @@ import * as THREE from 'three';
 export class Penitent {
     constructor(scene) {
         this.scene = scene;
-        this.playerGroup = new THREE.Group();
         this.group = new THREE.Group();
-        this.playerGroup.add(this.group);
-        this.scene.add(this.playerGroup);
+        this.modelGroup = new THREE.Group();
+        this.group.add(this.modelGroup);
+        this.scene.add(this.group);
 
         this.setupMaterials();
         this.buildModel();
@@ -86,7 +86,7 @@ export class Penitent {
     }
 
     buildModel() {
-        this.penitente = this.group;
+        this.penitente = this.modelGroup;
         this.bodyGroup = new THREE.Group(); this.penitente.add(this.bodyGroup);
 
         this.torso = this.createPart(new THREE.CylinderGeometry(0.75, 0.8, 1.6, 10), this.matShirt, 0, 2.5, 0, 0, 0, 0, this.bodyGroup);
@@ -527,41 +527,41 @@ export class Penitent {
             isMoving = true;
             if (!this.isDefending || this.isSwimming) {
                 const targetAngle = Math.atan2(moveVec.x, moveVec.z);
-                let diff = targetAngle - this.playerGroup.rotation.y;
+                let diff = targetAngle - this.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                this.playerGroup.rotation.y += diff * 12 * delta;
+                this.group.rotation.y += diff * 12 * delta;
             } else if (this.isDefending) {
                  const targetAngle = Math.atan2(moveVec.x, moveVec.z);
-                 let diff = targetAngle - this.playerGroup.rotation.y;
+                 let diff = targetAngle - this.group.rotation.y;
                  while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                 this.playerGroup.rotation.y += diff * 4 * delta;
+                 this.group.rotation.y += diff * 4 * delta;
             }
-            this.playerGroup.position.add(moveVec);
+            this.group.position.add(moveVec);
         }
 
-        const floorY = getFloorFunc ? getFloorFunc(this.playerGroup.position) : 0;
+        const floorY = getFloorFunc ? getFloorFunc(this.group.position) : 0;
         const waterSurface = 0.55;
         let isSwimmingState = false;
 
         if (this.isDefending && !this.wasDefending && this.isGrounded) {
-            this.spawnVFX(this.playerGroup.position, 'dust', 8);
+            this.spawnVFX(this.group.position, 'dust', 8);
             const shieldPos = new THREE.Vector3(); this.slotShield.getWorldPosition(shieldPos); this.spawnVFX(shieldPos, 'slash', 6);
         }
         this.wasDefending = this.isDefending;
 
-        this.playerGroup.position.y += this.velocityY * delta;
+        this.group.position.y += this.velocityY * delta;
 
         // Simple physics and floor collision
         // Assume swimming is disabled for now globally, we can use floor collision
         this.velocityY -= 60 * delta;
-        if (this.playerGroup.position.y <= floorY) {
-            this.playerGroup.position.y = floorY;
+        if (this.group.position.y <= floorY) {
+            this.group.position.y = floorY;
             this.velocityY = 0;
             this.isGrounded = true;
         }
 
         if (this.isGrounded && !this.wasGrounded && !this.isSwimming) {
-            if (this.prevVelocityY < -10) { this.spawnVFX(this.playerGroup.position, 'dust', 12); }
+            if (this.prevVelocityY < -10) { this.spawnVFX(this.group.position, 'dust', 12); }
         }
         this.wasGrounded = this.isGrounded; this.prevVelocityY = this.velocityY;
         this.isSwimming = isSwimmingState;

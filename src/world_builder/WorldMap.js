@@ -537,7 +537,8 @@ export class WorldMap {
             this._onBtnEntrar = () => {
                 this.closeModal();
                 if (this.activeIslandData) {
-                    window.changeGameState('ROGUELIKE', { biome: this.activeIslandData.biomeId, islandData: this.activeIslandData });
+                    const selectedBiome = this.activeIslandData.biomeId || 'floresta';
+                    window.changeGameState('ROGUELIKE', { biome: selectedBiome, islandData: this.activeIslandData });
                 }
             };
             btnEntrar.addEventListener('click', this._onBtnEntrar);
