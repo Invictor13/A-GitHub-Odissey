@@ -227,8 +227,12 @@ function animate() {
         }
     }
 
+    const playerPos = (penitent && penitent.group && penitent.group.position)
+        ? penitent.group.position
+        : new THREE.Vector3(0, 0, 0);
+
     if (currentEnvironment && currentEnvironment.update) {
-        currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, penitent ? penitent.group.position : new THREE.Vector3());
+        currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, playerPos);
     }
 
     if (GAME_STATE !== 'MENU') {
