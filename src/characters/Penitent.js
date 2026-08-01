@@ -510,17 +510,38 @@ export class Penitent {
         const canMove = !(this.isAttacking && this.isGrounded && !this.isSwimming) && !isResting;
 
         let moveX = 0; let moveZ = 0;
+        let analogMag = 1.0;
+
         if (canMove) {
-            if (this.keys.w) { moveX += camDir.x; moveZ += camDir.z; }
-            if (this.keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
-            if (this.keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
-            if (this.keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+            if (window.virtualJoystick && window.virtualJoystick.active) {
+                // Joystick provides x and y from -1 to 1.
+                // y is forward/backward (negative is up/forward)
+                // x is left/right (positive is right)
+                const jx = window.virtualJoystick.x;
+                const jy = window.virtualJoystick.y; // Negative jy means pressing UP
+
+                // Add forward/backward (w/s)
+                moveX -= camDir.x * jy;
+                moveZ -= camDir.z * jy;
+
+                // Add left/right (a/d)
+                moveX += camRight.x * jx;
+                moveZ += camRight.z * jx;
+
+                analogMag = Math.sqrt(jx*jx + jy*jy);
+                if (analogMag > 1.0) analogMag = 1.0;
+            } else {
+                if (this.keys.w) { moveX += camDir.x; moveZ += camDir.z; }
+                if (this.keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
+                if (this.keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
+                if (this.keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+            }
         }
 
         const moveVec = new THREE.Vector3(moveX, 0, moveZ);
 
         if (moveVec.lengthSq() > 0) {
-            moveVec.normalize().multiplyScalar(speed * delta);
+            moveVec.normalize().multiplyScalar(speed * analogMag * delta);
         }
 
         if (moveVec.lengthSq() > 0) {

@@ -5,6 +5,7 @@ import { Penitent } from './src/characters/Penitent.js';
 import { HubEnvironment } from './src/world_builder/HubEnvironment.js';
 import { ProceduralMap } from './src/world_builder/ProceduralMap.js';
 import { WorldMap } from './src/world_builder/WorldMap.js';
+import { MobileControls } from './src/ui/MobileControls.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -221,6 +222,7 @@ if (btnEmbarkModal) {
 currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();
+window.mobileControls = new MobileControls();
 
 window.changeGameState = function(newState, params) {
     GAME_STATE = newState;
@@ -229,6 +231,12 @@ window.changeGameState = function(newState, params) {
     if (currentEnvironment && typeof currentEnvironment.cleanup === 'function') {
         currentEnvironment.cleanup();
 
+
+    if (GAME_STATE === 'MENU') {
+        if (window.mobileControls) window.mobileControls.hide();
+    } else {
+        if (window.mobileControls) window.mobileControls.show();
+    }
 
     if (GAME_STATE === 'HUB') {
         currentEnvironment = new HubEnvironment(scene);
