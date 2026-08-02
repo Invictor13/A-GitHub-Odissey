@@ -32,9 +32,11 @@ export class MobileControls {
         this.leftZone.style.touchAction = 'none'; // Prevent scrolling
         this.container.appendChild(this.leftZone);
 
-        // Center zone for camera rotation (handled by OrbitControls naturally if we leave it alone, but we need to ensure it's touchable)
-        // OrbitControls already binds to the canvas, so we don't need a specific zone as long as we don't block it.
-        // We will make sure the center has pointerEvents: 'none' so touches go through to the canvas.
+        // Make sure pointerEvents is specifically handled for the leftZone so it doesn't block mouse clicks on desktop.
+        // Left zone is only pointer-events auto if touch device
+        if (!this.isTouchDevice) {
+            this.leftZone.style.pointerEvents = 'none';
+        }
 
         // Joystick Visuals
         this.joystickBase = document.createElement('div');
@@ -72,7 +74,7 @@ export class MobileControls {
         this.buttonsContainer.style.pointerEvents = 'none'; // Container shouldn't block, only buttons
         this.container.appendChild(this.buttonsContainer);
 
-        const createButton = (label, keyToSimulate, isMouse = false, mouseBtn = 0, size = 60, color = 'rgba(255,255,255,0.3)') => {
+        const createButton = (label, keyToSimulate, codeToSimulate = '', isMouse = false, mouseBtn = 0, size = 60, color = 'rgba(255,255,255,0.3)') => {
             const btn = document.createElement('button');
             btn.innerText = label;
             btn.style.width = `${size}px`;
@@ -94,7 +96,7 @@ export class MobileControls {
                 if (isMouse) {
                     document.dispatchEvent(new MouseEvent('mousedown', { button: mouseBtn }));
                 } else {
-                    document.dispatchEvent(new KeyboardEvent('keydown', { key: keyToSimulate }));
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: keyToSimulate, code: codeToSimulate }));
                 }
             });
 
@@ -104,7 +106,7 @@ export class MobileControls {
                 if (isMouse) {
                     document.dispatchEvent(new MouseEvent('mouseup', { button: mouseBtn }));
                 } else {
-                    document.dispatchEvent(new KeyboardEvent('keyup', { key: keyToSimulate }));
+                    document.dispatchEvent(new KeyboardEvent('keyup', { key: keyToSimulate, code: codeToSimulate }));
                 }
             });
 
@@ -121,12 +123,12 @@ export class MobileControls {
         bottomRow.style.display = 'flex';
         bottomRow.style.gap = '15px';
 
-        const btnJump = createButton('Pulo', 'Space', false, 0, 50, 'rgba(100, 200, 255, 0.3)');
-        const btnInteract = createButton('Ação', 'e', false, 0, 50, 'rgba(100, 255, 100, 0.3)');
+        const btnJump = createButton('Pulo', ' ', 'Space', false, 0, 50, 'rgba(100, 200, 255, 0.3)');
+        const btnInteract = createButton('Ação', 'e', 'KeyE', false, 0, 50, 'rgba(100, 255, 100, 0.3)');
 
-        const btnDefend = createButton('Def', '', true, 2, 60, 'rgba(255, 150, 50, 0.3)');
-        const btnAttack = createButton('Atq', '', true, 0, 70, 'rgba(255, 50, 50, 0.3)');
-        const btnSprint = createButton('Corr', 'Shift', false, 0, 50, 'rgba(200, 100, 255, 0.3)');
+        const btnDefend = createButton('Def', '', '', true, 2, 60, 'rgba(255, 150, 50, 0.3)');
+        const btnAttack = createButton('Atq', '', '', true, 0, 70, 'rgba(255, 50, 50, 0.3)');
+        const btnSprint = createButton('Corr', 'Shift', 'ShiftLeft', false, 0, 50, 'rgba(200, 100, 255, 0.3)');
 
         topRow.appendChild(btnInteract);
         topRow.appendChild(btnDefend);

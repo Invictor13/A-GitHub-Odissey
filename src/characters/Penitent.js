@@ -511,8 +511,10 @@ export class Penitent {
 
         let moveX = 0; let moveZ = 0;
         let analogMag = 1.0;
+        let useKeyboard = false;
 
         if (canMove) {
+            // Check joystick first
             if (window.virtualJoystick && window.virtualJoystick.active) {
                 // Joystick provides x and y from -1 to 1.
                 // y is forward/backward (negative is up/forward)
@@ -531,10 +533,24 @@ export class Penitent {
                 analogMag = Math.sqrt(jx*jx + jy*jy);
                 if (analogMag > 1.0) analogMag = 1.0;
             } else {
-                if (this.keys.w) { moveX += camDir.x; moveZ += camDir.z; }
-                if (this.keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
-                if (this.keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
-                if (this.keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+                useKeyboard = true;
+            }
+
+            // Always fallback or allow keyboard addition if not moving via joystick
+            // Note: If both are used simultaneously, we add vectors, which is fine,
+            // but normally users use one or the other.
+            if (useKeyboard || (moveX === 0 && moveZ === 0)) {
+                let kbX = 0; let kbZ = 0;
+                if (this.keys.w) { kbX += camDir.x; kbZ += camDir.z; }
+                if (this.keys.s) { kbX -= camDir.x; kbZ -= camDir.z; }
+                if (this.keys.a) { kbX -= camRight.x; kbZ -= camRight.z; }
+                if (this.keys.d) { kbX += camRight.x; kbZ += camRight.z; }
+
+                if (kbX !== 0 || kbZ !== 0) {
+                    moveX += kbX;
+                    moveZ += kbZ;
+                    analogMag = 1.0; // Keyboard movement is always full magnitude
+                }
             }
         }
 
