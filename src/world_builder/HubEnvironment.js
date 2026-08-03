@@ -427,11 +427,33 @@ export class HubEnvironment {
     }
 
     cleanup() {
-        this.scene.remove(this.hubGroup);
-        this.scene.remove(this.skyGroup);
-        this.scene.remove(this.cloudsGroup);
-        this.scene.remove(this.erosSpot);
-        if(this.erosSpot && this.erosSpot.target) this.scene.remove(this.erosSpot.target);
+        const disposeGroup = (group) => {
+            if (!group) return;
+            group.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
+            this.scene.remove(group);
+        };
+
+        disposeGroup(this.hubGroup);
+        disposeGroup(this.skyGroup);
+        disposeGroup(this.cloudsGroup);
+
+        if (this.erosSpot) {
+            this.scene.remove(this.erosSpot);
+            if(this.erosSpot.target) this.scene.remove(this.erosSpot.target);
+            this.erosSpot.dispose();
+        }
+
+        this.groundMeshes = [];
+        this.npcs = [];
     }
 
     update(delta, time, camera, playerPos) {

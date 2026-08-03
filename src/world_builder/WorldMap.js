@@ -621,11 +621,58 @@ export class WorldMap {
     }
 
     cleanup() {
-        this.scene.remove(this.worldGroup);
+        if (this.worldGroup) {
+            this.worldGroup.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
+            this.scene.remove(this.worldGroup);
+        }
+
+        this.islandGroups = [];
+        this.bridgeGroups = [];
+        this.interactableObjects = [];
+        this.windObjects = [];
+
         this.closeModal();
 
         window.removeEventListener('pointerdown', this._onPointerDown);
         window.removeEventListener('pointerup', this._onPointerUp);
+
+        if (this._onClockClick) {
+            const clockContainer = document.getElementById('clock-container');
+            if (clockContainer) clockContainer.removeEventListener('click', this._onClockClick);
+        }
+        if (this._onTimeChange) {
+            const timeSlider = document.getElementById('time-slider');
+            if (timeSlider) timeSlider.removeEventListener('input', this._onTimeChange);
+        }
+        if (this._onWeatherClick) {
+            const btnWeather = document.getElementById('btn-weather');
+            if (btnWeather) btnWeather.removeEventListener('click', this._onWeatherClick);
+        }
+        if (this._onBackpackClick) {
+            const btnBackpack = document.getElementById('btn-backpack');
+            if (btnBackpack) btnBackpack.removeEventListener('click', this._onBackpackClick);
+        }
+        if (this._onReturnClick) {
+            const returnBtn = document.getElementById('btn-return-hub');
+            if (returnBtn) returnBtn.removeEventListener('click', this._onReturnClick);
+        }
+        if (this._onBtnEntrar) {
+            const btnEntrar = document.getElementById('btn-entrar');
+            if (btnEntrar) btnEntrar.removeEventListener('click', this._onBtnEntrar);
+        }
+        if (this._onBtnClose) {
+            const btnClose = document.getElementById('rpg-modal-close');
+            if (btnClose) btnClose.removeEventListener('click', this._onBtnClose);
+        }
 
         if (this.uiLayer && this.uiLayer.parentNode) this.uiLayer.parentNode.removeChild(this.uiLayer);
         if (this.rpgModal && this.rpgModal.parentNode) this.rpgModal.parentNode.removeChild(this.rpgModal);
