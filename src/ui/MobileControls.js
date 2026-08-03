@@ -28,7 +28,7 @@ export class MobileControls {
         this.leftZone.style.top = '0';
         this.leftZone.style.width = '40%';
         this.leftZone.style.height = '100%';
-        this.leftZone.style.pointerEvents = 'auto';
+        this.leftZone.style.pointerEvents = this.isTouchDevice ? 'auto' : 'none';
         this.leftZone.style.touchAction = 'none'; // Prevent scrolling
         this.container.appendChild(this.leftZone);
 
@@ -85,7 +85,7 @@ export class MobileControls {
             btn.style.color = 'white';
             btn.style.fontWeight = 'bold';
             btn.style.fontSize = '12px';
-            btn.style.pointerEvents = 'auto';
+            btn.style.pointerEvents = this.isTouchDevice ? 'auto' : 'none';
             btn.style.userSelect = 'none';
             btn.style.touchAction = 'none'; // Prevent default touch actions like zoom
 
@@ -94,9 +94,9 @@ export class MobileControls {
                 e.preventDefault();
                 btn.style.backgroundColor = 'rgba(255,255,255,0.6)';
                 if (isMouse) {
-                    document.dispatchEvent(new MouseEvent('mousedown', { button: mouseBtn }));
+                    document.dispatchEvent(new MouseEvent('mousedown', { button: mouseBtn, bubbles: true, cancelable: true }));
                 } else {
-                    document.dispatchEvent(new KeyboardEvent('keydown', { key: keyToSimulate, code: codeToSimulate }));
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: keyToSimulate, code: codeToSimulate, bubbles: true, cancelable: true }));
                 }
             });
 
@@ -104,9 +104,9 @@ export class MobileControls {
                 e.preventDefault();
                 btn.style.backgroundColor = color;
                 if (isMouse) {
-                    document.dispatchEvent(new MouseEvent('mouseup', { button: mouseBtn }));
+                    document.dispatchEvent(new MouseEvent('mouseup', { button: mouseBtn, bubbles: true, cancelable: true }));
                 } else {
-                    document.dispatchEvent(new KeyboardEvent('keyup', { key: keyToSimulate, code: codeToSimulate }));
+                    document.dispatchEvent(new KeyboardEvent('keyup', { key: keyToSimulate, code: codeToSimulate, bubbles: true, cancelable: true }));
                 }
             });
 
