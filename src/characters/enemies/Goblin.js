@@ -34,10 +34,11 @@ function createPart(geo, mat, x, y, z, rx=0, ry=0, rz=0, parent) {
     mesh.castShadow = true; mesh.receiveShadow = true; if(parent) parent.add(mesh); return mesh;
 }
 
-export class Goblin {
+import { Enemy } from './Enemy.js';
+
+export class Goblin extends Enemy {
     constructor(scene, position) {
-        this.scene = scene;
-        this.group = new THREE.Group();
+        super(scene, position, 20, 3.5);
 
         this.animatedCloth = [];
 
@@ -108,16 +109,11 @@ export class Goblin {
             this.animatedCloth.push({ mesh: flap, baseRx: 0.1, baseRy: angle, offset: i * 0.4, reactY: 2.0, reactDrag: 0.8, reactRun: 1.5, reactAttack: 1.0 });
         }
 
-        this.group.position.copy(position);
-        this.scene.add(this.group);
-
-        this.hp = 20;
-        this.animTime = Math.random() * 10;
     }
 
     update(delta, playerPos) {
-        if (this.hp <= 0) return;
-        this.animTime += delta * 15;
+        if (this.isDead) return;
+        super.update(delta, playerPos);
 
         // Fast chase logic
         let isMoving = false;
@@ -191,16 +187,4 @@ export class Goblin {
         }
     }
 
-    takeDamage(amount) {
-        this.hp -= amount;
-        if (this.hp <= 0) {
-            this.destroy();
-        }
-    }
-
-    destroy() {
-        if (this.group.parent) {
-            this.group.parent.remove(this.group);
-        }
-    }
 }
