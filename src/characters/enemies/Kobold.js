@@ -15,6 +15,7 @@ export class Kobold extends Enemy {
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
         this.group.add(this.mesh);
+        this.group.scale.setScalar(1.5);
 
         // Eyes
         this.eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), matEye);

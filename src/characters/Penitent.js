@@ -21,10 +21,10 @@ export class Penitent {
         this.isResetting = false;
 
         // Physics constants
-        this.acceleration = 160.0; // Increased to allow reaching higher terminal velocities against friction
+        this.acceleration = 224.0; // Increased to allow reaching higher terminal velocities against friction
         this.friction = 12.0; // Damping
-        this.maxSpeed = 7.0;
-        this.maxRunSpeed = 14.0;
+        this.maxSpeed = 10.0;
+        this.maxRunSpeed = 20.0;
         this.animTime = 0;
         this.prevPosY = 0;
         this.isAttacking = false;
