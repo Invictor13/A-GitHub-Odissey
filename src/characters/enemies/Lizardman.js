@@ -15,6 +15,7 @@ export class Lizardman extends Enemy {
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
         this.group.add(this.mesh);
+        this.group.scale.setScalar(1.5);
 
         // Snout
         this.snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.4), matLizardSkin);

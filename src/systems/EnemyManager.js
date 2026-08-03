@@ -1,3 +1,4 @@
+import { LootManager } from "./LootManager.js";
 import * as THREE from 'three';
 
 const AI_CULLING_DISTANCE = 45;
@@ -6,6 +7,7 @@ export class EnemyManager {
     constructor(scene) {
         this.scene = scene;
         this.enemies = [];
+        this.lootManager = new LootManager(scene);
     }
 
     addEnemy(enemy) {
@@ -16,10 +18,16 @@ export class EnemyManager {
     onEnemyKilled(enemy) {
         // Handle logic when an enemy dies (e.g. spawn loot, notify map)
         console.log(`Enemy killed at ${enemy.group.position.x.toFixed(1)}, ${enemy.group.position.z.toFixed(1)}`);
+
+        let enemyType = enemy.constructor.name;
+        this.lootManager.spawnLoot(enemyType, enemy.group.position);
     }
 
-    update(delta, playerPos) {
-        if (!playerPos) return;
+    update(delta, playerGroup, inventoryUI, showToastFunc) {
+        if (!playerGroup) return;
+        const playerPos = playerGroup.position;
+
+        this.lootManager.update(delta, playerGroup, inventoryUI, showToastFunc);
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
@@ -51,5 +59,6 @@ export class EnemyManager {
             enemy.destroy();
         }
         this.enemies = [];
+        this.lootManager.cleanup();
     }
 }

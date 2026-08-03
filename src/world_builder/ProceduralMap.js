@@ -18,6 +18,7 @@ export class ProceduralMap {
 
         this.grid = [];
         this.enemies = [];
+        this.totalEnemiesSpawned = 0;
         this.chunksList = [];
         this.gridSize = 0;
         this.currentBiomeId = 'floresta';
@@ -213,6 +214,7 @@ export class ProceduralMap {
 
         this.activeBiome.build3DGeometry(this.terrainGroup, this.chunksList);
         this.activeBiome.spawnEnemies(this.enemies);
+        this.totalEnemiesSpawned = this.enemies.length;
 
         for (const enemy of this.enemies) {
             this.enemyManager.addEnemy(enemy);
@@ -289,6 +291,7 @@ export class ProceduralMap {
 
         this.enemyManager.cleanup();
         this.enemies = [];
+        this.totalEnemiesSpawned = 0;
 
         if (this.exitPortal) {
             this.mapGroup.remove(this.exitPortal);
@@ -380,12 +383,12 @@ export class ProceduralMap {
 
         this.updateAntiOcclusion(delta, camera, targetPos);
 
-        this.enemyManager.update(delta, targetPos);
+        this.enemyManager.update(delta, window.penitentGroup || { position: targetPos }, window.inventoryUI, window.showToast);
 
         let allDead = this.enemyManager.areAllEnemiesDead();
 
         // Ensure portal only spawns after enemies were spawned initially and then killed
-        if (allDead && this.enemies.length > 0 && !this.portalSpawned) {
+        if (allDead && this.totalEnemiesSpawned > 0 && !this.portalSpawned) {
             this.spawnPortal();
         }
 

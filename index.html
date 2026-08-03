@@ -330,7 +330,14 @@
     </div>
 </div>
 <!-- Ponto de entrada da aplicação modularizada -->
-<div class="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between min-h-screen" id="ui-overlay" style="display: none;"><header class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto">
+<div class="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between min-h-screen" id="ui-overlay" style="display: none;">
+
+<!-- Main HUD Gold Counter -->
+<div id="hud-gold-counter" class="fixed top-4 right-4 z-[60] bg-stone-950/80 border border-amber-500/50 rounded-lg px-4 py-2 flex items-center gap-2 pointer-events-auto hidden">
+    <i class="fa-solid fa-coins text-yellow-400"></i>
+    <span id="hud-gold-value" class="text-yellow-400 font-bold font-mono text-sm tracking-widest">0</span>
+</div>
+<header class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto">
 <div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center gap-4">
 <!-- Player Info -->
 <div class="flex items-center gap-3">

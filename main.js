@@ -88,6 +88,16 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+window.showToast = function(msg, colorClass, iconClass) {
+    const tc = document.getElementById("toast-container");
+    if(!tc) return;
+    const div = document.createElement("div");
+    div.className = `glass-panel px-4 py-2 rounded-lg border border-amber-800/60 shadow-lg text-xs font-bold uppercase tracking-wide flex items-center gap-2 ${colorClass} fade-in animate-slide-up`;
+    div.innerHTML = `<i class="fa-solid ${iconClass}"></i><span>${msg}</span>`;
+    tc.appendChild(div);
+    setTimeout(() => { div.style.opacity = "0"; setTimeout(() => div.remove(), 300); }, 3000);
+};
+
 // Game State Management
 let GAME_STATE = 'MENU'; // 'MENU', 'HUB', 'WORLD_MAP', 'ROGUELIKE'
 let currentEnvironment = null;
@@ -179,6 +189,7 @@ let inventoryUI = null;
 try {
     import('./src/ui/InventoryUI.js').then(module => {
         inventoryUI = new module.InventoryUI();
+        window.inventoryUI = inventoryUI;
     }).catch(err => {
         console.warn("Could not load InventoryUI, playing without it.", err);
     });
@@ -251,6 +262,7 @@ window.changeGameState = function(newState, params) {
         currentEnvironment = new HubEnvironment(scene);
         if (!penitent) {
             penitent = new Penitent(scene);
+            window.penitentGroup = penitent.group;
             penitent.isGrounded = true;
         } else {
             if (penitent.group) penitent.group.visible = true;
@@ -271,6 +283,7 @@ window.changeGameState = function(newState, params) {
         const biome = params?.biome || 'campos_pastos';
         currentEnvironment.build3DGeometry(biome);
         if (penitent) {
+            window.penitentGroup = penitent.group;
             if (penitent.group) penitent.group.visible = true;
             const spawnPos = currentEnvironment.getPlayerSpawnPosition();
             penitent.group.position.copy(spawnPos);

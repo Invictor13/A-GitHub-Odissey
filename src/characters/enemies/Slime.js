@@ -21,7 +21,7 @@ export class Slime extends Enemy {
         super(scene, position, 15, 1.5);
 
         this.color = slimeColors[Math.floor(Math.random() * slimeColors.length)];
-        this.baseScale = 0.8 + Math.random() * 0.6;
+        this.baseScale = (0.8 + Math.random() * 0.6) * 1.5;
 
         this.baseMat = new THREE.MeshPhysicalMaterial({
             color: this.color, transmission: 0.9, opacity: 0.95, transparent: true,

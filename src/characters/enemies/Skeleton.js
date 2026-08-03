@@ -43,6 +43,7 @@ export class Skeleton extends Enemy {
         this.animatedCloth = [];
 
         this.hips = new THREE.Group(); this.hips.position.set(0, 1.15, 0); this.group.add(this.hips);
+        this.group.scale.setScalar(1.5);
         this.baseHipsY = 1.15;
 
         // --- TORSO E COSTELAS ---

@@ -43,6 +43,7 @@ export class Goblin extends Enemy {
         this.animatedCloth = [];
 
         this.hips = new THREE.Group(); this.hips.position.set(0, 0.9, 0); this.group.add(this.hips);
+        this.group.scale.setScalar(1.5);
         this.baseHipsY = 0.9;
 
         // --- TORSO ---
