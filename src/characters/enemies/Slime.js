@@ -14,10 +14,11 @@ const matSlimePupil = new THREE.MeshStandardMaterial({ color: 0x111111, roughnes
 const matMouthBg = new THREE.MeshBasicMaterial({ color: 0x0a0000, side: THREE.DoubleSide });
 const matTooth = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
 
-export class Slime {
+import { Enemy } from './Enemy.js';
+
+export class Slime extends Enemy {
     constructor(scene, position) {
-        this.scene = scene;
-        this.group = new THREE.Group();
+        super(scene, position, 15, 1.5);
 
         this.color = slimeColors[Math.floor(Math.random() * slimeColors.length)];
         this.baseScale = 0.8 + Math.random() * 0.6;
@@ -72,14 +73,13 @@ export class Slime {
         this.group.position.copy(position);
         this.group.scale.setScalar(this.baseScale);
 
-        this.scene.add(this.group);
-        this.hp = 15;
         this.time = Math.random() * 10;
         this.mouthOpenAmount = 0;
     }
 
     update(delta, playerPos) {
-        if (this.hp <= 0) return;
+        if (this.isDead) return;
+        super.update(delta, playerPos);
         this.time += delta;
 
         // Animate bubbles
@@ -124,16 +124,4 @@ export class Slime {
         }
     }
 
-    takeDamage(amount) {
-        this.hp -= amount;
-        if (this.hp <= 0) {
-            this.destroy();
-        }
-    }
-
-    destroy() {
-        if (this.group.parent) {
-            this.group.parent.remove(this.group);
-        }
-    }
 }

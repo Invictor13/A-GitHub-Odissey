@@ -4,6 +4,8 @@ import { BiomeBase } from '../BiomeBase.js';
 import { Skeleton } from '../../../characters/enemies/Skeleton.js';
 import { Goblin } from '../../../characters/enemies/Goblin.js';
 import { Slime } from '../../../characters/enemies/Slime.js';
+import { Kobold } from '../../../characters/enemies/Kobold.js';
+import { Lizardman } from '../../../characters/enemies/Lizardman.js';
 
 export class ForestBiome extends BiomeBase {
     constructor(scene, mapInstance) {
@@ -244,8 +246,10 @@ export class ForestBiome extends BiomeBase {
 
                     const rand = Math.random();
                     let enemy;
-                    if (rand < 0.4) enemy = new Slime(this.scene, new THREE.Vector3(px, py, pz));
-                    else if (rand < 0.7) enemy = new Goblin(this.scene, new THREE.Vector3(px, py, pz));
+                    if (rand < 0.2) enemy = new Slime(this.scene, new THREE.Vector3(px, py, pz));
+                    else if (rand < 0.4) enemy = new Goblin(this.scene, new THREE.Vector3(px, py, pz));
+                    else if (rand < 0.6) enemy = new Kobold(this.scene, new THREE.Vector3(px, py, pz));
+                    else if (rand < 0.8) enemy = new Lizardman(this.scene, new THREE.Vector3(px, py, pz));
                     else enemy = new Skeleton(this.scene, new THREE.Vector3(px, py, pz));
 
                     enemiesArray.push(enemy);

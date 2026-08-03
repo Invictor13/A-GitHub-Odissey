@@ -46,6 +46,7 @@ class GameState {
 
         this.completedNodes = [];
         this.pendingUnlocks = null; // Track if we need to unlock adjacent islands upon returning to WorldMap
+        this.portalCount = 0; // Tracks runs in rogue-like mode
     }
 
     save() {
@@ -57,7 +58,8 @@ class GameState {
             masteries: this.masteries,
             buildingsBuilt: this.buildingsBuilt,
             completedNodes: this.completedNodes,
-            pendingUnlocks: this.pendingUnlocks
+            pendingUnlocks: this.pendingUnlocks,
+            portalCount: this.portalCount
         };
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -80,6 +82,7 @@ class GameState {
                 if (parsedData.buildingsBuilt) this.buildingsBuilt = parsedData.buildingsBuilt;
                 if (parsedData.completedNodes) this.completedNodes = parsedData.completedNodes;
                 if (parsedData.pendingUnlocks !== undefined) this.pendingUnlocks = parsedData.pendingUnlocks;
+                if (parsedData.portalCount !== undefined) this.portalCount = parsedData.portalCount;
                 console.log('Game state loaded successfully.');
                 return true;
             }

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BiomeBase } from '../BiomeBase.js';
 import { Slime } from '../../../characters/enemies/Slime.js';
+import { Goblin } from '../../../characters/enemies/Goblin.js';
+import { Kobold } from '../../../characters/enemies/Kobold.js';
 // Plains might have mostly slimes or weaker enemies
 
 export class PlainsBiome extends BiomeBase {
@@ -241,7 +243,13 @@ export class PlainsBiome extends BiomeBase {
                     const px = spawnX - this.gridSize / 2;
                     const pz = spawnZ - this.gridSize / 2;
                     const py = this.grid[spawnX][spawnZ].elev * this.STEP_HEIGHT;
-                    const enemy = new Slime(this.scene, new THREE.Vector3(px, py, pz));
+
+                    const rand = Math.random();
+                    let enemy;
+                    if (rand < 0.6) enemy = new Slime(this.scene, new THREE.Vector3(px, py, pz));
+                    else if (rand < 0.8) enemy = new Goblin(this.scene, new THREE.Vector3(px, py, pz));
+                    else enemy = new Kobold(this.scene, new THREE.Vector3(px, py, pz));
+
                     enemiesArray.push(enemy);
                     enemiesCreated++;
                 }
