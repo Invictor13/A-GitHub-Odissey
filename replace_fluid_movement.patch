@@ -1,0 +1,64 @@
+--- src/world_builder/ProceduralMap.js
++++ src/world_builder/ProceduralMap.js
+@@ -427,11 +427,24 @@
+     }
+
+     getFloorY(pos) {
+-        let gX = Math.round(pos.x + this.gridSize/2);
+-        let gZ = Math.round(pos.z + this.gridSize/2);
+-        if (gX >= 0 && gX < this.gridSize && gZ >= 0 && gZ < this.gridSize) {
+-            return this.grid[gX][gZ].elev;
+-        }
+-        return 0;
++        // Bilinear interpolation for smooth elevation
++        const gridX = pos.x + this.gridSize / 2;
++        const gridZ = pos.z + this.gridSize / 2;
++
++        const x0 = Math.floor(gridX);
++        const x1 = x0 + 1;
++        const z0 = Math.floor(gridZ);
++        const z1 = z0 + 1;
++
++        if (x0 < 0 || x1 >= this.gridSize || z0 < 0 || z1 >= this.gridSize) return 0;
++
++        const elev00 = this.grid[x0][z0].elev * this.STEP_HEIGHT;
++        const elev10 = this.grid[x1][z0].elev * this.STEP_HEIGHT;
++        const elev01 = this.grid[x0][z1].elev * this.STEP_HEIGHT;
++        const elev11 = this.grid[x1][z1].elev * this.STEP_HEIGHT;
++
++        const wx = gridX - x0;
++        const wz = gridZ - z0;
++
++        const y0 = elev00 * (1 - wx) + elev10 * wx;
++        const y1 = elev01 * (1 - wx) + elev11 * wx;
++
++        return y0 * (1 - wz) + y1 * wz;
+     }
+
+     checkCollision(pos, radius = 0.4) {
+         // AABB check against solid/empty grid tiles
+         const minX = Math.floor(pos.x - radius + this.gridSize / 2 + 0.5);
+         const maxX = Math.floor(pos.x + radius + this.gridSize / 2 + 0.5);
+         const minZ = Math.floor(pos.z - radius + this.gridSize / 2 + 0.5);
+         const maxZ = Math.floor(pos.z + radius + this.gridSize / 2 + 0.5);
+
+         for (let x = minX; x <= maxX; x++) {
+             for (let z = minZ; z <= maxZ; z++) {
+                 if (x < 0 || x >= this.gridSize || z < 0 || z >= this.gridSize) {
+                     return true; // Collide with world boundaries
+                 }
+
+                 const cell = this.grid[x][z];
+                 // Treat solid (with no depth fallback) or empty as collidable at player height
+                 if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cell.type === this.TILE_WATER) {
+                      return true;
+                 }
+-
+-                // Add slope check: if elevation diff is too high (>1 block), block it
+-                const cellY = cell.elev * this.STEP_HEIGHT;
+-                if (cellY > pos.y + 0.8) {
+-                    return true;
+-                }
+             }
+         }
+         return false;
