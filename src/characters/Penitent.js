@@ -258,7 +258,7 @@ export class Penitent {
 
     initInput() {
         document.addEventListener('keydown', (e) => {
-            const k = e.key.toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = true;
+            const k = (e.key || '').toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = true;
 
             if (this.actionState !== 'inventory') {
                 if (k === 'z') this.actionState = this.actionState === 'sit' ? 'none' : 'sit';
@@ -280,7 +280,7 @@ export class Penitent {
                 }
             }
         });
-        document.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = false; });
+        document.addEventListener('keyup', (e) => { const k = (e.key || '').toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = false; });
 
         document.addEventListener('mousedown', (e) => {
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;

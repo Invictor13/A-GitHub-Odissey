@@ -12,6 +12,7 @@ window.addEventListener('error', (e) => {
     if (errBox) {
         errBox.style.display = 'block';
         errBox.innerText = '⚠️ ERRO:\n' + e.message + '\nLinha: ' + e.lineno;
+    }
 
 });
 
@@ -109,6 +110,7 @@ function transitionToMainMenu() {
     // Fade-out da Intro cinematográfica (agora com o menu preparado por baixo)
     if (introContainer) {
         introContainer.style.opacity = '0';
+    }
 
 
     setTimeout(() => {
@@ -134,7 +136,7 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             transitionToMainMenu();
         }
-
+    }
 });
 
 // Ação de iniciar o jogo a partir do novo menu principal
@@ -186,7 +188,7 @@ window.addEventListener('keydown', (e) => {
             inventoryUI.toggle();
             controls.enabled = !inventoryUI.isOpen;
         }
-
+    }
 });
 
 // Hub Interactions
@@ -198,7 +200,7 @@ window.addEventListener('keydown', (e) => {
             const prompt = document.getElementById('interaction-prompt');
             if (prompt) prompt.style.opacity = '0';
         }
-
+    }
 });
 
 if (btnCloseModal) {
@@ -231,6 +233,7 @@ window.changeGameState = function(newState, params) {
     if (currentEnvironment && typeof currentEnvironment.cleanup === 'function') {
         currentEnvironment.cleanup();
 
+    }
 
     if (GAME_STATE === 'MENU') {
         if (window.mobileControls) window.mobileControls.hide();
@@ -294,8 +297,7 @@ function animate() {
             camera.position.add(camShift);
             controls.update();
         }
-
-
+    }
     // Trava de segurança para a posição do jogador
     const playerPos = (penitent && penitent.group && penitent.group.position && typeof penitent.group.position.x === 'number')
         ? penitent.group.position
@@ -304,10 +306,12 @@ function animate() {
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
         currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, playerPos);
 
+    }
 
     if (GAME_STATE !== 'MENU') {
         survivalSystem.update(window.gameState.delta);
 
+    }
 
     renderer.render(scene, camera);
 }
