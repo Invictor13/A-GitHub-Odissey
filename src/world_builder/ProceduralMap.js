@@ -38,6 +38,7 @@ export class ProceduralMap {
         this.exitPortal = null;
         this.portalSpawned = false;
         this.portalActive = false;
+        this.portalInteractable = false;
         this.currentIslandData = null;
 
         // Shared uniforms that might be used across biomes
@@ -219,21 +220,25 @@ export class ProceduralMap {
         for (const enemy of this.enemies) {
             this.enemyManager.addEnemy(enemy);
         }
+
+        // Immediately spawn inactive portal in the last room
+        this.spawnPortal();
     }
 
     spawnPortal() {
         if (this.portalSpawned) return;
         this.portalSpawned = true;
-        this.portalActive = false; // Initially false for cooldown
-
-        // Give a short cooldown before portal becomes interactive
-        setTimeout(() => {
-            if (this.exitPortal) {
-                this.portalActive = true;
-            }
-        }, 2000);
+        this.portalActive = false;
 
         this.exitPortal = new THREE.Group();
+
+        // Place portal in the last room
+        let pX = 0, pZ = 0;
+        if (this.rooms && this.rooms.length > 0) {
+            const lastRoom = this.rooms[this.rooms.length - 1];
+            pX = lastRoom.cx - this.gridSize / 2;
+            pZ = lastRoom.cy - this.gridSize / 2;
+        }
 
         import('../core/GameState.js').then(({ default: gameState }) => {
             const isBossPortal = gameState.portalCount >= 9;
@@ -241,24 +246,24 @@ export class ProceduralMap {
             const secondaryColor = isBossPortal ? 0xff6600 : 0x93c5fd;
 
             const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
-            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
             const portalMesh = new THREE.Mesh(portalGeo, portalMat);
             portalMesh.rotation.x = Math.PI / 2;
             portalMesh.position.y = 1.0;
 
             const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
-            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
             const innerMesh = new THREE.Mesh(innerGeo, innerMat);
             innerMesh.position.y = 2.0;
 
-            const light = new THREE.PointLight(primaryColor, 2, 10);
+            const light = new THREE.PointLight(primaryColor, 0, 10);
             light.position.y = 2.0;
 
             this.exitPortal.add(portalMesh);
             this.exitPortal.add(innerMesh);
             this.exitPortal.add(light);
 
-            this.exitPortal.position.set(0, this.getFloorY(new THREE.Vector3(0,0,0)), 0);
+            this.exitPortal.position.set(pX, this.getFloorY(new THREE.Vector3(pX,0,pZ)), pZ);
             this.mapGroup.add(this.exitPortal);
         });
     }
@@ -297,6 +302,9 @@ export class ProceduralMap {
             this.mapGroup.remove(this.exitPortal);
             this.exitPortal = null;
         }
+        this.portalSpawned = false;
+        this.portalActive = false;
+        this.portalInteractable = false;
         this.activeBiome = null;
         // Optional: We keep this.biomeCache populated to reuse materials/geometries across runs,
         // but we might want to clear it if memory gets too high.
@@ -387,18 +395,26 @@ export class ProceduralMap {
 
         let allDead = this.enemyManager.areAllEnemiesDead();
 
-        // Ensure portal only spawns after enemies were spawned initially and then killed
-        if (allDead && this.totalEnemiesSpawned > 0 && !this.portalSpawned) {
-            this.spawnPortal();
-        }
-
         if (this.exitPortal) {
+            if (allDead && this.totalEnemiesSpawned > 0 && !this.portalActive) {
+                this.portalActive = true;
+                // Activate visual elements
+                if (this.exitPortal.children.length >= 3) {
+                    this.exitPortal.children[0].material.opacity = 0.8;
+                    this.exitPortal.children[1].material.opacity = 0.4;
+                    this.exitPortal.children[2].intensity = 2.5;
+                }
+                setTimeout(() => {
+                    this.portalInteractable = true;
+                }, 1000);
+            }
+
             if (this.exitPortal.children.length > 0) {
                 this.exitPortal.children[0].rotation.z += delta * 2;
                 this.exitPortal.children[1].rotation.y -= delta;
             }
 
-            if (this.portalActive && targetPos.distanceTo(this.exitPortal.position) < 1.5) {
+            if (this.portalActive && this.portalInteractable && targetPos.distanceTo(this.exitPortal.position) < 1.5) {
                 this.portalActive = false;
 
                 import('../core/GameState.js').then(({ default: gameState }) => {
@@ -427,12 +443,29 @@ export class ProceduralMap {
     }
 
     getFloorY(pos) {
-        let gX = Math.round(pos.x + this.gridSize/2);
-        let gZ = Math.round(pos.z + this.gridSize/2);
-        if (gX >= 0 && gX < this.gridSize && gZ >= 0 && gZ < this.gridSize) {
-            return this.grid[gX][gZ].elev;
-        }
-        return 0;
+        // Bilinear interpolation for smooth elevation
+        const gridX = pos.x + this.gridSize / 2;
+        const gridZ = pos.z + this.gridSize / 2;
+
+        const x0 = Math.floor(gridX);
+        const x1 = x0 + 1;
+        const z0 = Math.floor(gridZ);
+        const z1 = z0 + 1;
+
+        if (x0 < 0 || x1 >= this.gridSize || z0 < 0 || z1 >= this.gridSize) return 0;
+
+        const elev00 = this.grid[x0][z0].elev * this.STEP_HEIGHT;
+        const elev10 = this.grid[x1][z0].elev * this.STEP_HEIGHT;
+        const elev01 = this.grid[x0][z1].elev * this.STEP_HEIGHT;
+        const elev11 = this.grid[x1][z1].elev * this.STEP_HEIGHT;
+
+        const wx = gridX - x0;
+        const wz = gridZ - z0;
+
+        const y0 = elev00 * (1 - wx) + elev10 * wx;
+        const y1 = elev01 * (1 - wx) + elev11 * wx;
+
+        return y0 * (1 - wz) + y1 * wz;
     }
 
     checkCollision(pos, radius = 0.4) {
@@ -452,12 +485,6 @@ export class ProceduralMap {
                 // Treat solid (with no depth fallback) or empty as collidable at player height
                 if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cell.type === this.TILE_WATER) {
                      return true;
-                }
-
-                // Add slope check: if elevation diff is too high (>1 block), block it
-                const cellY = cell.elev * this.STEP_HEIGHT;
-                if (cellY > pos.y + 0.8) {
-                    return true;
                 }
             }
         }

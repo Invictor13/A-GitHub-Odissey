@@ -325,9 +325,20 @@ export class Penitent {
         document.addEventListener('mousedown', (e) => {
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
             if (e.button === 0 && !this.isAttacking && !this.isDefending && this.actionState === 'none') { this.isAttacking = true; this.attackTimer = this.ATTACK_DURATION; }
-            if (e.button === 2 && !this.isAttacking && this.actionState === 'none') { this.isDefending = true; }
         });
-        document.addEventListener('mouseup', (e) => { if (e.button === 2) this.isDefending = false; });
+
+        document.addEventListener('keydown', (e) => {
+            if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
+            if ((e.key === 'r' || e.key === 'R') && !this.isAttacking && this.actionState === 'none') {
+                this.isDefending = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                this.isDefending = false;
+            }
+        });
     }
 
     updateAnimations(delta, isMoving, moveSpeed) {

@@ -41,26 +41,27 @@ controls.maxPolarAngle = Math.PI / 1.9;
 controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 
 // Global Lighting
-const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.4);
-scene.add(hemiLight);
-
-const ambientLight = new THREE.AmbientLight(0xf0fdf4, 0.2);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
 scene.add(ambientLight);
 
-const sunLight = new THREE.DirectionalLight(0xffedd5, 1.8);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 2048;
-sunLight.shadow.mapSize.height = 2048;
 const shadowDist = 80;
+const sunLight = new THREE.DirectionalLight(0xffedd5, 1.6);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
 sunLight.shadow.camera.left = -shadowDist;
 sunLight.shadow.camera.right = shadowDist;
 sunLight.shadow.camera.top = shadowDist;
 sunLight.shadow.camera.bottom = -shadowDist;
 sunLight.shadow.camera.near = 0.5;
-sunLight.shadow.camera.far = 250;
-sunLight.shadow.bias = -0.0003;
+sunLight.shadow.camera.far = 200;
+sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 scene.add(sunLight.target);
+
+const lightningLight = new THREE.DirectionalLight(0xe0f2fe, 0);
+lightningLight.position.set(0, 50, 0);
+scene.add(lightningLight);
 
 // Temporary Instructions update
 const instructions = document.getElementById('instructions');

@@ -1,0 +1,95 @@
+--- src/world_builder/ProceduralMap.js
++++ src/world_builder/ProceduralMap.js
+@@ -216,49 +216,48 @@
+         for (const enemy of this.enemies) {
+             this.enemyManager.addEnemy(enemy);
+         }
++
++        // Immediately spawn inactive portal in the last room
++        this.spawnPortal();
+     }
+
+     spawnPortal() {
+         if (this.portalSpawned) return;
+         this.portalSpawned = true;
+-        this.portalActive = false; // Initially false for cooldown
++        this.portalActive = false;
+
+-        // Give a short cooldown before portal becomes interactive
+-        setTimeout(() => {
+-            if (this.exitPortal) {
+-                this.portalActive = true;
+-            }
+-        }, 2000);
+-
+         this.exitPortal = new THREE.Group();
++
++        // Place portal in the last room
++        let pX = 0, pZ = 0;
++        if (this.rooms && this.rooms.length > 0) {
++            const lastRoom = this.rooms[this.rooms.length - 1];
++            pX = lastRoom.cx - this.gridSize / 2;
++            pZ = lastRoom.cy - this.gridSize / 2;
++        }
+
+         import('../core/GameState.js').then(({ default: gameState }) => {
+             const isBossPortal = gameState.portalCount >= 9;
+             const primaryColor = isBossPortal ? 0xff0000 : 0x60a5fa; // Red/Gold for boss
+             const secondaryColor = isBossPortal ? 0xff6600 : 0x93c5fd;
+
+             const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
+-            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
++            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+             const portalMesh = new THREE.Mesh(portalGeo, portalMat);
+             portalMesh.rotation.x = Math.PI / 2;
+             portalMesh.position.y = 1.0;
+
+             const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
+-            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
++            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+             const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+             innerMesh.position.y = 2.0;
+
+-            const light = new THREE.PointLight(primaryColor, 2, 10);
++            const light = new THREE.PointLight(primaryColor, 0, 10);
+             light.position.y = 2.0;
+
+             this.exitPortal.add(portalMesh);
+             this.exitPortal.add(innerMesh);
+             this.exitPortal.add(light);
+
+-            this.exitPortal.position.set(0, this.getFloorY(new THREE.Vector3(0,0,0)), 0);
++            this.exitPortal.position.set(pX, this.getFloorY(new THREE.Vector3(pX,0,pZ)), pZ);
+             this.mapGroup.add(this.exitPortal);
+         });
+     }
+@@ -387,14 +386,22 @@
+         let allDead = this.enemyManager.areAllEnemiesDead();
+
+-        // Ensure portal only spawns after enemies were spawned initially and then killed
+-        if (allDead && this.totalEnemiesSpawned > 0 && !this.portalSpawned) {
+-            this.spawnPortal();
+-        }
+-
+         if (this.exitPortal) {
++            if (allDead && this.totalEnemiesSpawned > 0 && !this.portalActive) {
++                this.portalActive = true;
++                // Activate visual elements
++                if (this.exitPortal.children.length >= 3) {
++                    this.exitPortal.children[0].material.opacity = 0.8;
++                    this.exitPortal.children[1].material.opacity = 0.4;
++                    this.exitPortal.children[2].intensity = 2.5;
++                }
++                setTimeout(() => {
++                    this.portalInteractable = true;
++                }, 1000);
++            }
++
+             if (this.exitPortal.children.length > 0) {
+                 this.exitPortal.children[0].rotation.z += delta * 2;
+                 this.exitPortal.children[1].rotation.y -= delta;
+             }
+
+-            if (this.portalActive && targetPos.distanceTo(this.exitPortal.position) < 1.5) {
++            if (this.portalActive && this.portalInteractable && targetPos.distanceTo(this.exitPortal.position) < 1.5) {
+                 this.portalActive = false;
