@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ObjectPool } from '../core/ObjectPoolManager.js';
 
 export class Penitent {
     constructor(scene) {
@@ -13,7 +14,17 @@ export class Penitent {
 
         this.isGrounded = true;
         this.keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+        this.velocityX = 0;
+        this.velocityZ = 0;
         this.velocityY = 0;
+        this.lastSafePos = new THREE.Vector3(0, 5, 0);
+        this.isResetting = false;
+
+        // Physics constants
+        this.acceleration = 160.0; // Increased to allow reaching higher terminal velocities against friction
+        this.friction = 12.0; // Damping
+        this.maxSpeed = 7.0;
+        this.maxRunSpeed = 14.0;
         this.animTime = 0;
         this.prevPosY = 0;
         this.isAttacking = false;
@@ -233,16 +244,45 @@ export class Penitent {
         this.createPart(new THREE.BoxGeometry(0.6, 0.4, 0.8), this.matLeatherDark, 0, -0.7, 0.15, 0, 0, 0, this.kneeR);
 
         this.particles = [];
+
+        ObjectPool.createPool('vfx_slash', () => {
+            const p = new THREE.Mesh(this.particleGeo, this.matSlash);
+            p.visible = false;
+            this.scene.add(p);
+            return p;
+        }, 20);
+
+        ObjectPool.createPool('vfx_dust', () => {
+            const p = new THREE.Mesh(this.particleGeo, this.matDust);
+            p.visible = false;
+            this.scene.add(p);
+            return p;
+        }, 30);
     }
 
     spawnVFX(pos, type, count) {
-        const mat = type === 'slash' ? this.matSlash : this.matDust;
+        const poolName = type === 'slash' ? 'vfx_slash' : 'vfx_dust';
         for(let i = 0; i < count; i++) {
-            const p = new THREE.Mesh(this.particleGeo, mat); p.position.copy(pos);
-            p.position.x += (Math.random() - 0.5) * 0.5; p.position.y += (Math.random() - 0.5) * 0.5; p.position.z += (Math.random() - 0.5) * 0.5;
+            const p = ObjectPool.get(poolName);
+            if (!p) continue;
+
+            p.visible = true;
+            p.position.copy(pos);
+            p.position.x += (Math.random() - 0.5) * 0.5;
+            p.position.y += (Math.random() - 0.5) * 0.5;
+            p.position.z += (Math.random() - 0.5) * 0.5;
+
             const speed = type === 'slash' ? 12 : 5;
-            p.userData = { vel: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed), life: 1.0, type: type };
-            this.scene.add(p); this.particles.push(p);
+            p.userData = {
+                vel: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed),
+                life: 1.0,
+                type: type
+            };
+
+            // Set scale to 1 on spawn
+            p.scale.setScalar(1);
+
+            this.particles.push(p);
         }
     }
 
@@ -496,39 +536,34 @@ export class Penitent {
         });
     }
 
-    update(delta, camera, getFloorFunc) {
+    update(delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc) {
+        if (this.isResetting) return;
+
         let isMoving = false;
 
         const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y = 0; camDir.normalize();
         const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
 
-        let speed = this.keys.shift ? 14 : 7;
-        if (this.isDefending) speed = this.keys.shift ? 6 : 3;
-        if (this.isSwimming) speed = 5;
-
         const isResting = this.actionState === 'sit' || this.actionState === 'sleep' || this.actionState === 'inventory' || this.actionState === 'damage';
         const canMove = !(this.isAttacking && this.isGrounded && !this.isSwimming) && !isResting;
 
-        let moveX = 0; let moveZ = 0;
+        let inputX = 0; let inputZ = 0;
         let analogMag = 1.0;
         let useKeyboard = false;
 
         if (canMove) {
             // Check joystick first
             if (window.virtualJoystick && window.virtualJoystick.active) {
-                // Joystick provides x and y from -1 to 1.
-                // y is forward/backward (negative is up/forward)
-                // x is left/right (positive is right)
                 const jx = window.virtualJoystick.x;
                 const jy = window.virtualJoystick.y; // Negative jy means pressing UP
 
                 // Add forward/backward (w/s)
-                moveX -= camDir.x * jy;
-                moveZ -= camDir.z * jy;
+                inputX -= camDir.x * jy;
+                inputZ -= camDir.z * jy;
 
                 // Add left/right (a/d)
-                moveX += camRight.x * jx;
-                moveZ += camRight.z * jx;
+                inputX += camRight.x * jx;
+                inputZ += camRight.z * jx;
 
                 analogMag = Math.sqrt(jx*jx + jy*jy);
                 if (analogMag > 1.0) analogMag = 1.0;
@@ -536,10 +571,7 @@ export class Penitent {
                 useKeyboard = true;
             }
 
-            // Always fallback or allow keyboard addition if not moving via joystick
-            // Note: If both are used simultaneously, we add vectors, which is fine,
-            // but normally users use one or the other.
-            if (useKeyboard || (moveX === 0 && moveZ === 0)) {
+            if (useKeyboard || (inputX === 0 && inputZ === 0)) {
                 let kbX = 0; let kbZ = 0;
                 if (this.keys.w) { kbX += camDir.x; kbZ += camDir.z; }
                 if (this.keys.s) { kbX -= camDir.x; kbZ -= camDir.z; }
@@ -547,37 +579,91 @@ export class Penitent {
                 if (this.keys.d) { kbX += camRight.x; kbZ += camRight.z; }
 
                 if (kbX !== 0 || kbZ !== 0) {
-                    moveX += kbX;
-                    moveZ += kbZ;
-                    analogMag = 1.0; // Keyboard movement is always full magnitude
+                    inputX += kbX;
+                    inputZ += kbZ;
+                    analogMag = 1.0;
                 }
             }
         }
 
-        const moveVec = new THREE.Vector3(moveX, 0, moveZ);
+        const inputVec = new THREE.Vector3(inputX, 0, inputZ);
+        if (inputVec.lengthSq() > 0) inputVec.normalize();
 
-        if (moveVec.lengthSq() > 0) {
-            moveVec.normalize().multiplyScalar(speed * analogMag * delta);
+        // Apply acceleration based on input
+        if (inputVec.lengthSq() > 0) {
+            this.velocityX += inputVec.x * this.acceleration * analogMag * delta;
+            this.velocityZ += inputVec.z * this.acceleration * analogMag * delta;
         }
 
-        if (moveVec.lengthSq() > 0) {
+        // Apply friction/damping using exponential decay to prevent overshooting at low framerates
+        const dampingFactor = Math.max(0, 1 - this.friction * delta);
+        this.velocityX *= dampingFactor;
+        this.velocityZ *= dampingFactor;
+
+        // Cap speed
+        const currentSpeedSq = this.velocityX * this.velocityX + this.velocityZ * this.velocityZ;
+
+        let targetMaxSpeed = this.keys.shift ? this.maxRunSpeed : this.maxSpeed;
+        if (this.isDefending) targetMaxSpeed = this.keys.shift ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
+        if (this.isSwimming) targetMaxSpeed = 5;
+
+        if (currentSpeedSq > targetMaxSpeed * targetMaxSpeed) {
+            const currentSpeed = Math.sqrt(currentSpeedSq);
+            this.velocityX = (this.velocityX / currentSpeed) * targetMaxSpeed;
+            this.velocityZ = (this.velocityZ / currentSpeed) * targetMaxSpeed;
+        }
+
+        // Rotation
+        if (currentSpeedSq > 0.1) {
             isMoving = true;
             if (!this.isDefending || this.isSwimming) {
-                const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                const targetAngle = Math.atan2(this.velocityX, this.velocityZ);
                 let diff = targetAngle - this.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
                 this.group.rotation.y += diff * 12 * delta;
             } else if (this.isDefending) {
-                 const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                 const targetAngle = Math.atan2(this.velocityX, this.velocityZ);
                  let diff = targetAngle - this.group.rotation.y;
                  while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
                  this.group.rotation.y += diff * 4 * delta;
             }
-            this.group.position.add(moveVec);
+        }
+
+        // Movement with proper AABB wall check against static grid logic
+        const playerRadius = 0.4; // Approximated cylinder collision radius for Penitent
+
+        // Check X movement
+        let nextPosX = this.group.position.x + this.velocityX * delta;
+        const testPos = new THREE.Vector3(nextPosX, this.group.position.y, this.group.position.z);
+
+        if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
+            this.velocityX = 0;
+        } else {
+            this.group.position.x = nextPosX;
+        }
+
+        // Check Z movement
+        let nextPosZ = this.group.position.z + this.velocityZ * delta;
+        testPos.set(this.group.position.x, this.group.position.y, nextPosZ);
+
+        if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
+            this.velocityZ = 0;
+        } else {
+            this.group.position.z = nextPosZ;
+        }
+
+        // Clamp to World Bounds if provided
+        if (getMapBoundsFunc) {
+            const bounds = getMapBoundsFunc();
+            if (bounds) {
+                if (this.group.position.x < bounds.minX) { this.group.position.x = bounds.minX; this.velocityX = 0; }
+                if (this.group.position.x > bounds.maxX) { this.group.position.x = bounds.maxX; this.velocityX = 0; }
+                if (this.group.position.z < bounds.minZ) { this.group.position.z = bounds.minZ; this.velocityZ = 0; }
+                if (this.group.position.z > bounds.maxZ) { this.group.position.z = bounds.maxZ; this.velocityZ = 0; }
+            }
         }
 
         const floorY = getFloorFunc ? getFloorFunc(this.group.position) : 0;
-        const waterSurface = 0.55;
         let isSwimmingState = false;
 
         if (this.isDefending && !this.wasDefending && this.isGrounded) {
@@ -586,15 +672,22 @@ export class Penitent {
         }
         this.wasDefending = this.isDefending;
 
+        // Apply Gravity
+        this.velocityY -= 60 * delta;
         this.group.position.y += this.velocityY * delta;
 
-        // Simple physics and floor collision
-        // Assume swimming is disabled for now globally, we can use floor collision
-        this.velocityY -= 60 * delta;
+        // Abyss Detector Trigger
+        if (this.group.position.y < floorY - 5.0) {
+             this.triggerAbyssReset();
+             return; // Stop updating this frame
+        }
+
         if (this.group.position.y <= floorY) {
             this.group.position.y = floorY;
             this.velocityY = 0;
             this.isGrounded = true;
+            // Update last safe pos when grounded and not falling
+            this.lastSafePos.copy(this.group.position);
         }
 
         if (this.isGrounded && !this.wasGrounded && !this.isSwimming) {
@@ -611,9 +704,48 @@ export class Penitent {
             p.position.add(p.userData.vel.clone().multiplyScalar(delta));
             if (p.userData.type === 'slash') p.scale.setScalar(Math.max(0, p.userData.life));
             else { p.position.y += delta * 1.5; p.scale.setScalar(Math.max(0, p.userData.life * 1.5)); }
-            if (p.userData.life <= 0) { this.scene.remove(p); this.particles.splice(i, 1); }
+            if (p.userData.life <= 0) {
+                ObjectPool.release(p.userData.type === 'slash' ? 'vfx_slash' : 'vfx_dust', p);
+                this.particles.splice(i, 1);
+            }
         }
 
-        this.updateAnimations(delta, isMoving, speed);
+        this.updateAnimations(delta, isMoving, Math.sqrt(currentSpeedSq));
+    }
+
+    triggerAbyssReset() {
+        this.isResetting = true;
+        this.velocityX = 0;
+        this.velocityZ = 0;
+        this.velocityY = 0;
+
+        // Create a quick fade effect
+        const fadeDiv = document.createElement('div');
+        fadeDiv.style.position = 'absolute';
+        fadeDiv.style.top = '0';
+        fadeDiv.style.left = '0';
+        fadeDiv.style.width = '100%';
+        fadeDiv.style.height = '100%';
+        fadeDiv.style.backgroundColor = 'black';
+        fadeDiv.style.opacity = '0';
+        fadeDiv.style.transition = 'opacity 0.15s ease-in-out';
+        fadeDiv.style.zIndex = '9999';
+        fadeDiv.style.pointerEvents = 'none';
+        document.body.appendChild(fadeDiv);
+
+        // Trigger fade to black
+        setTimeout(() => { fadeDiv.style.opacity = '1'; }, 10);
+
+        // Reset pos and fade back
+        setTimeout(() => {
+            this.group.position.copy(this.lastSafePos);
+            this.group.position.y += 1.0; // Small bump up
+            this.isGrounded = false; // Fall down to floor
+
+            fadeDiv.style.opacity = '0';
+            this.isResetting = false;
+
+            setTimeout(() => { document.body.removeChild(fadeDiv); }, 200);
+        }, 200);
     }
 }

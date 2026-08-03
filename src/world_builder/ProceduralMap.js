@@ -254,19 +254,34 @@ export class ProceduralMap {
     }
 
     cleanup() {
-        this.scene.remove(this.mapGroup);
+        if (this.mapGroup) {
+            this.mapGroup.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
+            this.scene.remove(this.mapGroup);
+        }
+
         for (const enemy of this.enemies) {
             if (enemy && typeof enemy.destroy === 'function') {
                 enemy.destroy();
             }
         }
         this.enemies = [];
+
         if (this.exitPortal) {
             this.mapGroup.remove(this.exitPortal);
             this.exitPortal = null;
         }
         this.activeBiome = null;
-        // Optional: We keep this.biomeCache populated to reuse materials/geometries across runs
+        // Optional: We keep this.biomeCache populated to reuse materials/geometries across runs,
+        // but we might want to clear it if memory gets too high.
     }
 
     updateAntiOcclusion(delta, camera, playerPos) {
@@ -393,5 +408,34 @@ export class ProceduralMap {
             return this.grid[gX][gZ].elev;
         }
         return 0;
+    }
+
+    checkCollision(pos, radius = 0.4) {
+        // AABB check against solid/empty grid tiles
+        const minX = Math.floor(pos.x - radius + this.gridSize / 2 + 0.5);
+        const maxX = Math.floor(pos.x + radius + this.gridSize / 2 + 0.5);
+        const minZ = Math.floor(pos.z - radius + this.gridSize / 2 + 0.5);
+        const maxZ = Math.floor(pos.z + radius + this.gridSize / 2 + 0.5);
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let z = minZ; z <= maxZ; z++) {
+                if (x < 0 || x >= this.gridSize || z < 0 || z >= this.gridSize) {
+                    return true; // Collide with world boundaries
+                }
+
+                const cell = this.grid[x][z];
+                // Treat solid (with no depth fallback) or empty as collidable at player height
+                if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cell.type === this.TILE_WATER) {
+                     return true;
+                }
+
+                // Add slope check: if elevation diff is too high (>1 block), block it
+                const cellY = cell.elev * this.STEP_HEIGHT;
+                if (cellY > pos.y + 0.8) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
