@@ -37,12 +37,12 @@ export class ProceduralMap {
 
         this.exitPortal = null;
         this.portalSpawned = false;
-        this.portalActive = false;
+        this.portalActive = true;
 
         // Setup HemisphereLight for the biome
         this.hemisphereLight = new THREE.HemisphereLight(0x0f172a, 0x1f4214, 0.6); // Dark blue sky, earthy green ground
         this.scene.add(this.hemisphereLight);
-        this.portalInteractable = false;
+        this.portalInteractable = true;
         this.currentIslandData = null;
 
         // Shared uniforms that might be used across biomes
@@ -232,7 +232,8 @@ export class ProceduralMap {
     spawnPortal() {
         if (this.portalSpawned) return;
         this.portalSpawned = true;
-        this.portalActive = false;
+        this.portalActive = true;
+        this.portalInteractable = true;
 
         this.exitPortal = new THREE.Group();
 
@@ -250,17 +251,17 @@ export class ProceduralMap {
             const secondaryColor = isBossPortal ? 0xff6600 : 0x93c5fd;
 
             const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
-            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
             const portalMesh = new THREE.Mesh(portalGeo, portalMat);
             portalMesh.rotation.x = Math.PI / 2;
             portalMesh.position.y = 1.0;
 
             const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
-            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
             const innerMesh = new THREE.Mesh(innerGeo, innerMat);
             innerMesh.position.y = 2.0;
 
-            const light = new THREE.PointLight(primaryColor, 0, 10);
+            const light = new THREE.PointLight(primaryColor, 2.5, 10);
             light.position.y = 2.0;
 
             this.exitPortal.add(portalMesh);
@@ -413,19 +414,6 @@ export class ProceduralMap {
         let allDead = this.enemyManager.areAllEnemiesDead();
 
         if (this.exitPortal) {
-            if (allDead && this.totalEnemiesSpawned > 0 && !this.portalActive) {
-                this.portalActive = true;
-                // Activate visual elements
-                if (this.exitPortal.children.length >= 3) {
-                    this.exitPortal.children[0].material.opacity = 0.8;
-                    this.exitPortal.children[1].material.opacity = 0.4;
-                    this.exitPortal.children[2].intensity = 2.5;
-                }
-                setTimeout(() => {
-                    this.portalInteractable = true;
-                }, 1000);
-            }
-
             if (this.exitPortal.children.length > 0) {
                 this.exitPortal.children[0].rotation.z += delta * 2;
                 this.exitPortal.children[1].rotation.y -= delta;
