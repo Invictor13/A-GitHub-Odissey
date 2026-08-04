@@ -486,27 +486,21 @@ export class ProceduralMap {
     }
 
     checkCollision(pos, radius = 0.4) {
-        // AABB check against solid/empty grid tiles
-        const minX = Math.floor(pos.x - radius + this.gridSize / 2 + 0.5);
-        const maxX = Math.floor(pos.x + radius + this.gridSize / 2 + 0.5);
-        const minZ = Math.floor(pos.z - radius + this.gridSize / 2 + 0.5);
-        const maxZ = Math.floor(pos.z + radius + this.gridSize / 2 + 0.5);
+        const cornersX = [pos.x - radius, pos.x + radius];
+        const cornersZ = [pos.z - radius, pos.z + radius];
 
-        for (let x = minX; x <= maxX; x++) {
-            for (let z = minZ; z <= maxZ; z++) {
-                if (x < 0 || x >= this.gridSize || z < 0 || z >= this.gridSize) {
-                    return true; // Collide with world boundaries
-                }
+        for (let cx of cornersX) {
+            for (let cz of cornersZ) {
+                let gx = Math.round(cx + this.gridSize / 2);
+                let gz = Math.round(cz + this.gridSize / 2);
 
-                const cell = this.grid[x][z];
-                // Treat solid (with no depth fallback) or empty as collidable at player height
-                if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cell.type === this.TILE_WATER) {
-                     return true;
-                }
-
-                // Add slope check: if elevation diff is too high (>1 block), block it
-                const cellY = cell.elev * this.STEP_HEIGHT;
-                if (cellY > pos.y + 0.8) {
+                if (gx >= 0 && gx < this.gridSize && gz >= 0 && gz < this.gridSize) {
+                    let cell = this.grid[gx][gz];
+                    let cellElev = cell.elev * this.STEP_HEIGHT;
+                    if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cellElev > pos.y + 1.4) {
+                        return true;
+                    }
+                } else {
                     return true;
                 }
             }

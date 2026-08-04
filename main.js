@@ -68,12 +68,6 @@ if (instructions) {
     instructions.innerHTML = "WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara";
 }
 
-const CAMERA_SETTINGS = {
-    DEADZONE_X: 2.0,
-    DEADZONE_Z: 2.0,
-    SMOOTH_FACTOR: 8.0
-};
-
 // Global state
 window.gameState = {
     clock: new THREE.Clock(),
@@ -299,6 +293,8 @@ window.changeGameState = function(newState, params) {
 
             const spawnPos = currentEnvironment.getPlayerSpawnPosition();
             penitent.group.position.copy(spawnPos);
+
+            camera.position.copy(penitent.group.position).add(new THREE.Vector3(14, 18, 14));
         }
     }
 };
@@ -337,33 +333,10 @@ function animate() {
         penitent.update(window.gameState.delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc);
 
         if (penitent.group && penitent.group.visible) {
-            // Camera Smoothing & Deadzone logic
             const playerPos = penitent.group.position;
-            const targetPos = controls.target.clone();
-
-            // Check Deadzone
-            if (Math.abs(playerPos.x - targetPos.x) > CAMERA_SETTINGS.DEADZONE_X) {
-                targetPos.x = playerPos.x > targetPos.x
-                    ? playerPos.x - CAMERA_SETTINGS.DEADZONE_X
-                    : playerPos.x + CAMERA_SETTINGS.DEADZONE_X;
-            }
-            if (Math.abs(playerPos.z - targetPos.z) > CAMERA_SETTINGS.DEADZONE_Z) {
-                targetPos.z = playerPos.z > targetPos.z
-                    ? playerPos.z - CAMERA_SETTINGS.DEADZONE_Z
-                    : playerPos.z + CAMERA_SETTINGS.DEADZONE_Z;
-            }
-
-            // Y position directly follows to handle jumps and slopes without deadzone
-            targetPos.y = playerPos.y;
-
-            // Clamp Target to Map Bounds (Camera Clamping)
-            if (mapBounds) {
-                targetPos.x = Math.max(mapBounds.minX, Math.min(mapBounds.maxX, targetPos.x));
-                targetPos.z = Math.max(mapBounds.minZ, Math.min(mapBounds.maxZ, targetPos.z));
-            }
 
             const prevTarget = controls.target.clone();
-            controls.target.lerp(targetPos, CAMERA_SETTINGS.SMOOTH_FACTOR * window.gameState.delta);
+            controls.target.lerp(playerPos, 8 * window.gameState.delta);
             const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
             camera.position.add(camShift);
 
