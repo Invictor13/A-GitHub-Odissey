@@ -262,6 +262,10 @@ window.changeGameState = function(newState, params) {
             if (penitent.group) penitent.group.visible = true;
             penitent.group.position.set(0, 5, 0);
         }
+        if (penitent.group) {
+            camera.position.copy(penitent.group.position).add(new THREE.Vector3(14, 18, 14));
+            controls.target.copy(penitent.group.position);
+        }
     } else if (GAME_STATE === 'WORLD_MAP') {
         currentEnvironment = new WorldMap(scene);
 
@@ -295,6 +299,7 @@ window.changeGameState = function(newState, params) {
             penitent.group.position.copy(spawnPos);
 
             camera.position.copy(penitent.group.position).add(new THREE.Vector3(14, 18, 14));
+            controls.target.copy(penitent.group.position);
         }
     }
 };

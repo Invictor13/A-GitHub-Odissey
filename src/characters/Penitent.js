@@ -19,8 +19,6 @@ export class Penitent {
         this.isResetting = false;
 
         // Physics constants
-        this.acceleration = 224.0; // Increased to allow reaching higher terminal velocities against friction
-        this.friction = 12.0; // Damping
         this.maxSpeed = 10.0;
         this.maxRunSpeed = 20.0;
         this.animTime = 0;
@@ -716,7 +714,7 @@ export class Penitent {
             }
         }
 
-        this.updateAnimations(delta, isMoving, Math.sqrt(currentSpeedSq));
+        this.updateAnimations(delta, isMoving, isMoving ? targetSpeed * analogMag : 0);
     }
 
     // Will be injected by the environment (e.g. WorldMap or ProceduralMap)
