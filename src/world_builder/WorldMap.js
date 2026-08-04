@@ -79,7 +79,7 @@ export class WorldMap {
     }
 
     setupLighting() {
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        this.ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         this.worldGroup.add(this.ambientLight);
 
         this.sunLight = new THREE.DirectionalLight(0xffffff, 1.2);

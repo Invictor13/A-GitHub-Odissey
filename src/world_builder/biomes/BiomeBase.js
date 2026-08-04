@@ -1,7 +1,46 @@
 import * as THREE from 'three';
 
+// Simple 2D Noise Implementation (Value Noise)
+function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function lerp(t, a, b) { return a + t * (b - a); }
+function grad(hash, x, y) {
+    const h = hash & 3;
+    let u = h < 2 ? x : y;
+    let v = h < 2 ? y : x;
+    return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+}
+
+class SimpleNoise2D {
+    constructor(seed = 12345) {
+        this.p = new Uint8Array(512);
+        const permutation = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) {
+            permutation[i] = Math.floor(Math.abs(Math.sin(seed + i) * 256)) % 256;
+        }
+        for (let i = 0; i < 256; i++) {
+            this.p[i] = permutation[i];
+            this.p[i + 256] = permutation[i];
+        }
+    }
+
+    noise(x, y) {
+        const X = Math.floor(x) & 255;
+        const Y = Math.floor(y) & 255;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        const u = fade(x);
+        const v = fade(y);
+        const A = this.p[X] + Y;
+        const B = this.p[X + 1] + Y;
+
+        return lerp(v, lerp(u, grad(this.p[A], x, y), grad(this.p[B], x - 1, y)),
+                       lerp(u, grad(this.p[A + 1], x, y - 1), grad(this.p[B + 1], x - 1, y - 1)));
+    }
+}
+
 export class BiomeBase {
     constructor(scene, mapInstance) {
+        this.noiseGen = new SimpleNoise2D(Math.random() * 10000);
         this.scene = scene;
         this.map = mapInstance;
 
