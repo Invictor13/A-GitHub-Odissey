@@ -486,6 +486,12 @@ export class ProceduralMap {
                 if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cell.type === this.TILE_WATER) {
                      return true;
                 }
+
+                // Add slope check: if elevation diff is too high (>1 block), block it
+                const cellY = cell.elev * this.STEP_HEIGHT;
+                if (cellY > pos.y + 0.8) {
+                    return true;
+                }
             }
         }
         return false;
