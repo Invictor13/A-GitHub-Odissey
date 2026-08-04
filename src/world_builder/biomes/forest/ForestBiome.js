@@ -69,14 +69,27 @@ export class ForestBiome extends BiomeBase {
         this.grassGeo = new THREE.BufferGeometry();
         this.grassGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.12, 0, 0, 0.12, 0, 0, 0.0, 0.6, 0]), 3));
         this.grassGeo.computeVertexNormals();
+
+        // Props Geometries
+        this.pebbleGeo = new THREE.TetrahedronGeometry(0.15, 0);
+        this.stumpGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.4, 5);
+        this.stumpGeo.translate(0, 0.2, 0);
+        this.highGrassGeo = new THREE.ConeGeometry(0.2, 0.8, 3);
+        this.highGrassGeo.translate(0, 0.4, 0);
+
+        // Props Materials
+        this.matPebble = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, ...this.matBase });
+        this.matStump = new THREE.MeshStandardMaterial({ color: 0x3d2817, ...this.matBase });
+        this.matHighGrass = new THREE.MeshStandardMaterial({ color: 0x314c1e, ...this.matBase });
     }
 
     build3DGeometry(terrainGroup, chunksList) {
         const offsetX = -this.gridSize/2;
         const offsetZ = -this.gridSize/2;
 
-        const baseGrassColor = new THREE.Color(0x2e5c1e);
-        const baseDirtColor = new THREE.Color(0x271c19);
+        const colorLightGreen = new THREE.Color(0x4a7c36);
+        const colorDarkGreen = new THREE.Color(0x1f4214);
+        const colorEarthyVein = new THREE.Color(0x2a2522); // Dark earthy grey/brown for purgatory decay
         const tempColor = new THREE.Color();
 
         const numChunksX = Math.ceil(this.gridSize / this.CHUNK_SIZE);
@@ -91,6 +104,7 @@ export class ForestBiome extends BiomeBase {
                 const floorGeos = [], dirtGeos = [], waterGeos = [];
                 const grassMatrices = [], rockMatrices = [], canopyBaseMatrices = [];
                 const trunkMatrices = [], trunkData = [], rockData = [];
+                const pebbleMatrices = [], stumpMatrices = [], highGrassMatrices = [];
 
                 const startX = cx * this.CHUNK_SIZE;
                 const endX = Math.min(this.gridSize, (cx + 1) * this.CHUNK_SIZE);
@@ -168,19 +182,60 @@ export class ForestBiome extends BiomeBase {
                         } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
                             const vColors = []; const vCount = fGeo.attributes.position.count;
+                            const posAttr = fGeo.attributes.position;
+
+                            // Determine cell base color based on noise
+                            let noiseVal = this.noiseGen.noise(px * 0.15, pz * 0.15);
+                            let cellColor = colorLightGreen;
+                            if (noiseVal < -0.3) {
+                                cellColor = colorEarthyVein;
+                            } else if (noiseVal < 0.2) {
+                                cellColor = colorDarkGreen;
+                            }
 
                             for(let vc=0; vc<vCount; vc++) {
-                                tempColor.copy(baseGrassColor);
-                                tempColor.offsetHSL(0, 0, (Math.random()-0.5)*0.08);
+                                let vx = posAttr.getX(vc);
+                                let vz = posAttr.getZ(vc);
+                                // add high freq noise for vertex variation
+                                let vNoise = this.noiseGen.noise(vx * 0.8, vz * 0.8);
+
+                                tempColor.copy(cellColor);
+                                tempColor.offsetHSL(0, 0, vNoise * 0.05); // slight variation
                                 vColors.push(tempColor.r, tempColor.g, tempColor.b);
                             }
                             fGeo.setAttribute('color', new THREE.Float32BufferAttribute(vColors, 3));
                             floorGeos.push(fGeo);
 
-                            for(let i=0; i<4; i++) {
+                            // Only place grass heavily if it's a green patch, skip on earthy veins
+                            let grassCount = noiseVal < -0.3 ? 0 : (noiseVal > 0.4 ? 6 : 3);
+                            if (cell.type === this.TILE_TRAIL) grassCount = 0;
+
+                            for(let i=0; i<grassCount; i++) {
                                 dummy.position.set(px + (Math.random()-0.5)*0.9, surfaceY, pz + (Math.random()-0.5)*0.9);
                                 dummy.rotation.y = Math.random() * Math.PI; dummy.scale.setScalar(0.8 + Math.random()*0.8);
-                                dummy.updateMatrix(); grassMatrices.push({ matrix: dummy.matrix.clone(), color: baseGrassColor });
+                                dummy.updateMatrix(); grassMatrices.push({ matrix: dummy.matrix.clone(), color: cellColor });
+                            }
+
+                            // High Grass (tufo de mato mais alto)
+                            if (noiseVal > 0.5 && cell.type !== this.TILE_TRAIL && Math.random() < 0.4) {
+                                dummy.position.set(px + (Math.random()-0.5)*0.8, surfaceY, pz + (Math.random()-0.5)*0.8);
+                                dummy.rotation.set(0, Math.random() * Math.PI, 0); dummy.scale.setScalar(0.8 + Math.random()*0.6);
+                                dummy.updateMatrix(); highGrassMatrices.push(dummy.matrix.clone());
+                            }
+
+                            // Pebbles (pedrinhas)
+                            if (noiseVal < -0.2 && Math.random() < 0.3) {
+                                dummy.position.set(px + (Math.random()-0.5)*0.8, surfaceY + 0.05, pz + (Math.random()-0.5)*0.8);
+                                dummy.rotation.set(Math.random(), Math.random(), Math.random()); dummy.scale.setScalar(0.5 + Math.random()*1.0);
+                                dummy.updateMatrix(); pebbleMatrices.push(dummy.matrix.clone());
+                            }
+
+                            // Dead Stump (tocos de madeira morta)
+                            if (noiseVal > -0.1 && noiseVal < 0.1 && Math.random() < 0.05 && cell.type !== this.TILE_TRAIL) {
+                                dummy.position.set(px + (Math.random()-0.5)*0.8, surfaceY, pz + (Math.random()-0.5)*0.8);
+                                dummy.rotation.set((Math.random()-0.5)*0.2, Math.random() * Math.PI, (Math.random()-0.5)*0.2);
+                                dummy.scale.setScalar(0.8 + Math.random()*0.5);
+                                dummy.updateMatrix(); stumpMatrices.push(dummy.matrix.clone());
                             }
                         }
                     }
@@ -203,6 +258,20 @@ export class ForestBiome extends BiomeBase {
                 if (rockMatrices.length > 0) {
                     iRock = new THREE.InstancedMesh(this.rockGeo, this.matRock.clone(), rockMatrices.length);
                     rockMatrices.forEach((m, i) => iRock.setMatrixAt(i, m)); iRock.castShadow = true; iRock.receiveShadow = true; chunkGroup.add(iRock);
+                }
+
+                // Add Props
+                if (pebbleMatrices.length > 0) {
+                    const iPebble = new THREE.InstancedMesh(this.pebbleGeo, this.matPebble, pebbleMatrices.length);
+                    pebbleMatrices.forEach((m, i) => iPebble.setMatrixAt(i, m)); chunkGroup.add(iPebble);
+                }
+                if (stumpMatrices.length > 0) {
+                    const iStump = new THREE.InstancedMesh(this.stumpGeo, this.matStump, stumpMatrices.length);
+                    stumpMatrices.forEach((m, i) => iStump.setMatrixAt(i, m)); iStump.castShadow = true; iStump.receiveShadow = true; chunkGroup.add(iStump);
+                }
+                if (highGrassMatrices.length > 0) {
+                    const iHighGrass = new THREE.InstancedMesh(this.highGrassGeo, this.matHighGrass, highGrassMatrices.length);
+                    highGrassMatrices.forEach((m, i) => iHighGrass.setMatrixAt(i, m)); chunkGroup.add(iHighGrass);
                 }
 
                 let instCanopyMesh = null;

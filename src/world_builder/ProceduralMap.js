@@ -38,6 +38,10 @@ export class ProceduralMap {
         this.exitPortal = null;
         this.portalSpawned = false;
         this.portalActive = false;
+
+        // Setup HemisphereLight for the biome
+        this.hemisphereLight = new THREE.HemisphereLight(0x0f172a, 0x1f4214, 0.6); // Dark blue sky, earthy green ground
+        this.scene.add(this.hemisphereLight);
         this.portalInteractable = false;
         this.currentIslandData = null;
 
@@ -297,6 +301,12 @@ export class ProceduralMap {
         this.enemyManager.cleanup();
         this.enemies = [];
         this.totalEnemiesSpawned = 0;
+
+        if (this.hemisphereLight) {
+            this.scene.remove(this.hemisphereLight);
+            this.hemisphereLight.dispose?.();
+            this.hemisphereLight = null;
+        }
 
         if (this.exitPortal) {
             this.mapGroup.remove(this.exitPortal);
