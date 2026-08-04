@@ -335,10 +335,11 @@ function animate() {
         if (penitent.group && penitent.group.visible) {
             const playerPos = penitent.group.position;
 
-            const prevTarget = controls.target.clone();
             controls.target.lerp(playerPos, 8 * window.gameState.delta);
-            const camShift = new THREE.Vector3().subVectors(controls.target, prevTarget);
-            camera.position.add(camShift);
+
+            // Avoid creating a new Vector3 every frame
+            if (!window.cameraOffset) window.cameraOffset = new THREE.Vector3(14, 18, 14);
+            camera.position.copy(playerPos).add(window.cameraOffset);
 
             controls.update();
         }

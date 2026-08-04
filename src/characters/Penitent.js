@@ -14,8 +14,6 @@ export class Penitent {
 
         this.isGrounded = true;
         this.keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
-        this.velocityX = 0;
-        this.velocityZ = 0;
         this.velocityY = 0;
         this.lastSafePos = new THREE.Vector3(0, 5, 0);
         this.isResetting = false;
@@ -608,80 +606,63 @@ export class Penitent {
             }
         }
 
-        const inputVec = new THREE.Vector3(inputX, 0, inputZ);
-        if (inputVec.lengthSq() > 0) inputVec.normalize();
+        const moveVec = new THREE.Vector3(inputX, 0, inputZ);
 
-        // Apply acceleration based on input
-        if (inputVec.lengthSq() > 0) {
-            this.velocityX += inputVec.x * this.acceleration * analogMag * delta;
-            this.velocityZ += inputVec.z * this.acceleration * analogMag * delta;
-        }
+        let targetSpeed = this.keys.shift ? this.maxRunSpeed : this.maxSpeed;
+        if (this.isDefending) targetSpeed = this.keys.shift ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
+        if (this.isSwimming) targetSpeed = 5;
 
-        // Apply friction/damping using exponential decay to prevent overshooting at low framerates
-        const dampingFactor = Math.max(0, 1 - this.friction * delta);
-        this.velocityX *= dampingFactor;
-        this.velocityZ *= dampingFactor;
-
-        // Cap speed
-        const currentSpeedSq = this.velocityX * this.velocityX + this.velocityZ * this.velocityZ;
-
-        let targetMaxSpeed = this.keys.shift ? this.maxRunSpeed : this.maxSpeed;
-        if (this.isDefending) targetMaxSpeed = this.keys.shift ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
-        if (this.isSwimming) targetMaxSpeed = 5;
-
-        if (currentSpeedSq > targetMaxSpeed * targetMaxSpeed) {
-            const currentSpeed = Math.sqrt(currentSpeedSq);
-            this.velocityX = (this.velocityX / currentSpeed) * targetMaxSpeed;
-            this.velocityZ = (this.velocityZ / currentSpeed) * targetMaxSpeed;
-        }
-
-        // Rotation
-        if (currentSpeedSq > 0.1) {
+        if (moveVec.lengthSq() > 0) {
             isMoving = true;
-            if (!this.isDefending || this.isSwimming) {
-                const targetAngle = Math.atan2(this.velocityX, this.velocityZ);
+            moveVec.normalize().multiplyScalar(targetSpeed * analogMag * delta);
+
+            const playerRadius = 0.4;
+            const originalX = this.group.position.x;
+            const originalZ = this.group.position.z;
+
+            // Check X movement
+            let nextPosX = originalX + moveVec.x;
+            const testPosX = new THREE.Vector3(nextPosX, this.group.position.y, originalZ);
+            let canMoveX = true;
+
+            if (checkCollisionFunc && checkCollisionFunc(testPosX, playerRadius)) {
+                canMoveX = false;
+            }
+
+            // Check Z movement
+            let nextPosZ = originalZ + moveVec.z;
+            const testPosZ = new THREE.Vector3(originalX, this.group.position.y, nextPosZ);
+            let canMoveZ = true;
+
+            if (checkCollisionFunc && checkCollisionFunc(testPosZ, playerRadius)) {
+                canMoveZ = false;
+            }
+
+            if (canMoveX) this.group.position.x = nextPosX;
+            if (canMoveZ) this.group.position.z = nextPosZ;
+
+            // Rotation
+            if (canMoveX || canMoveZ) {
+                const targetAngle = Math.atan2(moveVec.x, moveVec.z);
                 let diff = targetAngle - this.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                this.group.rotation.y += diff * 12 * delta;
-            } else if (this.isDefending) {
-                 const targetAngle = Math.atan2(this.velocityX, this.velocityZ);
-                 let diff = targetAngle - this.group.rotation.y;
-                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                 this.group.rotation.y += diff * 4 * delta;
+
+                if (!this.isDefending || this.isSwimming) {
+                    this.group.rotation.y += diff * 12 * delta;
+                } else {
+                    this.group.rotation.y += diff * 4 * delta;
+                }
             }
-        }
-
-        // Movement with proper AABB wall check against static grid logic
-        const playerRadius = 0.4; // Approximated cylinder collision radius for Penitent
-
-        // Check X movement
-        let nextPosX = this.group.position.x + this.velocityX * delta;
-        const testPos = new THREE.Vector3(nextPosX, this.group.position.y, this.group.position.z);
-
-        if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
-            this.velocityX = 0;
-        } else {
-            this.group.position.x = nextPosX;
-        }
-
-        // Check Z movement
-        let nextPosZ = this.group.position.z + this.velocityZ * delta;
-        testPos.set(this.group.position.x, this.group.position.y, nextPosZ);
-
-        if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
-            this.velocityZ = 0;
-        } else {
-            this.group.position.z = nextPosZ;
         }
 
         // Clamp to World Bounds if provided
         if (getMapBoundsFunc) {
             const bounds = getMapBoundsFunc();
             if (bounds) {
-                if (this.group.position.x < bounds.minX) { this.group.position.x = bounds.minX; this.velocityX = 0; }
-                if (this.group.position.x > bounds.maxX) { this.group.position.x = bounds.maxX; this.velocityX = 0; }
-                if (this.group.position.z < bounds.minZ) { this.group.position.z = bounds.minZ; this.velocityZ = 0; }
-                if (this.group.position.z > bounds.maxZ) { this.group.position.z = bounds.maxZ; this.velocityZ = 0; }
+                if (this.group.position.x < bounds.minX) { this.group.position.x = bounds.minX; }
+                if (this.group.position.x > bounds.maxX) { this.group.position.x = bounds.maxX; }
+                if (this.group.position.z < bounds.minZ) { this.group.position.z = bounds.minZ; }
+                if (this.group.position.z > bounds.maxZ) { this.group.position.z = bounds.maxZ; }
             }
         }
 
@@ -745,8 +726,6 @@ export class Penitent {
 
     triggerAbyssReset() {
         this.isResetting = true;
-        this.velocityX = 0;
-        this.velocityZ = 0;
         this.velocityY = 0;
 
         // Create a quick fade effect
