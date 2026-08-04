@@ -27,6 +27,7 @@ export class Penitent {
         this.maxRunSpeed = 20.0;
         this.animTime = 0;
         this.prevPosY = 0;
+        this.smoothedDeltaY = 0;
         this.isAttacking = false;
         this.attackTimer = 0;
         this.ATTACK_DURATION = 0.4;
@@ -346,8 +347,10 @@ export class Penitent {
         this.headPivot.rotation.set(0, 0, 0); this.torso.rotation.set(0, 0, 0);
         this.bodyGroup.position.set(0, 0, 0); this.torso.scale.set(1.2, 1, 0.95);
 
-        const deltaY = this.penitente.position.y - this.prevPosY; this.prevPosY = this.penitente.position.y;
-        let gravityImpact = -deltaY * 6.0; if (this.isSwimming) gravityImpact = 0.5;
+        const rawDeltaY = this.penitente.position.y - this.prevPosY; this.prevPosY = this.penitente.position.y;
+        this.smoothedDeltaY += (rawDeltaY - this.smoothedDeltaY) * 15.0 * delta;
+
+        let gravityImpact = -this.smoothedDeltaY * 6.0; if (this.isSwimming) gravityImpact = 0.5;
 
         const windDrag = isMoving ? (moveSpeed > 10 ? -0.7 : -0.3) : 0;
         const runBounce = isMoving && this.isGrounded && !this.isSwimming ? Math.abs(Math.sin(this.animTime * (this.keys.shift ? 18 : 10))) * 0.3 : 0;
@@ -694,9 +697,12 @@ export class Penitent {
         }
 
         if (this.group.position.y <= floorY) {
-            this.group.position.y = floorY;
             this.velocityY = 0;
             this.isGrounded = true;
+
+            // Smoothly glide character to target floorY to absorb steps
+            this.group.position.y += (floorY - this.group.position.y) * 15.0 * delta;
+
             // Update last safe pos when grounded and not falling
             this.lastSafePos.copy(this.group.position);
         }
