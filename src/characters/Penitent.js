@@ -654,9 +654,12 @@ export class Penitent {
         // Movement with proper AABB wall check against static grid logic
         const playerRadius = 0.4; // Approximated cylinder collision radius for Penitent
 
+        const originalX = this.group.position.x;
+        const originalZ = this.group.position.z;
+
         // Check X movement
-        let nextPosX = this.group.position.x + this.velocityX * delta;
-        const testPos = new THREE.Vector3(nextPosX, this.group.position.y, this.group.position.z);
+        let nextPosX = originalX + this.velocityX * delta;
+        const testPos = new THREE.Vector3(nextPosX, this.group.position.y, originalZ);
 
         if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
             this.velocityX = 0;
@@ -665,8 +668,8 @@ export class Penitent {
         }
 
         // Check Z movement
-        let nextPosZ = this.group.position.z + this.velocityZ * delta;
-        testPos.set(this.group.position.x, this.group.position.y, nextPosZ);
+        let nextPosZ = originalZ + this.velocityZ * delta;
+        testPos.set(originalX, this.group.position.y, nextPosZ);
 
         if (checkCollisionFunc && checkCollisionFunc(testPos, playerRadius)) {
             this.velocityZ = 0;
