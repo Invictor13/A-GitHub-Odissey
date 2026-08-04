@@ -1,8 +1,6 @@
 import { LootManager } from "./LootManager.js";
 import * as THREE from 'three';
 
-const AI_CULLING_DISTANCE = 45;
-
 export class EnemyManager {
     constructor(scene) {
         this.scene = scene;
@@ -92,14 +90,8 @@ export class EnemyManager {
                 continue;
             }
 
-            // Spatial Culling: only update AI if within distance
-            const dx = enemy.group.position.x - playerPos.x;
-            const dz = enemy.group.position.z - playerPos.z;
-            const distSq = dx * dx + dz * dz;
-
-            if (distSq <= AI_CULLING_DISTANCE * AI_CULLING_DISTANCE) {
-                enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
-            }
+            // Update AI for all active enemies without spatial culling
+            enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
         }
     }
 
