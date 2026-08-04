@@ -401,7 +401,14 @@ export class ProceduralMap {
 
         this.updateAntiOcclusion(delta, camera, targetPos);
 
-        this.enemyManager.update(delta, window.penitentGroup || { position: targetPos }, window.inventoryUI, window.showToast);
+        this.enemyManager.update(
+            delta,
+            window.penitentGroup || { position: targetPos },
+            window.inventoryUI,
+            window.showToast,
+            this.getFloorY.bind(this),
+            this.checkCollision.bind(this)
+        );
 
         let allDead = this.enemyManager.areAllEnemiesDead();
 

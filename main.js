@@ -285,6 +285,18 @@ window.changeGameState = function(newState, params) {
         if (penitent) {
             window.penitentGroup = penitent.group;
             if (penitent.group) penitent.group.visible = true;
+
+            // Connect attack callbacks if in a procedurally generated map
+            if (currentEnvironment instanceof ProceduralMap) {
+                penitent.setMeleeHitCallback((pos, fwd, dmg, dist) => {
+                    if (currentEnvironment.enemyManager) {
+                        currentEnvironment.enemyManager.checkMeleeHit(pos, fwd, dmg, dist);
+                    }
+                });
+            } else {
+                penitent.setMeleeHitCallback(null);
+            }
+
             const spawnPos = currentEnvironment.getPlayerSpawnPosition();
             penitent.group.position.copy(spawnPos);
         }
