@@ -456,6 +456,14 @@ export class Penitent {
                             this.hasHit = true; const tipPos = new THREE.Vector3();
                             if(this.currWeapon === 0) this.swordTip.getWorldPosition(tipPos); else this.axeGroup.getWorldPosition(tipPos);
                             this.spawnVFX(tipPos, 'slash', 12);
+
+                            if (this.onMeleeHit) {
+                                const forward = new THREE.Vector3();
+                                this.group.getWorldDirection(forward);
+                                // The damage can be determined by the equipped weapon or a default value
+                                // 12 damage was used in the concept code, let's pass a base of 15
+                                this.onMeleeHit(this.group.position, forward, 15, 5.5);
+                            }
                         }
                         attackImpact = Math.sin(((p - 0.5) / 0.5) * Math.PI) * 2.0;
                         this.bodyGroup.position.y -= attackImpact * 0.05; this.torso.rotation.x += attackImpact * 0.15;
@@ -722,6 +730,11 @@ export class Penitent {
         }
 
         this.updateAnimations(delta, isMoving, Math.sqrt(currentSpeedSq));
+    }
+
+    // Will be injected by the environment (e.g. WorldMap or ProceduralMap)
+    setMeleeHitCallback(callback) {
+        this.onMeleeHit = callback;
     }
 
     triggerAbyssReset() {

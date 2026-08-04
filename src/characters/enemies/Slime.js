@@ -75,12 +75,22 @@ export class Slime extends Enemy {
 
         this.time = Math.random() * 10;
         this.mouthOpenAmount = 0;
+        this.attackCooldown = 0;
+        this.velocityY = 0;
     }
 
-    update(delta, playerPos) {
+    update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
+
+        // Handle parameters based on the new signature where we pass a context object or vector
+        const playerPos = playerContext?.pos || playerContext;
+
         super.update(delta, playerPos);
         this.time += delta;
+
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= delta;
+        }
 
         // Animate bubbles
         this.bubbles.forEach(b => {
@@ -117,10 +127,63 @@ export class Slime extends Enemy {
         if (!playerPos) return;
         const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
         dir.y = 0;
-        if (dir.length() > 0.5 && hopCycle > 0) {
+
+        const distToPlayer = dir.length();
+
+        if (distToPlayer > 0.5 && hopCycle > 0) {
             dir.normalize();
-            this.group.position.addScaledVector(dir, 1.5 * delta);
+
+            const pRad = 0.4;
+            let nextX = this.group.position.x + dir.x * 1.5 * delta;
+            let nextZ = this.group.position.z + dir.z * 1.5 * delta;
+
+            if (checkCollisionFunc) {
+                // Check X movement
+                const testPosX = new THREE.Vector3(nextX, this.group.position.y, this.group.position.z);
+                if (checkCollisionFunc(testPosX, pRad)) {
+                    nextX = this.group.position.x; // Blocked on X
+                }
+
+                // Check Z movement
+                const testPosZ = new THREE.Vector3(this.group.position.x, this.group.position.y, nextZ);
+                if (checkCollisionFunc(testPosZ, pRad)) {
+                    nextZ = this.group.position.z; // Blocked on Z
+                }
+            }
+
+            this.group.position.x = nextX;
+            this.group.position.z = nextZ;
+
             this.group.rotation.y = Math.atan2(dir.x, dir.z);
+        }
+
+        // Attack logic
+        if (distToPlayer < 2.0 && this.attackCooldown <= 0) {
+            if (playerContext && typeof playerContext.takeDamage === 'function') {
+                playerContext.takeDamage(12);
+            }
+            this.attackCooldown = 1.0;
+        }
+
+        // Floor logic
+        this.velocityY -= 60 * delta; // Gravity
+        this.group.position.y += this.velocityY * delta;
+
+        if (getFloorFunc) {
+            const floorY = getFloorFunc(this.group.position);
+
+            if (this.group.position.y < floorY - 5.0) {
+                // Abyss detector fallback
+                this.isDead = true;
+                this.hp = 0;
+                this.destroy();
+                return;
+            }
+
+            if (this.group.position.y <= floorY) {
+                this.group.position.y = floorY;
+                this.velocityY = 0;
+            }
         }
     }
 
