@@ -206,32 +206,113 @@ window.addEventListener('keydown', (e) => {
 
 // Hub Interactions
 window.addEventListener('keydown', (e) => {
-    if (GAME_STATE === 'HUB' && currentEnvironment && currentEnvironment.isNearEros) {
-        if (e.key.toLowerCase() === 'e' && !currentEnvironment.isModalOpen) {
-            currentEnvironment.isModalOpen = true;
-            if (buildModal) buildModal.style.display = 'flex';
-            const prompt = document.getElementById('interaction-prompt');
-            if (prompt) prompt.style.opacity = '0';
+    if (GAME_STATE === 'HUB') {
+        if (e.key.toLowerCase() === 'e' && window.currentNearbyObject && window.hubBuildingState !== 'BUILDING_GRID') {
+            window.currentNearbyObject.action();
+        }
+        if (e.key === 'Escape') {
+            if (window.hubBuildingState === 'BUILDING_GRID' && currentEnvironment) {
+                currentEnvironment.cancelGridPlacement();
+            } else if (window.hubBuildingState === 'BUILDING') {
+                document.getElementById('btn-close-build').click();
+            } else if (!document.getElementById('journal-ui').classList.contains('hidden')) {
+                document.getElementById('btn-close-journal').click();
+            }
+        }
+        if (e.key.toLowerCase() === 'r' && window.hubBuildingState === 'BUILDING_GRID' && currentEnvironment && currentEnvironment.previewMesh) {
+            currentEnvironment.previewRotationY += Math.PI / 8;
+            currentEnvironment.previewMesh.rotation.y = currentEnvironment.previewRotationY;
         }
     }
 });
 
-if (btnCloseModal) {
-    btnCloseModal.addEventListener('click', () => {
-        buildModal.style.display = 'none';
-        if (currentEnvironment) {
-            setTimeout(() => { currentEnvironment.isModalOpen = false; }, 100);
+// Setup Hub UI Event Listeners
+const btnInteract = document.getElementById('interaction-prompt');
+if(btnInteract) {
+    btnInteract.addEventListener('click', () => {
+        if (window.currentNearbyObject && GAME_STATE === 'HUB') {
+            window.currentNearbyObject.action();
         }
     });
 }
 
-if (btnEmbarkModal) {
-    btnEmbarkModal.addEventListener('click', () => {
-        buildModal.style.display = 'none';
-        if (currentEnvironment) currentEnvironment.isModalOpen = false;
+const btnCloseBuild = document.getElementById('btn-close-build');
+if (btnCloseBuild) {
+    btnCloseBuild.addEventListener('click', () => {
+        window.hubBuildingState = 'EXPLORING';
+        document.getElementById('build-ui').classList.add('hidden');
+        document.getElementById('hub-status-ui').classList.remove('opacity-0');
+    });
+}
+
+const btnCloseJournal = document.getElementById('btn-close-journal');
+if (btnCloseJournal) {
+    btnCloseJournal.addEventListener('click', () => {
+        document.getElementById('journal-ui').classList.add('hidden');
+    });
+}
+
+const btnCancelGrid = document.getElementById('btn-cancel-grid');
+if (btnCancelGrid) {
+    btnCancelGrid.addEventListener('click', () => {
+        if(currentEnvironment) currentEnvironment.cancelGridPlacement();
+    });
+}
+
+// Tab Switching in Eros Menu
+const tabConstructionsBtn = document.getElementById('tab-btn-constructions');
+const tabDecorationsBtn = document.getElementById('tab-btn-decorations');
+const tabFloorsBtn = document.getElementById('tab-btn-floors');
+
+const contentConstructions = document.getElementById('tab-content-constructions');
+const contentDecorations = document.getElementById('tab-content-decorations');
+const contentFloors = document.getElementById('tab-content-floors');
+
+function switchTab(activeBtn, showContent) {
+    [tabConstructionsBtn, tabDecorationsBtn, tabFloorsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+    [contentConstructions, contentDecorations, contentFloors].forEach(c => { if(c) c.classList.add('hidden'); });
+
+    if(activeBtn) activeBtn.classList.add('active');
+    if(showContent) showContent.classList.remove('hidden');
+}
+
+if(tabConstructionsBtn) tabConstructionsBtn.addEventListener('click', () => switchTab(tabConstructionsBtn, contentConstructions));
+if(tabDecorationsBtn) tabDecorationsBtn.addEventListener('click', () => switchTab(tabDecorationsBtn, contentDecorations));
+if(tabFloorsBtn) tabFloorsBtn.addEventListener('click', () => switchTab(tabFloorsBtn, contentFloors));
+
+// Card Click Event Bindings
+const bindCard = (id, type) => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(currentEnvironment) currentEnvironment.startGridPlacement(type);
+    });
+};
+
+bindCard('card-build-tent', 'barraca');
+bindCard('card-build-campfire', 'fogueira');
+bindCard('card-build-fence', 'fence');
+bindCard('card-build-bench', 'bench');
+bindCard('card-build-lantern', 'lantern');
+bindCard('card-build-target', 'target');
+bindCard('card-build-tree', 'tree');
+bindCard('card-build-pot', 'pot');
+bindCard('card-build-chest', 'chest');
+bindCard('card-build-mud-tile', 'mud_tile');
+bindCard('card-build-stone-tile', 'stone_tile');
+bindCard('card-build-wood-tile', 'wood_tile');
+bindCard('card-build-granite-tile', 'granite_tile');
+
+const cardEmbark = document.getElementById('card-embark');
+if(cardEmbark) {
+    cardEmbark.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (btnCloseBuild) btnCloseBuild.click();
         window.changeGameState('WORLD_MAP');
     });
 }
+
+window.hubBuildingState = 'EXPLORING';
 
 // Initialize Background Scene for Menu
 currentEnvironment = new HubEnvironment(scene);
@@ -255,20 +336,40 @@ window.changeGameState = function(newState, params) {
     }
 
     if (GAME_STATE === 'HUB') {
-        currentEnvironment = new HubEnvironment(scene);
+        currentEnvironment = new HubEnvironment(scene, camera);
+
+        const hubUI = document.getElementById('hub-status-ui');
+        if(hubUI) {
+            hubUI.classList.remove('hidden');
+            setTimeout(() => { hubUI.classList.remove('opacity-0'); }, 100);
+        }
+
         if (!penitent) {
             penitent = new Penitent(scene);
             window.penitentGroup = penitent.group;
             penitent.isGrounded = true;
         } else {
             if (penitent.group) penitent.group.visible = true;
-            penitent.group.position.set(0, 5, 0);
+
+            // Check if there is a barraca to spawn at
+            const barracaData = window.gameState && window.gameState.hubState && window.gameState.hubState.structures ? window.gameState.hubState.structures.find(s => s.type === 'barraca') : null;
+            if (barracaData) {
+                penitent.group.position.set(barracaData.x, barracaData.y + 0.1, barracaData.z + 3.2);
+            } else {
+                penitent.group.position.set(0, 5, 0);
+            }
         }
         if (penitent.group) {
             camera.position.copy(penitent.group.position).add(new THREE.Vector3(14, 18, 14));
             controls.target.copy(penitent.group.position);
         }
     } else if (GAME_STATE === 'WORLD_MAP') {
+        const hubUI = document.getElementById('hub-status-ui');
+        if(hubUI) {
+            hubUI.classList.add('opacity-0');
+            setTimeout(() => { hubUI.classList.add('hidden'); }, 500);
+        }
+
         currentEnvironment = new WorldMap(scene);
 
         if (penitent && penitent.group) penitent.group.visible = false;
@@ -342,13 +443,35 @@ function animate() {
         if (penitent.group && penitent.group.visible) {
             const playerPos = penitent.group.position;
 
-            controls.target.lerp(playerPos, 8 * window.gameState.delta);
+            let targetCamPos, targetLookAt;
 
-            // Avoid creating a new Vector3 every frame
-            if (!window.cameraOffset) window.cameraOffset = new THREE.Vector3(14, 18, 14);
-            camera.position.copy(playerPos).add(window.cameraOffset);
+            if (GAME_STATE === 'HUB') {
+                if (window.hubBuildingState === 'INSIDE_TENT') {
+                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 4.5, 6.2));
+                    targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.2, -0.5));
+                } else if (window.hubBuildingState === 'BUILDING') {
+                    targetCamPos = new THREE.Vector3(2.5, 7.0, 7.0);
+                    targetLookAt = new THREE.Vector3(2.5, 0.5, 0.5);
+                } else if (window.hubBuildingState === 'BUILDING_GRID') {
+                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 22, 12));
+                    targetLookAt = playerPos.clone();
+                } else {
+                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 7.5, 10.5));
+                    targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.5, 0));
+                }
 
-            controls.update();
+                camera.position.lerp(targetCamPos, 5 * window.gameState.delta);
+                controls.target.lerp(targetLookAt, 8 * window.gameState.delta);
+                controls.update();
+            } else {
+                controls.target.lerp(playerPos, 8 * window.gameState.delta);
+
+                // Avoid creating a new Vector3 every frame
+                if (!window.cameraOffset) window.cameraOffset = new THREE.Vector3(14, 18, 14);
+                camera.position.copy(playerPos).add(window.cameraOffset);
+
+                controls.update();
+            }
         }
     }
     // Trava de segurança para a posição do jogador
