@@ -39,6 +39,8 @@ import { Enemy } from './Enemy.js';
 export class Skeleton extends Enemy {
     constructor(scene, position) {
         super(scene, position, 30, 2.0);
+        this.velocityY = 0;
+        this.attackCooldown = 0;
 
         this.animatedCloth = [];
 
@@ -124,20 +126,64 @@ export class Skeleton extends Enemy {
 
     }
 
-    update(delta, playerPos) {
+    update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
+        const playerPos = playerContext?.pos || playerContext;
         super.update(delta, playerPos); // Animation speed
+
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= delta;
+        }
 
         // Simple chase logic
         let isMoving = false;
         if (playerPos) {
             const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
             dir.y = 0;
-            if (dir.length() > 0.5) {
+            const dist = dir.length();
+            if (dist > 1.2) {
                 dir.normalize();
-                this.group.position.addScaledVector(dir, 2 * delta);
+
+                let nextX = this.group.position.x + dir.x * 2.0 * delta;
+                let nextZ = this.group.position.z + dir.z * 2.0 * delta;
+                const pRad = 0.4;
+
+                if (checkCollisionFunc) {
+                    const testPosX = new THREE.Vector3(nextX, this.group.position.y, this.group.position.z);
+                    if (checkCollisionFunc(testPosX, pRad)) nextX = this.group.position.x;
+
+                    const testPosZ = new THREE.Vector3(this.group.position.x, this.group.position.y, nextZ);
+                    if (checkCollisionFunc(testPosZ, pRad)) nextZ = this.group.position.z;
+                }
+
+                this.group.position.x = nextX;
+                this.group.position.z = nextZ;
                 this.group.rotation.y = Math.atan2(dir.x, dir.z);
                 isMoving = true;
+            }
+
+            if (dist < 2.5 && this.attackCooldown <= 0) {
+                if (playerContext && typeof playerContext.takeDamage === 'function') {
+                    playerContext.takeDamage(15);
+                }
+                this.attackCooldown = 1.2;
+
+                // Simple attack anim cue
+                this.rightElbow.rotation.x = -1.5;
+            }
+        }
+
+        this.velocityY -= 60 * delta;
+        this.group.position.y += this.velocityY * delta;
+
+        if (getFloorFunc) {
+            const floorY = getFloorFunc(this.group.position);
+            if (this.group.position.y < floorY - 5.0) {
+                this.isDead = true; this.hp = 0; this.destroy(); return;
+            }
+            if (this.group.position.y <= floorY) {
+                this.group.position.y = floorY;
+                this.velocityY = 0;
             }
         }
 

@@ -130,7 +130,7 @@ export class Slime extends Enemy {
 
         const distToPlayer = dir.length();
 
-        if (distToPlayer > 0.5 && hopCycle > 0) {
+        if (distToPlayer > 1.2 && hopCycle > 0) {
             dir.normalize();
 
             const pRad = 0.4;
