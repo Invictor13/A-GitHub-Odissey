@@ -64,12 +64,6 @@ const lightningLight = new THREE.DirectionalLight(0xe0f2fe, 0);
 lightningLight.position.set(0, 50, 0);
 scene.add(lightningLight);
 
-// Temporary Instructions update
-const instructions = document.getElementById('instructions');
-if (instructions) {
-    instructions.innerHTML = "WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara";
-}
-
 // Global state
 window.gameState = {
     clock: new THREE.Clock(),
@@ -164,9 +158,6 @@ if (btnPlayNew) {
             if (menuBgVideo) {
                 menuBgVideo.pause();
             }
-
-            const instructions = document.getElementById('instructions');
-            if (instructions) instructions.style.display = 'block';
 
             const uiOverlay = document.getElementById('ui-overlay');
             if (uiOverlay) uiOverlay.style.display = 'flex';
