@@ -10,26 +10,6 @@
         #error-console { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(220, 38, 38, 0.95); color: white; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999; display: none; white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         #instructions { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 24px; border-radius: 20px; font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); pointer-events: none; border: 1px solid rgba(255,255,255,0.1); z-index: 80;}
 
-        #build-modal {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 480px; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(24px);
-            border: 2px solid #ffd700; border-radius: 20px; padding: 25px;
-            z-index: 105; display: none; flex-direction: column; gap: 16px; box-shadow: 0 20px 80px rgba(0,0,0,0.9);
-            color: #fff;
-        }
-        .modal-header { display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 5px;}
-        .modal-header .eros-avatar { width: 50px; height: 50px; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px solid #ffd700; flex-shrink: 0; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
-        .modal-title-area h2 { margin: 0; font-size: 18px; color: #ffd700; text-transform: uppercase; letter-spacing: 1px; }
-        .modal-title-area p { margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; }
-
-        .building-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .building-info h3 { margin: 0 0 4px 0; font-size: 14px; color: #38bdf8; }
-        .building-info p { margin: 0; font-size: 11px; color: #94a3b8; }
-        .building-cost { font-size: 11px; color: #ffd700; margin-top: 4px; font-weight: 700; }
-        .btn-construct { background: #38bdf8; color: #0f172a; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 900; cursor: pointer; transition: 0.2s; font-size: 11px; text-transform: uppercase; }
-        .btn-construct:hover { background: #0ea5e9; transform: scale(1.05); }
-        .btn-construct:disabled { background: #334155; color: #64748b; cursor: not-allowed; transform: none; }
-
         .btn-embark { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; color: white; cursor: pointer; margin-top: 10px;}
         .btn-embark:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6); }
 
@@ -40,8 +20,8 @@
             position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95); border: 2px solid #ffd700; color: white;
             padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 900;
-            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3); pointer-events: none; opacity: 0; transition: opacity 0.3s ease; z-index: 100;
-            text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3); pointer-events: auto; opacity: 0; transition: opacity 0.3s ease; z-index: 100;
+            text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; cursor: pointer;
         }
         #interaction-prompt span { background: #ffd700; color: #000; padding: 2px 8px; border-radius: 6px; }
 
@@ -55,6 +35,45 @@
         #dialogue-box .eros-avatar { font-size: 30px; width: 54px; height: 54px; border-radius: 50%; border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; background: #1e293b; flex-shrink: 0; }
         .dialogue-content h4 { margin: 0 0 4px 0; color: #38bdf8; font-size: 13px; text-transform: uppercase; }
         .dialogue-content p { margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.4; }
+
+        .eyelid {
+            position: fixed; left: 0; width: 100%; background: #000; z-index: 999;
+            transition: height 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none;
+        }
+        #eyelid-top { top: 0; height: 0%; }
+        #eyelid-bottom { bottom: 0; height: 0%; }
+
+        #vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 160px rgba(0,0,0,0.85); pointer-events: none; z-index: 20;
+        }
+
+        .build-card { transition: all 0.2s ease-out; }
+        .build-card:hover {
+            background: rgba(30, 41, 59, 0.95); transform: translateY(-3px);
+            border-color: #facc15; box-shadow: 0 10px 25px rgba(250, 204, 21, 0.35);
+        }
+
+        .tab-btn {
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            border-color: #facc15;
+            color: #facc15;
+            background-color: rgba(250, 204, 21, 0.12);
+        }
+
+        #lightning-flash {
+            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95);
+            pointer-events: none; opacity: 0; transition: opacity 0.05s ease-out; z-index: 15;
+        }
+
+        .interaction-prompt { animation: pulse-glow 1.5s infinite alternate; }
+        @keyframes pulse-glow {
+            0% { transform: scale(1); box-shadow: 0 0 15px rgba(250, 204, 21, 0.4); }
+            100% { transform: scale(1.05); box-shadow: 0 0 25px rgba(250, 204, 21, 0.85); }
+        }
 
 
     :root {
@@ -226,9 +245,22 @@
     </script>
 <script src="https://cdn.tailwindcss.com"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&amp;family=Cinzel:wght@500;700;900&amp;family=MedievalSharp&amp;family=Rajdhani:wght@500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/></head>
 <body>
+    <div id="eyelid-top" class="eyelid"></div>
+    <div id="eyelid-bottom" class="eyelid"></div>
+    <div id="vignette"></div>
+    <div id="lightning-flash"></div>
+
+    <!-- UI Overlay for Toast -->
+    <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] hidden opacity-0 transition-all pointer-events-none">
+        <div class="glass-panel px-6 py-3 rounded-full border border-yellow-400/60 shadow-2xl flex items-center gap-3 text-sm font-bold text-yellow-300">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-yellow-400 text-lg"></i>
+            <span id="toast-message">Notificação</span>
+        </div>
+    </div>
+
 <div id="error-console"></div>
 <div id="instructions" style="display: none;">WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara</div>
-<div id="interaction-prompt"><span>E</span> Falar com o Eros</div>
+<button id="interaction-prompt" class="interaction-prompt"><span id="prompt-key">E</span> <span id="prompt-text">Falar com o Eros</span></button>
 <div id="dialogue-box">
 <div class="eros-avatar" style="border-color: #38bdf8;">🐶</div>
 <div class="dialogue-content">
@@ -236,53 +268,179 @@
 <p id="eros-text">"..."</p>
 </div>
 </div>
-<div id="build-modal">
-<button class="close-modal" id="btnCloseModal">✕</button>
-<div class="modal-header">
-<div class="eros-avatar">🐶</div>
-<div class="modal-title-area">
-<h2>Prancheta do Eros</h2>
-<p>Gere o Santuário Celeste ou parta para uma Incursão.</p>
-</div>
-</div>
-<div class="building-card">
-<div class="building-info">
-<h3>➕ Expandir Setor da Ilha</h3>
-<p>Ergue novos relevos, colinas e caminhos para a base.</p>
-<div class="building-cost">Custo: 30 Madeira, 15 Minério (Infinito)</div>
-</div>
-<button class="btn-construct" id="btnBuildIsland">Expandir</button>
-</div>
 
-<div class="building-card">
-<div class="building-info">
-<h3>⚒️ Forja Ancestral</h3>
-<p>Invoca o Ferreiro para melhorar os equipamentos iniciais.</p>
-<div class="building-cost">Custo: 50 Madeira, 30 Minério (Infinito)</div>
-</div>
-<button class="btn-construct" id="btnBuildForge">Construir</button>
-</div>
+    <!-- Eros Categorized Build Menu UI -->
+    <div id="build-ui" class="fixed inset-0 z-[105] hidden flex flex-col items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto p-4 text-white">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-3xl shadow-2xl border border-yellow-500/40 flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full border-2 border-yellow-400 bg-slate-800 flex items-center justify-center text-yellow-400 text-2xl shadow-lg">
+                        <i class="fa-solid fa-dog"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-yellow-400 uppercase tracking-wider">Eros • Mestre de Obras</h2>
+                        <p class="text-xs text-gray-300 mt-0.5">"Au! Escolha o que construir para dar vida à ilha."</p>
+                    </div>
+                </div>
+                <button id="btn-close-build" class="w-10 h-10 bg-slate-800 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
 
-<div class="building-card">
-<div class="building-info">
-<h3>🌾 Terraço de Plantação</h3>
-<p>Invoca o Fazendeiro. Fornece bônus de sobrevivência.</p>
-<div class="building-cost">Custo: 25 Madeira, 20 Palha (Infinito)</div>
-</div>
-<button class="btn-construct" id="btnBuildFarm">Construir</button>
-</div>
+            <!-- Category Tabs -->
+            <div class="flex border-b border-slate-700 mb-4 gap-2">
+                <button id="tab-btn-constructions" class="tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-campground"></i> Construções
+                </button>
+                <button id="tab-btn-decorations" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
+                    <i class="fa-solid fa-fire"></i> Enfeites
+                </button>
+                <button id="tab-btn-floors" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
+                    <i class="fa-solid fa-border-all"></i> Solos
+                </button>
+            </div>
 
-<div class="building-card">
-<div class="building-info">
-<h3>🐾 Abrigo de Animais</h3>
-<p>Cria um cercado para a fauna resgatada nas runs.</p>
-<div class="building-cost">Custo: 40 Madeira, 30 Palha (Infinito)</div>
-</div>
-<button class="btn-construct" id="btnBuildAnimal">Construir</button>
-</div>
+            <!-- Category Content Grid -->
+            <div class="overflow-y-auto pr-1 custom-scrollbar text-white">
+                <!-- 1. CONSTRUÇÕES TAB -->
+                <div id="tab-content-constructions" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div id="card-build-tent" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-tent text-4xl text-amber-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1 text-yellow-300">A Barraca</h3>
+                        <p class="text-[11px] text-gray-400 mb-2">Acomodação de lona e estrutura de madeira com interior acessível.</p>
+                        <span class="text-xs bg-slate-900/90 border border-amber-500/40 px-2 py-1 rounded text-amber-300 font-semibold block">Posicionar na Ilha</span>
+                    </div>
+                </div>
 
-<button class="btn-embark" id="btnEmbarkModal">⚔️ Partir para Incursão</button>
-</div>
+                <!-- 2. ENFEITES TAB -->
+                <div id="tab-content-decorations" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
+                    <div id="card-build-campfire" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-fire-flame-curved text-3xl text-orange-500 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Fogueira</h3>
+                        <span class="text-xs bg-slate-900/90 border border-orange-500/40 px-2 py-1 rounded text-orange-300 font-semibold block">Aquece & Ilumina</span>
+                    </div>
+                    <div id="card-build-fence" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-bars text-3xl text-amber-600 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Cerca de Proteção</h3>
+                        <span class="text-xs bg-slate-900/90 border border-amber-600/40 px-2 py-1 rounded text-amber-300 font-semibold block">Delimitar Espaço</span>
+                    </div>
+                    <div id="card-build-bench" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-chair text-3xl text-amber-700 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Banco de Tronco</h3>
+                        <span class="text-xs bg-slate-900/90 border border-amber-700/40 px-2 py-1 rounded text-amber-300 font-semibold block">Descanso Rústico</span>
+                    </div>
+                    <div id="card-build-lantern" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-lightbulb text-3xl text-yellow-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Poste de Lanterna</h3>
+                        <span class="text-xs bg-slate-900/90 border border-yellow-500/40 px-2 py-1 rounded text-yellow-300 font-semibold block">Luz Noturna</span>
+                    </div>
+                    <div id="card-build-target" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-bullseye text-3xl text-red-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Alvo de Prática</h3>
+                        <span class="text-xs bg-slate-900/90 border border-red-500/40 px-2 py-1 rounded text-red-300 font-semibold block">Treino de Pontaria</span>
+                    </div>
+                    <div id="card-build-tree" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-tree text-3xl text-emerald-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Pinheiro Jovem</h3>
+                        <span class="text-xs bg-slate-900/90 border border-emerald-500/40 px-2 py-1 rounded text-emerald-300 font-semibold block">Vegetação</span>
+                    </div>
+                    <div id="card-build-pot" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-disease text-3xl text-rose-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Vaso de Flores</h3>
+                        <span class="text-xs bg-slate-900/90 border border-rose-500/40 px-2 py-1 rounded text-rose-300 font-semibold block">Ornamental</span>
+                    </div>
+                    <div id="card-build-chest" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-box-archive text-3xl text-yellow-600 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Baú de Madeira</h3>
+                        <span class="text-xs bg-slate-900/90 border border-yellow-600/40 px-2 py-1 rounded text-yellow-300 font-semibold block">Armazenamento</span>
+                    </div>
+                    <div id="card-embark" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-compass text-3xl text-purple-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Mapa Tático</h3>
+                        <span class="text-xs bg-slate-900/90 border border-purple-500/40 px-2 py-1 rounded text-purple-300 font-semibold block">Partir para Incursão</span>
+                    </div>
+                </div>
+
+                <!-- 3. SOLOS TAB -->
+                <div id="tab-content-floors" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
+                    <div id="card-build-mud-tile" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-mound text-3xl text-amber-800 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Trilha de Lama</h3>
+                        <span class="text-xs bg-slate-900/90 border border-amber-800/40 px-2 py-1 rounded text-amber-400 font-semibold block">Caminho Terroso</span>
+                    </div>
+                    <div id="card-build-stone-tile" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-cubes text-3xl text-slate-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Pavimento de Pedra</h3>
+                        <span class="text-xs bg-slate-900/90 border border-slate-500/40 px-2 py-1 rounded text-slate-300 font-semibold block">Calçamento</span>
+                    </div>
+                    <div id="card-build-wood-tile" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-table-cells-large text-3xl text-amber-600 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Deck de Madeira</h3>
+                        <span class="text-xs bg-slate-900/90 border border-amber-600/40 px-2 py-1 rounded text-amber-300 font-semibold block">Assoalho de Tábuas</span>
+                    </div>
+                    <div id="card-build-granite-tile" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-gem text-3xl text-gray-300 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Placa de Granito</h3>
+                        <span class="text-xs bg-slate-900/90 border border-gray-400/40 px-2 py-1 rounded text-gray-200 font-semibold block">Rocha Nobre</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid Mode Placement UI -->
+    <div id="grid-mode-ui" class="fixed top-8 left-1/2 -translate-x-1/2 z-[105] hidden flex flex-col md:flex-row items-center gap-3 glass-panel px-6 py-3 rounded-2xl border border-yellow-400/80 shadow-2xl pointer-events-auto text-white">
+        <span class="text-xs md:text-sm font-bold text-yellow-300 flex items-center gap-2">
+            <i class="fa-solid fa-arrows-to-eye text-lg"></i>
+            CLIQUE para Fixar | Rolar SCROLL para Rotacionar
+        </span>
+        <button id="btn-cancel-grid" class="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs uppercase cursor-pointer transition">
+            Cancelar (ESC)
+        </button>
+    </div>
+
+    <!-- Journal Book UI -->
+    <div id="journal-ui" class="fixed inset-0 z-[105] hidden flex flex-col items-center justify-center bg-black/85 backdrop-blur-md pointer-events-auto p-4 text-white">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-xl shadow-2xl border border-amber-500/50 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-amber-500/30 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-lg bg-amber-500/20 border border-amber-500 flex items-center justify-center text-amber-400 text-xl shadow-inner">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-extrabold text-amber-400 uppercase tracking-wider">Diário do Purgatório</h2>
+                        <p class="text-xs text-gray-300">Registros do Penitente • Ciclo Atual</p>
+                    </div>
+                </div>
+                <button id="btn-close-journal" class="w-9 h-9 bg-slate-800 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto pr-2 space-y-4 text-sm text-gray-200 leading-relaxed custom-scrollbar">
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700/80">
+                    <h3 class="font-bold text-amber-300 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-feather text-amber-400"></i> O Despertar na Ilha Voadora
+                    </h3>
+                    <p class="text-xs text-gray-400 italic mb-2">"Quantas vidas você precisa, para corrigir os seus pecados e falhas?"</p>
+                    <p class="text-xs leading-5">Acordei em uma ilha flutuante no abismo do purgatório. Sem barraca ou fogueira inicial, conto apenas com a companhia de Eros. Fale com Eros para erguer a Barraca, acender a Fogueira e pavimentar o solo do Santuário Celeste.</p>
+                </div>
+
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700/80">
+                    <h3 class="font-bold text-emerald-300 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-emerald-400"></i> Guias de Construção & Sobrevivência
+                    </h3>
+                    <ul class="text-xs space-y-1.5 list-disc list-inside text-gray-300">
+                        <li>Fale com Eros (Mestre de Obras) para acessar o catálogo de Construções, Enfeites e Solos.</li>
+                        <li>Posicione a Barraca na ilha para ter acesso ao seu interior aconchegante.</li>
+                        <li>No interior da Barraca, durma no Saco de Dormir para avançar 8 horas no tempo.</li>
+                        <li>Interaja com o Diário na mesa para salvar todo o estado do seu acampamento.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 <!-- RPG World Map Modal -->
 <div id="rpg-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 50; display: none; justify-content: center; align-items: center; pointer-events: auto;">
 <div class="glass-panel" style="width: 400px; animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 15px; padding: 24px; background: rgba(15, 23, 42, 0.9); border: 2px solid #ffd700; border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.9); color: #fff;">
@@ -331,6 +489,29 @@
 </div>
 <!-- Ponto de entrada da aplicação modularizada -->
 <div class="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between min-h-screen" id="ui-overlay" style="display: none;">
+
+<!-- Hub Status Overlays -->
+<div id="hub-status-ui" class="absolute top-20 left-0 right-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4 md:p-6 transition-opacity duration-500 opacity-0 text-white">
+    <div class="flex flex-wrap justify-between items-start gap-4">
+        <div class="glass-panel p-3.5 rounded-2xl flex items-center gap-3 border-yellow-400/30 shadow-xl pointer-events-auto">
+            <div class="w-11 h-11 rounded-xl bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-yellow-400 shadow-inner">
+                <i id="location-icon" class="fa-solid fa-cloud text-xl"></i>
+            </div>
+            <div>
+                <h2 id="location-title" class="font-bold text-sm text-gray-100 uppercase tracking-wider">Santuário Celeste</h2>
+                <p id="location-subtitle" class="text-xs text-yellow-400 font-medium">Dia 1 • 08:00 • ☀️ Ensolarado</p>
+            </div>
+        </div>
+
+        <!-- Weather & Controls -->
+        <div class="glass-panel p-2.5 rounded-2xl flex items-center gap-3 border-slate-700/60 pointer-events-auto">
+            <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                <i id="weather-badge-icon" class="fa-solid fa-sun text-yellow-400"></i>
+                <span id="weather-badge-text">Ensolarado</span>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Main HUD Gold Counter -->
 <div id="hud-gold-counter" class="fixed top-4 right-4 z-[60] bg-stone-950/80 border border-amber-500/50 rounded-lg px-4 py-2 flex items-center gap-2 pointer-events-auto hidden">
