@@ -538,15 +538,15 @@
     <span id="hud-gold-value" class="text-yellow-400 font-bold font-mono text-sm tracking-widest">0</span>
 </div>
 <header class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto">
-<div class="glass-panel rounded-xl p-4 flex flex-wrap justify-between items-center gap-4">
+<div class="glass-panel rounded-xl p-2 md:p-3 flex flex-wrap justify-between items-center gap-2 md:gap-4 bg-stone-950/40">
 <!-- Player Info -->
 <div class="flex items-center gap-3">
-<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-2xl shadow-lg shadow-amber-950/50">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-xl shadow-lg shadow-amber-950/50">
 <i class="fa-solid fa-book-skull"></i>
 </div>
 <div>
 <div class="flex items-center gap-2">
-<h1 class="text-base md:text-lg font-bold tracking-wider text-amber-100 uppercase font-title">Penitente #001</h1>
+<h1 class="text-sm md:text-base font-bold tracking-wider text-amber-100 uppercase font-title">Penitente #001</h1>
 <span class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded font-mono font-semibold" id="run-badge">
               INCURSÃO ATIVA
             </span>
@@ -561,7 +561,7 @@
 <!-- HP -->
 <div class="flex items-center gap-2" title="Pontos de Vida (Drena se Fome ou Sede zerarem)">
 <i class="fa-solid fa-heart text-red-600 text-base"></i>
-<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
 <div class="bg-gradient-to-r from-red-800 to-red-500 h-2.5 rounded-full transition-all duration-300" id="vital-hp" style="width: 100%"></div>
 </div>
 <span class="text-xs font-mono font-bold w-9 text-right text-red-300" id="txt-hp">100%</span>
@@ -569,7 +569,7 @@
 <!-- Fome -->
 <div class="flex items-center gap-2" title="Fome (Decai com o tempo)">
 <i class="fa-solid fa-drumstick-bite text-amber-600 text-base"></i>
-<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
 <div class="bg-gradient-to-r from-amber-800 to-amber-500 h-2.5 rounded-full transition-all duration-300" id="vital-food" style="width: 75%"></div>
 </div>
 <span class="text-xs font-mono font-bold w-9 text-right text-amber-300" id="txt-food">75%</span>
@@ -577,7 +577,7 @@
 <!-- Sede -->
 <div class="flex items-center gap-2" title="Sede (Decai com o tempo)">
 <i class="fa-solid fa-droplet text-sky-500 text-base"></i>
-<div class="w-16 md:w-20 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
+<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
 <div class="bg-gradient-to-r from-sky-800 to-sky-500 h-2.5 rounded-full transition-all duration-300" id="vital-water" style="width: 60%"></div>
 </div>
 <span class="text-xs font-mono font-bold w-9 text-right text-sky-300" id="txt-water">60%</span>

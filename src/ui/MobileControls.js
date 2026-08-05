@@ -41,8 +41,8 @@ export class MobileControls {
         // Joystick Visuals
         this.joystickBase = document.createElement('div');
         this.joystickBase.style.position = 'absolute';
-        this.joystickBase.style.width = '100px';
-        this.joystickBase.style.height = '100px';
+        this.joystickBase.style.width = '80px';
+        this.joystickBase.style.height = '80px';
         this.joystickBase.style.borderRadius = '50%';
         this.joystickBase.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
         this.joystickBase.style.border = '2px solid rgba(255, 255, 255, 0.4)';
@@ -53,8 +53,8 @@ export class MobileControls {
 
         this.joystickStick = document.createElement('div');
         this.joystickStick.style.position = 'absolute';
-        this.joystickStick.style.width = '50px';
-        this.joystickStick.style.height = '50px';
+        this.joystickStick.style.width = '40px';
+        this.joystickStick.style.height = '40px';
         this.joystickStick.style.borderRadius = '50%';
         this.joystickStick.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
         this.joystickStick.style.display = 'none';
@@ -70,7 +70,7 @@ export class MobileControls {
         this.buttonsContainer.style.display = 'flex';
         this.buttonsContainer.style.flexDirection = 'column';
         this.buttonsContainer.style.alignItems = 'flex-end';
-        this.buttonsContainer.style.gap = '15px';
+        this.buttonsContainer.style.gap = '10px';
         this.buttonsContainer.style.pointerEvents = 'none'; // Container shouldn't block, only buttons
         this.container.appendChild(this.buttonsContainer);
 
@@ -123,12 +123,12 @@ export class MobileControls {
         bottomRow.style.display = 'flex';
         bottomRow.style.gap = '15px';
 
-        const btnJump = createButton('Pulo', ' ', 'Space', false, 0, 50, 'rgba(100, 200, 255, 0.3)');
-        const btnInteract = createButton('Ação', 'e', 'KeyE', false, 0, 50, 'rgba(100, 255, 100, 0.3)');
+        const btnJump = createButton('Pulo', ' ', 'Space', false, 0, 45, 'rgba(100, 200, 255, 0.3)');
+        const btnInteract = createButton('Ação', 'e', 'KeyE', false, 0, 45, 'rgba(100, 255, 100, 0.3)');
 
-        const btnDefend = createButton('Def', '', '', true, 2, 60, 'rgba(255, 150, 50, 0.3)');
-        const btnAttack = createButton('Atq', '', '', true, 0, 70, 'rgba(255, 50, 50, 0.3)');
-        const btnSprint = createButton('Corr', 'Shift', 'ShiftLeft', false, 0, 50, 'rgba(200, 100, 255, 0.3)');
+        const btnDefend = createButton('Def', '', '', true, 2, 50, 'rgba(255, 150, 50, 0.3)');
+        const btnAttack = createButton('Atq', '', '', true, 0, 60, 'rgba(255, 50, 50, 0.3)');
+        const btnSprint = createButton('Corr', 'Shift', 'ShiftLeft', false, 0, 45, 'rgba(200, 100, 255, 0.3)');
 
         topRow.appendChild(btnInteract);
         topRow.appendChild(btnDefend);
@@ -145,7 +145,7 @@ export class MobileControls {
         let touchId = null;
         let startX = 0;
         let startY = 0;
-        const maxRadius = 50;
+        const maxRadius = 40;
 
         this.leftZone.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -205,7 +205,7 @@ export class MobileControls {
         const dx = clientX - parseFloat(this.joystickBase.style.left);
         const dy = clientY - parseFloat(this.joystickBase.style.top);
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const maxRadius = 50;
+        const maxRadius = 40;
 
         let clampedX = dx;
         let clampedY = dy;

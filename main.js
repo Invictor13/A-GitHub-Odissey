@@ -36,8 +36,8 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.minDistance = 8;
-controls.maxDistance = 25;
+controls.minDistance = 5;
+controls.maxDistance = 40;
 controls.dampingFactor = 0.05;
 controls.maxPolarAngle = Math.PI / 1.9;
 controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
