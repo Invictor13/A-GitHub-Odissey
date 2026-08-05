@@ -83,6 +83,7 @@ export class Penitent {
         this.matFire = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
         this.matVisor = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
         this.matSlash = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+        this.matSlashArc = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
         this.matDust = new THREE.MeshBasicMaterial({ color: 0x887766, transparent: true, opacity: 0.6 });
 
         this.particleGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
@@ -227,6 +228,15 @@ export class Penitent {
         this.createPart(new THREE.TorusGeometry(0.55, 0.05, 8, 16), this.matSteel, 0, 0, 0, 0, 0, 0, this.shieldGroup);
         this.createPart(new THREE.SphereGeometry(0.15, 8, 8, 0, Math.PI*2, 0, Math.PI/2), this.matSteel, 0, 0, 0.05, Math.PI/2, 0, 0, this.shieldGroup);
         this.slotShield.add(this.shieldGroup);
+
+        this.slashArcGroup = new THREE.Group();
+        this.group.add(this.slashArcGroup);
+        const arcGeo = new THREE.TorusGeometry(3.5, 0.4, 2, 20, Math.PI);
+        this.slashArcMesh = new THREE.Mesh(arcGeo, this.matSlashArc);
+        this.slashArcMesh.rotation.x = Math.PI / 2;
+        this.slashArcMesh.position.z = 2.0; // edge reaches 3.5 + 2.0 = 5.5
+        this.slashArcMesh.visible = false;
+        this.slashArcGroup.add(this.slashArcMesh);
 
         // PERNAS
         this.hipL = new THREE.Group(); this.hipL.position.set(-0.6, 1.6, 0); this.bodyGroup.add(this.hipL);
@@ -451,6 +461,9 @@ export class Penitent {
                     this.shoulderR.rotation.set(-Math.PI * 0.8 + (Math.PI * 1.1 * p), -0.2 + (0.7 * p), 0.4 - (0.2 * p));
                     this.elbowR.rotation.set(-1.5 + (1.2 * p), 0, 0);
                     if (p > 0.5) {
+                        if (this.slashArcMesh) {
+                            this.slashArcMesh.visible = true;
+                        }
                         if (!this.hasHit) {
                             this.hasHit = true; const tipPos = new THREE.Vector3();
                             if(this.currWeapon === 0) this.swordTip.getWorldPosition(tipPos); else this.axeGroup.getWorldPosition(tipPos);
@@ -468,7 +481,16 @@ export class Penitent {
                         this.bodyGroup.position.y -= attackImpact * 0.05; this.torso.rotation.x += attackImpact * 0.15;
                     }
                 }
-                if (this.attackTimer <= 0) { this.isAttacking = false; this.hasHit = false; this.torso.rotation.y = 0; }
+                if (this.attackTimer <= 0) {
+                    this.isAttacking = false; this.hasHit = false; this.torso.rotation.y = 0;
+                    if (this.slashArcMesh) this.slashArcMesh.visible = false;
+                } else if (this.slashArcMesh && this.slashArcMesh.visible) {
+                    // Animate the arc scale and fade out
+                    const t = 1 - (this.attackTimer / this.ATTACK_DURATION);
+                    const scale = 0.5 + t * 0.6;
+                    this.slashArcMesh.scale.set(scale, scale, scale);
+                    this.matSlashArc.opacity = 0.8 * (1.0 - t);
+                }
             } else if (!this.isDefending && !isResting) {
                 this.hasHit = false; this.torso.rotation.y += (0 - this.torso.rotation.y) * 10 * delta;
             }

@@ -19,7 +19,7 @@ export class Enemy {
         this.manager = null; // Reference to the EnemyManager
     }
 
-    update(delta, playerPos) {
+    update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
         this.animTime += delta * 15;
         // Derived classes should override this for specific movement/animations
