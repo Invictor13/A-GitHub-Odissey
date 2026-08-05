@@ -5,6 +5,7 @@ export class Penitent {
     constructor(scene) {
         this.scene = scene;
         this.group = new THREE.Group();
+        this.group.scale.setScalar(0.55);
         this.modelGroup = new THREE.Group();
         this.group.add(this.modelGroup);
         this.scene.add(this.group);

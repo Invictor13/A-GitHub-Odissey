@@ -23,7 +23,7 @@ export class HubEnvironment {
         this.groundMeshes = [];
         this.interactiveObjects = [];
 
-        this.ISLAND_SIZE = 22.0;
+        this.ISLAND_SIZE = 60.0;
 
         this.isNearEros = false;
         this.isModalOpen = false;
@@ -253,13 +253,13 @@ export class HubEnvironment {
             new THREE.MeshStandardMaterial({ color: 0x84cc16, roughness: 0.8, flatShading: true })
         ];
 
-        for (let i = 0; i < 600; i++) {
+        for (let i = 0; i < 1500; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * 21.0;
+            const radius = Math.random() * (this.ISLAND_SIZE - 1.0);
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
-            if (Math.hypot(x, z) < 1.8) continue; // Keep player start area clear
+            if (Math.hypot(x, z) < 4.0) continue; // Keep player start area clear
 
             const tuft = new THREE.Group();
             const bladeCount = 3 + Math.floor(Math.random() * 3);
@@ -370,7 +370,7 @@ export class HubEnvironment {
 
     setupEros() {
         this.eros = new Eros(this.scene, new THREE.Vector3(4.0, 0.4, 4.0));
-        this.eros.group.scale.setScalar(1.5);
+        this.eros.group.scale.setScalar(0.82);
         this.hubGroup.add(this.eros.group);
 
         this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
@@ -700,6 +700,50 @@ export class HubEnvironment {
             const tile = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 1.5), mat); tile.position.y = 0.03; group.add(tile);
         }
 
+        // 5. ILHAS FLUTUANTES
+        else if (type === 'ilha_satelite') {
+            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity });
+            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity });
+            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity });
+
+            const topGeo = new THREE.CylinderGeometry(4.0, 3.8, 0.5, 12);
+            const topMesh = new THREE.Mesh(topGeo, grassMat);
+            topMesh.position.y = 0.25;
+            group.add(topMesh);
+
+            const dirtGeo = new THREE.CylinderGeometry(3.8, 3.5, 1.0, 12);
+            const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
+            dirtMesh.position.y = -0.5;
+            group.add(dirtMesh);
+
+            const botGeo = new THREE.ConeGeometry(3.5, 6.0, 10);
+            const botMesh = new THREE.Mesh(botGeo, islandMat);
+            botMesh.position.y = -4.0;
+            botMesh.rotation.x = Math.PI;
+            group.add(botMesh);
+        } else if (type === 'ponte_magica') {
+            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.8, transparent, opacity });
+            const magicMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.8, transparent: true, opacity: isPreview ? 0.4 : 0.8 });
+
+            // Planks
+            for (let i = -1; i <= 1; i++) {
+                const plank = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 0.4), woodMat);
+                plank.position.set(0, 0, i * 0.5);
+                group.add(plank);
+            }
+
+            // Magic Beams
+            const beam1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), magicMat);
+            beam1.position.set(-0.6, 0, 0);
+            beam1.rotation.x = Math.PI / 2;
+            group.add(beam1);
+
+            const beam2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), magicMat);
+            beam2.position.set(0.6, 0, 0);
+            beam2.rotation.x = Math.PI / 2;
+            group.add(beam2);
+        }
+
         return group;
     }
 
@@ -781,7 +825,7 @@ export class HubEnvironment {
     placeDecorStructure() {
         if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh || !this.canPlaceInGrid) return;
 
-        if (Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z) > 22) {
+        if (Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z) > this.ISLAND_SIZE) {
             window.showToast("❌ Escolha um local seguro na ilha!", "text-red-400", "fa-circle-xmark");
             return;
         }
@@ -815,7 +859,7 @@ export class HubEnvironment {
             this.gridSnapPos.z = Math.floor(pt.z / step) * step + step / 2;
             this.gridSnapPos.y = Math.sin(this.gridSnapPos.x * 0.3) * Math.cos(this.gridSnapPos.z * 0.3) * 0.5 + 0.05;
 
-            if (Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z) < 22) {
+            if (Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z) < this.ISLAND_SIZE) {
                 this.previewMesh.position.copy(this.gridSnapPos);
                 this.previewMesh.rotation.y = this.previewRotationY;
                 this.previewMesh.visible = true;
@@ -1347,6 +1391,6 @@ export class HubEnvironment {
         }
 
         const distFromCenter = Math.hypot(pos.x, pos.z);
-        return distFromCenter > 23.5;
+        return distFromCenter > (this.ISLAND_SIZE + 1.5);
     }
 }
