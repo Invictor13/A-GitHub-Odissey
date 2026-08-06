@@ -483,8 +483,138 @@ function animate() {
 
     }
 
+
     renderer.render(scene, camera);
+
+    if (window.InvisibleUI && typeof penitent !== 'undefined' && penitent !== null) {
+        window.InvisibleUI.update(window.gameState, penitent, window.gameState.delta);
+    }
 }
 
 // Start loop
 animate();
+
+// Invisible UI Manager
+window.InvisibleUI = {
+    update: function(gameState, player, delta) {
+        if (!player) return;
+
+        const isHub = window.GAME_STATE === 'HUB';
+        const isWorldMap = window.GAME_STATE === 'WORLD_MAP';
+        const isMenu = window.GAME_STATE === 'MENU';
+
+        const vitalsContainer = document.getElementById('vitals-container');
+        const bottomVitals = document.getElementById('bottom-vitals');
+        const weightContainer = document.getElementById('weight-container');
+
+        const seal = document.getElementById('hub-status-ui');
+        const mainHeader = document.getElementById('main-header');
+        const hpVignette = document.getElementById('hp-critical-vignette');
+        const weightVignette = document.getElementById('weight-critical-vignette');
+
+        const hpPerc = gameState.vitals.hp;
+        const foodPerc = gameState.vitals.food;
+        const waterPerc = gameState.vitals.water;
+
+        const isInventoryOpen = document.getElementById('inventory-modal') && !document.getElementById('inventory-modal').classList.contains('hidden');
+        const isHPAlert = hpPerc < 30;
+        const isFoodAlert = foodPerc < 30;
+        const isWaterAlert = waterPerc < 30;
+
+        // --- Weight Logic ---
+        // Need to parse current weight if available in DOM
+        let isWeightAlert = false;
+        let isWeightLow = true;
+        const weightTextEl = document.getElementById('weight-text');
+        if (weightTextEl) {
+            const text = weightTextEl.innerText; // e.g. 12.4 / 25.0 kg
+            const parts = text.split('/');
+            if (parts.length === 2) {
+                const current = parseFloat(parts[0]);
+                const max = parseFloat(parts[1]);
+                if (max > 0) {
+                    const ratio = current / max;
+                    if (ratio > 0.9) isWeightAlert = true;
+                    if (ratio >= 0.7) isWeightLow = false;
+                }
+            }
+        }
+
+        // Apply Weight Vignette
+        if (weightVignette) {
+            if (isWeightAlert) {
+                weightVignette.classList.add('active');
+            } else {
+                weightVignette.classList.remove('active');
+            }
+        }
+
+        // Weight element fading
+        if (weightContainer) {
+            if (isInventoryOpen || isWeightAlert || !isWeightLow) {
+                weightContainer.classList.add('ui-element-active');
+                if (weightTextEl) weightTextEl.style.opacity = '1';
+            } else {
+                weightContainer.classList.remove('ui-element-active');
+                if (weightTextEl) weightTextEl.style.opacity = '0.3';
+            }
+        }
+
+        // Apply HP Vignette
+        if (hpVignette) {
+            if (isHPAlert) {
+                hpVignette.classList.add('active');
+            } else {
+                hpVignette.classList.remove('active');
+            }
+        }
+
+        // Main Vitals Fading (HP)
+        if (vitalsContainer) {
+            if (isInventoryOpen || isHPAlert || isFoodAlert || isWaterAlert || isMenu || isWorldMap) {
+                vitalsContainer.classList.add('ui-element-active');
+            } else {
+                vitalsContainer.classList.remove('ui-element-active');
+            }
+        }
+
+        // Bottom Vitals Fading (Food/Water)
+        if (bottomVitals) {
+            if (isInventoryOpen || isFoodAlert || isWaterAlert) {
+                bottomVitals.classList.add('ui-element-active');
+            } else {
+                bottomVitals.classList.remove('ui-element-active');
+            }
+        }
+
+        // Seal / Header Slide-Out
+        // Prompt says: "Ao entrar em combate ou em áreas seguras, o selo desliza para fora da tela"
+        // So slide out when combat active OR safe area (like HUB)? Wait, "áreas seguras" implies HUB.
+        // Let's assume we slide it out in HUB or Combat, and slide it in during Exploration (ROGUELIKE)?
+        // Wait, the prompt says "Um selo minimalista flutuante, translúcido. Exibe o nome do Nó atual... Ao entrar em combate ou em áreas seguras, o selo desliza para fora da tela."
+        // We will slide it out if there is an active enemy nearby, or if it's the Hub (unless it's just meant for Hub too? We will check if it's HUB. Actually, in HUB it shows "Santuário Celeste" so maybe it shouldn't slide out there. The user probably means it slides IN when arriving in a new node, and then slides out during combat or after settling into a safe area. Let's base it on a timer or just active combat for now.)
+
+        let inCombat = false;
+        if (window.enemyManager && window.enemyManager.enemies && window.enemyManager.enemies.length > 0) {
+            // Find if any enemy is close and chasing
+            const playerPos = player.group.position;
+            inCombat = window.enemyManager.enemies.some(e => {
+                if (e.isDead || !e.group) return false;
+                const d = e.group.position.distanceTo(playerPos);
+                return d < 20 && e.state === 'chase';
+            });
+        }
+
+        if (seal) {
+            // Se inCombat ou "áreas seguras"? No roguelike, áreas sem inimigos poderiam ser consideradas seguras?
+            // Vamos esconder se inCombat = true.
+            if (inCombat) {
+                seal.classList.add('slide-out-up');
+                if(mainHeader) mainHeader.classList.add('slide-out-up');
+            } else {
+                seal.classList.remove('slide-out-up');
+                if(mainHeader) mainHeader.classList.remove('slide-out-up');
+            }
+        }
+    }
+};
