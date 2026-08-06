@@ -460,12 +460,10 @@ function animate() {
                 controls.target.lerp(targetLookAt, 8 * window.gameState.delta);
                 controls.update();
             } else {
+                if (!window.dynamicCameraOffset) window.dynamicCameraOffset = new THREE.Vector3();
+                window.dynamicCameraOffset.subVectors(camera.position, controls.target);
                 controls.target.lerp(playerPos, 8 * window.gameState.delta);
-
-                // Avoid creating a new Vector3 every frame
-                if (!window.cameraOffset) window.cameraOffset = new THREE.Vector3(14, 18, 14);
-                camera.position.copy(playerPos).add(window.cameraOffset);
-
+                camera.position.copy(controls.target).add(window.dynamicCameraOffset);
                 controls.update();
             }
         }
