@@ -36,8 +36,8 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.minDistance = 8;
-controls.maxDistance = 25;
+controls.minDistance = 5;
+controls.maxDistance = 40;
 controls.dampingFactor = 0.05;
 controls.maxPolarAngle = Math.PI / 1.9;
 controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
@@ -63,12 +63,6 @@ scene.add(sunLight.target);
 const lightningLight = new THREE.DirectionalLight(0xe0f2fe, 0);
 lightningLight.position.set(0, 50, 0);
 scene.add(lightningLight);
-
-// Temporary Instructions update
-const instructions = document.getElementById('instructions');
-if (instructions) {
-    instructions.innerHTML = "WASD: Mover | ESPAÇO: Saltar | SHIFT: Correr | Rato: Rodar Câmara";
-}
 
 // Global state
 window.gameState = {
@@ -164,9 +158,6 @@ if (btnPlayNew) {
             if (menuBgVideo) {
                 menuBgVideo.pause();
             }
-
-            const instructions = document.getElementById('instructions');
-            if (instructions) instructions.style.display = 'block';
 
             const uiOverlay = document.getElementById('ui-overlay');
             if (uiOverlay) uiOverlay.style.display = 'flex';
