@@ -37,9 +37,15 @@ document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.minDistance = 5;
-controls.maxDistance = 40;
+controls.maxDistance = 100;
 controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI / 1.9;
+
+// Isometric angle based on Vector3(14, 18, 14) offset
+const ISOMETRIC_PITCH = Math.atan2(Math.sqrt(14*14 + 14*14), 18);
+controls.minPolarAngle = ISOMETRIC_PITCH;
+controls.maxPolarAngle = ISOMETRIC_PITCH;
+window.ISOMETRIC_PITCH = ISOMETRIC_PITCH; // Store globally for state switching
+
 controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 
 // Global Lighting
@@ -441,7 +447,11 @@ function animate() {
 
             let targetCamPos, targetLookAt;
 
-            if (GAME_STATE === 'HUB') {
+            if (GAME_STATE === 'HUB' && window.hubBuildingState && window.hubBuildingState !== 'EXPLORING') {
+                // Free pitch during specific building/tent states
+                controls.minPolarAngle = 0;
+                controls.maxPolarAngle = Math.PI;
+
                 if (window.hubBuildingState === 'INSIDE_TENT') {
                     targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 4.5, 6.2));
                     targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.2, -0.5));
@@ -451,19 +461,30 @@ function animate() {
                 } else if (window.hubBuildingState === 'BUILDING_GRID') {
                     targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 22, 12));
                     targetLookAt = playerPos.clone();
-                } else {
-                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 7.5, 10.5));
-                    targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.5, 0));
                 }
 
                 camera.position.lerp(targetCamPos, 5 * window.gameState.delta);
                 controls.target.lerp(targetLookAt, 8 * window.gameState.delta);
                 controls.update();
             } else {
-                if (!window.dynamicCameraOffset) window.dynamicCameraOffset = new THREE.Vector3();
+                // Lock isometric pitch for exploring
+                if (window.ISOMETRIC_PITCH) {
+                    controls.minPolarAngle = window.ISOMETRIC_PITCH;
+                    controls.maxPolarAngle = window.ISOMETRIC_PITCH;
+                }
+                if (!window.dynamicCameraOffset) {
+                    window.dynamicCameraOffset = new THREE.Vector3(14, 18, 14);
+                }
+
+                // Atualiza o offset dinâmico com base na posição da câmera e no target
                 window.dynamicCameraOffset.subVectors(camera.position, controls.target);
+
+                // Interpola suavemente o target (ponto de foco) para o player
                 controls.target.lerp(playerPos, 8 * window.gameState.delta);
+
+                // Move a câmera junto com o player mantendo o offset (distância e rotação azimutal definida pelo player)
                 camera.position.copy(controls.target).add(window.dynamicCameraOffset);
+
                 controls.update();
             }
         }
