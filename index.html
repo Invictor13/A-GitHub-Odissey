@@ -228,7 +228,56 @@
         background: rgba(74, 47, 24, 0.9);
         border-color: #a87948;
     }
-  </style>
+
+    /* Invisible UI - Dynamic Fade & Slide */
+    .slide-out-up {
+      transform: translateY(-150%) scale(0.95);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .ui-element-faded {
+      opacity: 0.15;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .ui-element-faded:hover {
+      opacity: 1; /* Quick view on hover */
+    }
+
+    .ui-element-active {
+      opacity: 1 !important;
+      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Critical HP Vignette */
+    #hp-critical-vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 45;
+      box-shadow: inset 0 0 150px rgba(220, 38, 38, 0);
+      transition: box-shadow 0.5s ease;
+    }
+    #hp-critical-vignette.active {
+      animation: pulse-hp-critical 1.5s infinite alternate;
+    }
+    @keyframes pulse-hp-critical {
+      0% { box-shadow: inset 0 0 100px rgba(220, 38, 38, 0.3); }
+      100% { box-shadow: inset 0 0 180px rgba(220, 38, 38, 0.6); }
+    }
+
+    /* Overload Weight Vignette */
+    #weight-critical-vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 45;
+      border: 2px solid transparent;
+      transition: all 0.5s ease;
+    }
+    #weight-critical-vignette.active {
+      animation: pulse-weight-critical 2s infinite alternate;
+    }
+    @keyframes pulse-weight-critical {
+      0% { border-color: rgba(220, 38, 38, 0.2); box-shadow: inset 0 0 50px rgba(220, 38, 38, 0.1); }
+      100% { border-color: rgba(220, 38, 38, 0.6); box-shadow: inset 0 0 80px rgba(220, 38, 38, 0.3); }
+    }
+
+</style>
 <script type="importmap">
         {
             "imports": {
@@ -501,11 +550,13 @@
 </div>
 <!-- Ponto de entrada da aplicação modularizada -->
 <div class="fixed inset-0 pointer-events-none z-50 flex flex-col justify-between min-h-screen" id="ui-overlay" style="display: none;">
+<div id="hp-critical-vignette"></div>
+<div id="weight-critical-vignette"></div>
 
 <!-- Hub Status Overlays -->
-<div id="hub-status-ui" class="absolute top-20 left-0 right-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4 md:p-6 transition-opacity duration-500 opacity-0 text-white">
+<div id="hub-status-ui" class="absolute top-20 left-0 right-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4 md:p-6 transition-all duration-700 opacity-0 text-white">
     <div class="flex flex-wrap justify-between items-start gap-4">
-        <div class="glass-panel p-3.5 rounded-2xl flex items-center gap-3 border-yellow-400/30 shadow-xl pointer-events-auto">
+        <div class="p-3.5 rounded-2xl flex items-center gap-3 pointer-events-auto bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
             <div class="w-11 h-11 rounded-xl bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-yellow-400 shadow-inner">
                 <i id="location-icon" class="fa-solid fa-cloud text-xl"></i>
             </div>
@@ -516,7 +567,7 @@
         </div>
 
         <!-- Weather & Controls -->
-        <div class="glass-panel p-2.5 rounded-2xl flex items-center gap-3 border-slate-700/60 pointer-events-auto">
+        <div class="p-2.5 rounded-2xl flex items-center gap-3 pointer-events-auto bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
             <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/30">
                 <i id="weather-badge-icon" class="fa-solid fa-sun text-yellow-400"></i>
                 <span id="weather-badge-text">Ensolarado</span>
@@ -530,8 +581,8 @@
     <i class="fa-solid fa-coins text-yellow-400"></i>
     <span id="hud-gold-value" class="text-yellow-400 font-bold font-mono text-sm tracking-widest">0</span>
 </div>
-<header class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto">
-<div class="glass-panel rounded-xl p-2 md:p-3 flex flex-wrap justify-between items-center gap-2 md:gap-4 bg-stone-950/40">
+<header id="main-header" class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto transition-all duration-700">
+<div class="rounded-xl p-2 md:p-3 flex flex-wrap justify-between items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
 <!-- Player Info -->
 <div class="flex items-center gap-3">
 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-xl shadow-lg shadow-amber-950/50">
@@ -550,40 +601,21 @@
 </div>
 </div>
 <!-- Player Vitals (HP, Fome, Sede) com Decaimento Ativo -->
-<div class="flex items-center gap-4 md:gap-6 text-sm bg-stone-950/80 px-4 py-2 rounded-xl border border-stone-800">
-<!-- HP -->
-<div class="flex items-center gap-2" title="Pontos de Vida (Drena se Fome ou Sede zerarem)">
-<i class="fa-solid fa-heart text-red-600 text-base"></i>
-<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
-<div class="bg-gradient-to-r from-red-800 to-red-500 h-2.5 rounded-full transition-all duration-300" id="vital-hp" style="width: 100%"></div>
-</div>
-<span class="text-xs font-mono font-bold w-9 text-right text-red-300" id="txt-hp">100%</span>
-</div>
-<!-- Fome -->
-<div class="flex items-center gap-2" title="Fome (Decai com o tempo)">
-<i class="fa-solid fa-drumstick-bite text-amber-600 text-base"></i>
-<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
-<div class="bg-gradient-to-r from-amber-800 to-amber-500 h-2.5 rounded-full transition-all duration-300" id="vital-food" style="width: 75%"></div>
-</div>
-<span class="text-xs font-mono font-bold w-9 text-right text-amber-300" id="txt-food">75%</span>
-</div>
-<!-- Sede -->
-<div class="flex items-center gap-2" title="Sede (Decai com o tempo)">
-<i class="fa-solid fa-droplet text-sky-500 text-base"></i>
-<div class="w-10 md:w-16 bg-stone-900 rounded-full h-2.5 overflow-hidden border border-stone-800">
-<div class="bg-gradient-to-r from-sky-800 to-sky-500 h-2.5 rounded-full transition-all duration-300" id="vital-water" style="width: 60%"></div>
-</div>
-<span class="text-xs font-mono font-bold w-9 text-right text-sky-300" id="txt-water">60%</span>
+<div id="vitals-container" class="flex items-center gap-2 text-sm px-2 py-1">
+<!-- HP Minimalist -->
+<div class="flex items-center gap-2" title="Pontos de Vida">
+<i class="fa-solid fa-heart text-red-600 text-base drop-shadow-md"></i>
+<span class="text-sm font-mono font-bold text-red-300" id="txt-hp">100%</span>
+<!-- Invisible element for compatibility with EnemyManager.js seeking 'vital-hp' element if needed, though EnemyManager modifies style.width -->
+<div id="vital-hp" style="display:none; width: 100%"></div>
 </div>
 </div>
 <!-- Weight Controls & LocalStorage Actions -->
 <div class="flex items-center gap-3">
-<div class="text-right">
-<span class="text-[10px] text-amber-300/70 uppercase tracking-wider block font-script">Carga do Alforje</span>
-<span class="text-xs font-bold font-mono text-amber-100" id="weight-text">0.0 / 25.0 kg</span>
-</div>
-<div class="w-20 bg-stone-950 border border-stone-800 rounded-lg p-1">
-<div class="h-2 bg-amber-600 rounded transition-all duration-300" id="weight-bar" style="width: 0%"></div>
+<div id="weight-container" class="flex items-center gap-2 text-right ui-element-faded">
+<i class="fa-solid fa-bag-shopping text-amber-500/80 text-lg drop-shadow"></i>
+<span class="text-sm font-bold font-mono text-white/80" id="weight-text">0.0 / 25.0 kg</span>
+<div id="weight-bar" style="display:none; width: 0%"></div>
 </div>
 <!-- Reset Save Button -->
 <button class="text-xs bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1.5 rounded-lg border border-red-800/80 transition flex items-center gap-1 font-mono" title="Reiniciar Progresso (Limpar Dados Guardados)">
@@ -722,7 +754,25 @@
 </div>
 </div>
 </div>
-</footer><div class="fixed hidden z-50 pointer-events-none glass-panel p-3.5 rounded-xl shadow-2xl max-w-xs border border-amber-800/80 fade-in" id="tooltip">
+</footer>
+<!-- Bottom Left Vitals (Fome/Sede) -->
+<div id="bottom-vitals" class="fixed bottom-6 left-6 z-40 flex flex-col gap-3 ui-element-faded pointer-events-none">
+    <div class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-lg">
+            <i class="fa-solid fa-drumstick-bite"></i>
+        </div>
+        <span class="text-sm font-mono font-bold text-amber-300 drop-shadow" id="txt-food">75%</span>
+        <div id="vital-food" style="display:none; width: 75%"></div>
+    </div>
+    <div class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-sky-500/30 flex items-center justify-center text-sky-500 shadow-lg">
+            <i class="fa-solid fa-droplet"></i>
+        </div>
+        <span class="text-sm font-mono font-bold text-sky-300 drop-shadow" id="txt-water">60%</span>
+        <div id="vital-water" style="display:none; width: 60%"></div>
+    </div>
+</div>
+<div class="fixed hidden z-50 pointer-events-none glass-panel p-3.5 rounded-xl shadow-2xl max-w-xs border border-amber-800/80 fade-in" id="tooltip">
 <div class="flex justify-between items-start gap-3 mb-1">
 <h3 class="font-bold text-sm text-amber-100 font-title" id="tt-title">Nome do Item</h3>
 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800" id="tt-rarity">Comum</span>
