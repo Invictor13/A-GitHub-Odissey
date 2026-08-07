@@ -3,6 +3,12 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ForestBiome } from './biomes/forest/ForestBiome.js';
 import { PlainsBiome } from './biomes/plains/PlainsBiome.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
+import { MushroomBiome } from './biomes/mushroom/MushroomBiome.js';
+import { BambooBiome } from './biomes/bamboo/BambooBiome.js';
+import { DesertBiome } from './biomes/desert/DesertBiome.js';
+import { CanyonBiome } from './biomes/canyon/CanyonBiome.js';
+import { MangroveBiome } from './biomes/mangrove/MangroveBiome.js';
+
 
 export class ProceduralMap {
     constructor(scene) {
@@ -198,16 +204,47 @@ export class ProceduralMap {
         this.chunksList = [];
 
         let biomeKey = 'forest';
-        if (this.currentBiomeId.includes('campos') || this.currentBiomeId.includes('planície')) {
-            biomeKey = 'plains';
-        }
+        const biomeStr = this.currentBiomeId.toLowerCase();
+
+        if (biomeStr.includes('campos') || biomeStr.includes('planície')) biomeKey = 'plains';
+        else if (biomeStr.includes('cogumelo') || biomeStr.includes('mushroom')) biomeKey = 'mushroom';
+        else if (biomeStr.includes('bambu') || biomeStr.includes('bamboo')) biomeKey = 'bamboo';
+        else if (biomeStr.includes('deserto') || biomeStr.includes('desert')) biomeKey = 'desert';
+        else if (biomeStr.includes('canyon') || biomeStr.includes('desfiladeiro')) biomeKey = 'canyon';
+        else if (biomeStr.includes('mangue') || biomeStr.includes('mangrove')) biomeKey = 'mangrove';
 
         // Cache biome instances to prevent WebGL memory leaks
         if (!this.biomeCache[biomeKey]) {
-            if (biomeKey === 'plains') {
-                this.biomeCache[biomeKey] = new PlainsBiome(this.scene, this);
+            if (biomeKey === 'plains') this.biomeCache[biomeKey] = new PlainsBiome(this.scene, this);
+            else if (biomeKey === 'mushroom') this.biomeCache[biomeKey] = new MushroomBiome(this.scene, this);
+            else if (biomeKey === 'bamboo') this.biomeCache[biomeKey] = new BambooBiome(this.scene, this);
+            else if (biomeKey === 'desert') this.biomeCache[biomeKey] = new DesertBiome(this.scene, this);
+            else if (biomeKey === 'canyon') this.biomeCache[biomeKey] = new CanyonBiome(this.scene, this);
+            else if (biomeKey === 'mangrove') this.biomeCache[biomeKey] = new MangroveBiome(this.scene, this);
+            else this.biomeCache[biomeKey] = new ForestBiome(this.scene, this);
+        }
+
+        // Adjust Hemisphere light based on biome
+        if (this.hemisphereLight) {
+            if (biomeKey === 'desert') {
+                this.hemisphereLight.color.setHex(0xe8cda5); // Sand bright
+                this.hemisphereLight.groundColor.setHex(0xa07e54);
+            } else if (biomeKey === 'mushroom') {
+                this.hemisphereLight.color.setHex(0x3e185e); // Purple dark
+                this.hemisphereLight.groundColor.setHex(0x1a0f2e);
+            } else if (biomeKey === 'bamboo') {
+                this.hemisphereLight.color.setHex(0xe8f5e9); // Bright green tint
+                this.hemisphereLight.groundColor.setHex(0x33691e);
+            } else if (biomeKey === 'canyon') {
+                this.hemisphereLight.color.setHex(0xd28666); // Orange tint
+                this.hemisphereLight.groundColor.setHex(0x6a2c15);
+            } else if (biomeKey === 'mangrove') {
+                this.hemisphereLight.color.setHex(0x405948); // Murky green
+                this.hemisphereLight.groundColor.setHex(0x1a2119);
             } else {
-                this.biomeCache[biomeKey] = new ForestBiome(this.scene, this);
+                // Default forest / plains
+                this.hemisphereLight.color.setHex(0x0f172a);
+                this.hemisphereLight.groundColor.setHex(0x1f4214);
             }
         }
 
