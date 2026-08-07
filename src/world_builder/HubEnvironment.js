@@ -39,6 +39,10 @@ export class HubEnvironment {
         this.previewRotationY = 0;
         this.canPlaceInGrid = false;
 
+        // Build Pivot for Free Camera
+        this.buildPivot = new THREE.Object3D();
+        this.scene.add(this.buildPivot);
+
         this.raycaster = new THREE.Raycaster();
         this.mouseVec = new THREE.Vector2();
         this.gridSnapPos = new THREE.Vector3();
@@ -198,6 +202,33 @@ export class HubEnvironment {
             distGroup.position.set(Math.cos(angle) * dist, 5 + (Math.random() - 0.5) * 15, Math.sin(angle) * dist);
             this.skyGroup.add(distGroup);
             this.distantIslands.push(distGroup);
+        }
+
+        // Placeholders das Ilhas (Expansões Futuras)
+        this.placeholderIslands = [];
+        const placeholderColors = [
+            0x555555, // Ferreiro (Cinza escuro)
+            0x8b5a2b, // Lenhador (Marrom)
+            0x8a2be2, // Mago (Roxo)
+            0xb22222, // Dojo (Vermelho)
+            0x9acd32  // Fazenda (Verde amarelado)
+        ];
+        const placeholderNames = ["Ilha do Ferreiro", "Ilha do Lenhador", "Ilha do Mago", "Ilha do Dojo", "Ilha da Fazenda"];
+
+        const radius = this.ISLAND_SIZE / 2.0;
+        const phGeo = new THREE.CylinderGeometry(radius, radius, 2, 32);
+
+        for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2;
+            const dist = 58; // Distância entre 55 e 60 unidades
+
+            const phMat = new THREE.MeshBasicMaterial({ color: placeholderColors[i] });
+            const phMesh = new THREE.Mesh(phGeo, phMat);
+            phMesh.position.set(Math.cos(angle) * dist, -5, Math.sin(angle) * dist);
+            phMesh.userData = { name: placeholderNames[i] };
+
+            this.skyGroup.add(phMesh);
+            this.placeholderIslands.push(phMesh);
         }
     }
 
@@ -937,6 +968,11 @@ export class HubEnvironment {
         setTimeout(() => { this.canPlaceInGrid = true; }, 250);
 
         window.hubBuildingState = 'BUILDING_GRID';
+
+        if (window.penitentGroup) {
+            this.buildPivot.position.copy(window.penitentGroup.position);
+            this.buildPivot.position.y += 10;
+        }
     }
 
     cancelGridPlacement() {
