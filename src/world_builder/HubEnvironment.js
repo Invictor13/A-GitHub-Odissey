@@ -450,8 +450,12 @@ export class HubEnvironment {
         // --- 5. Registration ---
         this.portalIslandData = { x, y: 0.6, z, radius: 6.0 }; // Walkable radius
 
+        portalGroup.userData.interactable = true;
+        portalGroup.userData.name = 'PortalExpedicao';
+
         this.interactiveObjects.push({
             name: 'PortalExpedicao',
+            mesh: portalGroup,
             position: new THREE.Vector3(x, y + 0.6, z),
             radius: 4.5,
             action: () => this.openExpeditionUI(),
@@ -534,6 +538,25 @@ export class HubEnvironment {
         this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
         this.erosSpot.position.set(4.0, 10, 4.0); this.erosSpot.castShadow = true;
         this.scene.add(this.erosSpot); this.scene.add(this.erosSpot.target);
+
+        this.eros.group.userData.interactable = true;
+        this.eros.group.userData.name = 'Eros';
+
+        this.interactiveObjects.push({
+            name: 'Eros',
+            mesh: this.eros.group,
+            position: this.eros.group.position,
+            radius: 5.0,
+            action: () => {
+                if (window.hubBuildingState !== 'EXPLORING' && window.hubBuildingState !== 'INSIDE_TENT') return;
+                window.hubBuildingState = 'BUILDING';
+                const hubUI = document.getElementById('hub-status-ui');
+                const buildUI = document.getElementById('build-ui');
+                if (hubUI) hubUI.classList.add('opacity-0');
+                if (buildUI) buildUI.classList.remove('hidden');
+            },
+            prompt: 'Falar com Eros (Construir)'
+        });
     }
 
     buildInteractiveTentInterior() {
@@ -617,32 +640,44 @@ export class HubEnvironment {
         this.scene.add(this.tentInteriorGroup);
 
         // Register Interactions Inside Tent
+        exitRug.userData.interactable = true;
+        exitRug.userData.name = 'TapeteSaida';
         this.interactiveObjects.push({
             name: 'TapeteSaida',
+            mesh: exitRug,
             position: new THREE.Vector3(200, 0, 203.5),
             radius: 2.0,
             action: () => this.exitTent(),
             prompt: 'Sair para o Acampamento (Saída)'
         });
 
+        tableGroup.userData.interactable = true;
+        tableGroup.userData.name = 'Diario';
         this.interactiveObjects.push({
             name: 'Diario',
+            mesh: tableGroup,
             position: new THREE.Vector3(196.8, 0, 197.8),
             radius: 2.5,
             action: () => this.handleJournalInteraction(),
             prompt: 'Ler e Salvar Progresso no Diário'
         });
 
+        bedGroup.userData.interactable = true;
+        bedGroup.userData.name = 'SacoDormir';
         this.interactiveObjects.push({
             name: 'SacoDormir',
+            mesh: bedGroup,
             position: new THREE.Vector3(202.8, 0, 199.0),
             radius: 2.5,
             action: () => this.sleepInTent(),
             prompt: 'Dormir por 8 Horas (Avançar Tempo)'
         });
 
+        desk.userData.interactable = true;
+        desk.userData.name = 'MesaTatica';
         this.interactiveObjects.push({
             name: 'MesaTatica',
+            mesh: desk,
             position: new THREE.Vector3(200, 0, 197.5),
             radius: 2.5,
             action: () => window.changeGameState('WORLD_MAP'),
@@ -921,16 +956,22 @@ export class HubEnvironment {
 
         // Bind interactive triggers if needed
         if (type === 'barraca') {
+            finalMesh.userData.interactable = true;
+            finalMesh.userData.name = 'Barraca';
             this.interactiveObjects.push({
                 name: 'Barraca',
+                mesh: finalMesh,
                 position: new THREE.Vector3(x, y, z),
                 radius: 3.8,
                 action: () => this.enterTent(),
                 prompt: 'Entrar na Barraca (Acomodações)'
             });
         } else if (type === 'fogueira') {
+            finalMesh.userData.interactable = true;
+            finalMesh.userData.name = 'Fogueira';
             this.interactiveObjects.push({
                 name: 'Fogueira',
+                mesh: finalMesh,
                 position: new THREE.Vector3(x, y, z),
                 radius: 3.2,
                 action: () => window.showToast("🔥 Você se aquece ao lado da fogueira do Santuário.", "fa-fire", "fa-fire"),
@@ -1483,20 +1524,6 @@ export class HubEnvironment {
             let isMoving = false;
 
             if (distToEros < 5.0 && !this.isModalOpen && window.hubBuildingState === 'EXPLORING') {
-                if(!this.isNearEros) {
-                    window.currentNearbyObject = { action: () => {
-                        window.hubBuildingState = 'BUILDING';
-                        const hubUI = document.getElementById('hub-status-ui');
-                        const buildUI = document.getElementById('build-ui');
-                        if(hubUI) hubUI.classList.add('opacity-0');
-                        if(buildUI) buildUI.classList.remove('hidden');
-                    }};
-                    const prompt = document.getElementById('interaction-prompt');
-                    if(prompt) {
-                        prompt.style.opacity = '1';
-                        document.getElementById('prompt-text').textContent = 'Falar com Eros (Construir)';
-                    }
-                }
                 this.isNearEros = true;
 
                 const targetAngle = Math.atan2(safePos.x - this.eros.group.position.x, safePos.z - this.eros.group.position.z);
@@ -1505,13 +1532,6 @@ export class HubEnvironment {
                 this.eros.group.rotation.y += diff * 6 * delta;
 
             } else {
-                if(this.isNearEros) {
-                    if (window.currentNearbyObject && window.currentNearbyObject.name === 'Eros') {
-                        window.currentNearbyObject = null;
-                        const prompt = document.getElementById('interaction-prompt');
-                        if(prompt) prompt.style.opacity = '0';
-                    }
-                }
                 this.isNearEros = false;
 
                 if (this.erosWaitTimer > 0) {
