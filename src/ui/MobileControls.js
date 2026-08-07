@@ -12,14 +12,18 @@ export class MobileControls {
 
     initUI() {
         // Container for mobile controls
-        this.container = document.createElement('div');
-        this.container.id = 'mobile-controls-container';
+        this.container = document.getElementById('mobile-controls-container');
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.id = 'mobile-controls-container';
+            document.body.appendChild(this.container);
+        }
+
         this.container.style.position = 'fixed';
         this.container.style.inset = '0';
         this.container.style.zIndex = '40'; // Below modals, above game canvas
         this.container.style.pointerEvents = 'none'; // Only interactive elements will have pointer-events
         this.container.style.display = 'none'; // Hidden by default, shown by game state manager
-        document.body.appendChild(this.container);
 
         // Left half for joystick detection
         this.leftZone = document.createElement('div');

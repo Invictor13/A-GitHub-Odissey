@@ -12,6 +12,10 @@ window.addEventListener('error', (e) => {
     if (errBox) {
         errBox.style.display = 'block';
         errBox.innerText = '⚠️ ERRO:\n' + e.message + '\nLinha: ' + e.lineno;
+        if (window._errorTimeout) clearTimeout(window._errorTimeout);
+        window._errorTimeout = setTimeout(() => {
+            errBox.style.display = 'none';
+        }, 5000);
     }
 
 });
@@ -555,9 +559,10 @@ window.InvisibleUI = {
         const hpVignette = document.getElementById('hp-critical-vignette');
         const weightVignette = document.getElementById('weight-critical-vignette');
 
-        const hpPerc = gameState?.vitals?.hp ?? 0;
-        const foodPerc = gameState?.vitals?.food ?? 0;
-        const waterPerc = gameState?.vitals?.water ?? 0;
+        const hpPerc = gameState?.vitals?.hp ?? player?.hp ?? 0;
+        const maxHp = gameState?.vitals?.maxHp ?? player?.maxHp ?? 100;
+        const foodPerc = gameState?.vitals?.food ?? player?.food ?? 0;
+        const waterPerc = gameState?.vitals?.water ?? player?.water ?? 0;
 
         const isInventoryOpen = document.getElementById('inventory-modal') && !document.getElementById('inventory-modal').classList.contains('hidden');
         const isHPAlert = hpPerc < 30;
