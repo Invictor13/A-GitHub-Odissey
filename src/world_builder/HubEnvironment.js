@@ -39,6 +39,10 @@ export class HubEnvironment {
         this.previewRotationY = 0;
         this.canPlaceInGrid = false;
 
+        // Build Pivot for Free Camera
+        this.buildPivot = new THREE.Object3D();
+        this.scene.add(this.buildPivot);
+
         this.raycaster = new THREE.Raycaster();
         this.mouseVec = new THREE.Vector2();
         this.gridSnapPos = new THREE.Vector3();
@@ -92,30 +96,6 @@ export class HubEnvironment {
         this.matWood = new THREE.MeshStandardMaterial({ color: 0x5c2b0c, bumpMap: this.texLeatherBump, bumpScale: 0.05, ...matBase });
         this.matGrass = new THREE.MeshStandardMaterial({ color: 0x15803d, bumpMap: this.texNoiseBump, bumpScale: 0.03, roughness: 0.8, flatShading: true });
 
-        // Grass Shader
-        this.grassGeo = new THREE.BufferGeometry();
-        this.grassGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.15, 0, 0, 0.15, 0, 0, 0.0, 0.8, 0]), 3));
-        this.grassGeo.computeVertexNormals();
-
-        this.grassUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
-        this.matGrassShader = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.9, flatShading: true });
-        this.matGrassShader.onBeforeCompile = (shader) => {
-            shader.uniforms.uTime = this.grassUniforms.uTime; shader.uniforms.uPlayerPos = this.grassUniforms.uPlayerPos;
-            shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nuniform float uTime;\nuniform vec3 uPlayerPos;\nvarying vec3 vGrassTint;`);
-            shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `
-                #include <begin_vertex>
-                vec4 worldPos = instanceMatrix * vec4(position, 1.0);
-                if (position.y > 0.1) {
-                    float wind = sin(uTime * 2.5 + worldPos.x * 0.8 + worldPos.z * 0.8) * 0.22;
-                    transformed.x += wind; transformed.z += wind * 0.6;
-                    float dist = distance(worldPos.xz, uPlayerPos.xz);
-                    if (dist < 1.5) { vec2 push = normalize(worldPos.xz - uPlayerPos.xz) * (1.5 - dist) * 0.6; transformed.x += push.x; transformed.z += push.y; }
-                }
-                vGrassTint = mix(vec3(0.5), vec3(1.2), clamp(position.y * 1.8, 0.0, 1.0));
-            `);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vGrassTint;`);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb *= vGrassTint;`);
-        };
     }
 
     setupLightingAndSky() {
@@ -199,6 +179,7 @@ export class HubEnvironment {
             this.skyGroup.add(distGroup);
             this.distantIslands.push(distGroup);
         }
+
     }
 
     setupEnvironment() {
@@ -258,7 +239,7 @@ export class HubEnvironment {
             new THREE.Color(0x84cc16)
         ];
 
-        const grassCount = 6000;
+        const grassCount = 100; // Optimization: drastically reduced to 100
         const instancedGrass = new THREE.InstancedMesh(bladeGeo, baseMaterial, grassCount);
         const dummy = new THREE.Object3D();
 
@@ -292,25 +273,6 @@ export class HubEnvironment {
         instancedGrass.instanceMatrix.needsUpdate = true;
         instancedGrass.instanceColor.needsUpdate = true;
         this.centralIsland.add(instancedGrass);
-    }
-
-    addGrassToCircle(group, radius, yLevel) {
-        const area = Math.PI * radius * radius;
-        const count = Math.floor(area * 4.5);
-        const iGrass = new THREE.InstancedMesh(this.grassGeo, this.matGrassShader, count);
-        const dummy = new THREE.Object3D();
-        const grassColor = new THREE.Color(0x22c55e);
-        for(let i = 0; i < count; i++) {
-            const r = Math.sqrt(Math.random()) * (radius - 0.5);
-            const theta = Math.random() * 2 * Math.PI;
-            dummy.position.set(r * Math.cos(theta), yLevel, r * Math.sin(theta));
-            dummy.rotation.y = Math.random() * Math.PI;
-            dummy.scale.setScalar(0.7 + Math.random() * 1.0);
-            dummy.updateMatrix();
-            iGrass.setMatrixAt(i, dummy.matrix);
-            iGrass.setColorAt(i, grassColor);
-        }
-        group.add(iGrass);
     }
 
 
@@ -419,8 +381,12 @@ export class HubEnvironment {
         // --- 5. Registration ---
         this.portalIslandData = { x, y: 0.6, z, radius: 6.0 }; // Walkable radius
 
+        portalGroup.userData.interactable = true;
+        portalGroup.userData.name = 'PortalExpedicao';
+
         this.interactiveObjects.push({
             name: 'PortalExpedicao',
+            mesh: portalGroup,
             position: new THREE.Vector3(x, y + 0.6, z),
             radius: 4.5,
             action: () => this.openExpeditionUI(),
@@ -474,8 +440,6 @@ export class HubEnvironment {
             terrainGroup.add(stalactite);
         }
 
-        this.addGrassToCircle(terrainGroup, radius, 0.4);
-
         if (!isCentral) {
             const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
             for (let i = 0; i < 9; i++) {
@@ -503,6 +467,25 @@ export class HubEnvironment {
         this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
         this.erosSpot.position.set(4.0, 10, 4.0); this.erosSpot.castShadow = true;
         this.scene.add(this.erosSpot); this.scene.add(this.erosSpot.target);
+
+        this.eros.group.userData.interactable = true;
+        this.eros.group.userData.name = 'Eros';
+
+        this.interactiveObjects.push({
+            name: 'Eros',
+            mesh: this.eros.group,
+            position: this.eros.group.position,
+            radius: 5.0,
+            action: () => {
+                if (window.hubBuildingState !== 'EXPLORING' && window.hubBuildingState !== 'INSIDE_TENT') return;
+                window.hubBuildingState = 'BUILDING';
+                const hubUI = document.getElementById('hub-status-ui');
+                const buildUI = document.getElementById('build-ui');
+                if (hubUI) hubUI.classList.add('opacity-0');
+                if (buildUI) buildUI.classList.remove('hidden');
+            },
+            prompt: 'Falar com Eros (Construir)'
+        });
     }
 
     buildInteractiveTentInterior() {
@@ -586,32 +569,44 @@ export class HubEnvironment {
         this.scene.add(this.tentInteriorGroup);
 
         // Register Interactions Inside Tent
+        exitRug.userData.interactable = true;
+        exitRug.userData.name = 'TapeteSaida';
         this.interactiveObjects.push({
             name: 'TapeteSaida',
+            mesh: exitRug,
             position: new THREE.Vector3(200, 0, 203.5),
             radius: 2.0,
             action: () => this.exitTent(),
             prompt: 'Sair para o Acampamento (Saída)'
         });
 
+        tableGroup.userData.interactable = true;
+        tableGroup.userData.name = 'Diario';
         this.interactiveObjects.push({
             name: 'Diario',
+            mesh: tableGroup,
             position: new THREE.Vector3(196.8, 0, 197.8),
             radius: 2.5,
             action: () => this.handleJournalInteraction(),
             prompt: 'Ler e Salvar Progresso no Diário'
         });
 
+        bedGroup.userData.interactable = true;
+        bedGroup.userData.name = 'SacoDormir';
         this.interactiveObjects.push({
             name: 'SacoDormir',
+            mesh: bedGroup,
             position: new THREE.Vector3(202.8, 0, 199.0),
             radius: 2.5,
             action: () => this.sleepInTent(),
             prompt: 'Dormir por 8 Horas (Avançar Tempo)'
         });
 
+        desk.userData.interactable = true;
+        desk.userData.name = 'MesaTatica';
         this.interactiveObjects.push({
             name: 'MesaTatica',
+            mesh: desk,
             position: new THREE.Vector3(200, 0, 197.5),
             radius: 2.5,
             action: () => window.changeGameState('WORLD_MAP'),
@@ -829,9 +824,9 @@ export class HubEnvironment {
 
         // 5. ILHAS FLUTUANTES
         else if (type === 'ilha_satelite') {
-            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity });
-            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity });
-            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity });
+            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity, wireframe: isPreview });
+            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity, wireframe: isPreview });
+            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity, wireframe: isPreview });
 
             const topGeo = new THREE.CylinderGeometry(4.0, 3.8, 0.5, 12);
             const topMesh = new THREE.Mesh(topGeo, grassMat);
@@ -890,16 +885,22 @@ export class HubEnvironment {
 
         // Bind interactive triggers if needed
         if (type === 'barraca') {
+            finalMesh.userData.interactable = true;
+            finalMesh.userData.name = 'Barraca';
             this.interactiveObjects.push({
                 name: 'Barraca',
+                mesh: finalMesh,
                 position: new THREE.Vector3(x, y, z),
                 radius: 3.8,
                 action: () => this.enterTent(),
                 prompt: 'Entrar na Barraca (Acomodações)'
             });
         } else if (type === 'fogueira') {
+            finalMesh.userData.interactable = true;
+            finalMesh.userData.name = 'Fogueira';
             this.interactiveObjects.push({
                 name: 'Fogueira',
+                mesh: finalMesh,
                 position: new THREE.Vector3(x, y, z),
                 radius: 3.2,
                 action: () => window.showToast("🔥 Você se aquece ao lado da fogueira do Santuário.", "fa-fire", "fa-fire"),
@@ -937,6 +938,11 @@ export class HubEnvironment {
         setTimeout(() => { this.canPlaceInGrid = true; }, 250);
 
         window.hubBuildingState = 'BUILDING_GRID';
+
+        if (window.penitentGroup) {
+            this.buildPivot.position.copy(window.penitentGroup.position);
+            this.buildPivot.position.y += 10;
+        }
     }
 
     cancelGridPlacement() {
@@ -1424,9 +1430,6 @@ export class HubEnvironment {
         // Trava de segurança para a posição do jogador
         const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
 
-        this.grassUniforms.uTime.value = time;
-        this.grassUniforms.uPlayerPos.value.copy(safePos);
-
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
         this.animateCampfireAndVegetation(delta, time);
@@ -1464,13 +1467,6 @@ export class HubEnvironment {
                 }
                 this.isNearEros = true;
             } else {
-                if(this.isNearEros) {
-                    if (window.currentNearbyObject && window.currentNearbyObject.name === 'Eros') {
-                        window.currentNearbyObject = null;
-                        const prompt = document.getElementById('interaction-prompt');
-                        if(prompt) prompt.style.opacity = '0';
-                    }
-                }
                 this.isNearEros = false;
             }
 

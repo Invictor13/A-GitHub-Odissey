@@ -6,6 +6,7 @@ import { HubEnvironment } from './src/world_builder/HubEnvironment.js';
 import { ProceduralMap } from './src/world_builder/ProceduralMap.js';
 import { WorldMap } from './src/world_builder/WorldMap.js';
 import { MobileControls } from './src/ui/MobileControls.js';
+import { InteractionManager } from './src/systems/InteractionManager.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -37,6 +38,10 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
+
+window.interactionManager = new InteractionManager(camera, renderer.domElement, () => {
+    return currentEnvironment && currentEnvironment.interactiveObjects ? currentEnvironment.interactiveObjects : [];
+});
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -225,6 +230,18 @@ window.addEventListener('keydown', (e) => {
             controls.enabled = !codexUI.isOpen && (!inventoryUI || !inventoryUI.isOpen);
         }, 10);
     }
+});
+
+// Manage key states for continuous movement
+window.keyStates = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+window.addEventListener('keydown', (e) => {
+    if (window.keyStates.hasOwnProperty(e.key)) window.keyStates[e.key] = true;
+    if (window.keyStates.hasOwnProperty(e.key.toLowerCase())) window.keyStates[e.key.toLowerCase()] = true;
+});
+window.addEventListener('keyup', (e) => {
+    if (window.keyStates.hasOwnProperty(e.key)) window.keyStates[e.key] = false;
+    if (window.keyStates.hasOwnProperty(e.key.toLowerCase())) window.keyStates[e.key.toLowerCase()] = false;
 });
 
 // Hub Interactions
@@ -522,14 +539,29 @@ function animate() {
                     targetCamPos = new THREE.Vector3(2.5, 7.0, 7.0);
                     targetLookAt = new THREE.Vector3(2.5, 0.5, 0.5);
                 } else if (window.hubBuildingState === 'BUILDING_GRID') {
-                    let camDistY = 22;
-                    let camDistZ = 12;
+                    if (currentEnvironment && currentEnvironment.buildPivot) {
+                        const speed = 25.0;
+                        const delta = window.gameState.delta;
+                        const dir = new THREE.Vector3();
+                        camera.getWorldDirection(dir);
+                        dir.y = 0; dir.normalize();
+                        const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+
+                        if (window.keyStates.w || window.keyStates.ArrowUp) currentEnvironment.buildPivot.position.addScaledVector(dir, speed * delta);
+                        if (window.keyStates.s || window.keyStates.ArrowDown) currentEnvironment.buildPivot.position.addScaledVector(dir, -speed * delta);
+                        if (window.keyStates.a || window.keyStates.ArrowLeft) currentEnvironment.buildPivot.position.addScaledVector(right, -speed * delta);
+                        if (window.keyStates.d || window.keyStates.ArrowRight) currentEnvironment.buildPivot.position.addScaledVector(right, speed * delta);
+                    }
+
+                    let camDistY = 25;
+                    let camDistZ = 15;
                     if (currentEnvironment && currentEnvironment.selectedBuildType && (currentEnvironment.selectedBuildType === 'ilha_satelite' || currentEnvironment.selectedBuildType === 'ponte_magica')) {
                         camDistY = 35;
                         camDistZ = 20;
                     }
-                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, camDistY, camDistZ));
-                    targetLookAt = playerPos.clone();
+                    const pivotPos = (currentEnvironment && currentEnvironment.buildPivot) ? currentEnvironment.buildPivot.position : playerPos;
+                    targetCamPos = pivotPos.clone().add(new THREE.Vector3(0, camDistY, camDistZ));
+                    targetLookAt = pivotPos.clone();
                 }
 
                 camera.position.lerp(targetCamPos, 5 * window.gameState.delta);
@@ -578,6 +610,10 @@ function animate() {
 
     if (window.InvisibleUI && typeof penitent !== 'undefined' && penitent !== null) {
         window.InvisibleUI.update(window.gameState, penitent, window.gameState.delta);
+    }
+
+    if (window.interactionManager) {
+        window.interactionManager.update();
     }
 }
 
