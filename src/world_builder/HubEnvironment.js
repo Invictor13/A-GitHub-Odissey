@@ -255,7 +255,7 @@ export class HubEnvironment {
 
         for (let i = 0; i < 1500; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * (this.ISLAND_SIZE - 1.0);
+            const radius = Math.sqrt(Math.random()) * ((this.ISLAND_SIZE / 2.0) - 1.0);
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
@@ -274,7 +274,7 @@ export class HubEnvironment {
                 tuft.add(blade);
             }
 
-            const groundY = Math.sin(x * 0.3) * Math.cos(z * 0.3) * 0.5 + 0.05;
+            const groundY = 0.4;
             tuft.position.set(x, groundY, z);
             tuft.userData = { phase: Math.random() * Math.PI * 2, speed: 1.5 + Math.random() * 1.5 };
 
@@ -283,15 +283,18 @@ export class HubEnvironment {
         }
     }
 
-    addGrassToBlock(group, width, depth, yLevel) {
-        const count = Math.floor((width * depth) * 4.5);
+    addGrassToCircle(group, radius, yLevel) {
+        const area = Math.PI * radius * radius;
+        const count = Math.floor(area * 4.5);
         const iGrass = new THREE.InstancedMesh(this.grassGeo, this.matGrassShader, count);
         const dummy = new THREE.Object3D();
         const grassColor = new THREE.Color(0x22c55e);
-        for(let i=0; i<count; i++) {
-            dummy.position.set((Math.random()-0.5)*(width-0.5), yLevel, (Math.random()-0.5)*(depth-0.5));
+        for(let i = 0; i < count; i++) {
+            const r = Math.sqrt(Math.random()) * (radius - 0.5);
+            const theta = Math.random() * 2 * Math.PI;
+            dummy.position.set(r * Math.cos(theta), yLevel, r * Math.sin(theta));
             dummy.rotation.y = Math.random() * Math.PI;
-            dummy.scale.setScalar(0.7 + Math.random()*1.0);
+            dummy.scale.setScalar(0.7 + Math.random() * 1.0);
             dummy.updateMatrix();
             iGrass.setMatrixAt(i, dummy.matrix);
             iGrass.setColorAt(i, grassColor);
@@ -302,52 +305,33 @@ export class HubEnvironment {
     createIslandMesh(x, z, isCentral = false) {
         const group = new THREE.Group();
         const terrainGroup = new THREE.Group();
+        const radius = this.ISLAND_SIZE / 2.0;
 
-        const basePlat = new THREE.Mesh(new THREE.BoxGeometry(this.ISLAND_SIZE, 0.4, this.ISLAND_SIZE), this.matGrass);
+        const basePlat = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.4, 32), this.matGrass);
         basePlat.position.y = 0.2; basePlat.receiveShadow = true; basePlat.castShadow = true;
         terrainGroup.add(basePlat); this.groundMeshes.push(basePlat);
 
-        const baseDirt = new THREE.Mesh(new THREE.BoxGeometry(this.ISLAND_SIZE - 0.2, 8.0, this.ISLAND_SIZE - 0.2), this.matDirt);
+        const baseDirt = new THREE.Mesh(new THREE.CylinderGeometry(radius - 0.1, radius - 1.0, 8.0, 32), this.matDirt);
         baseDirt.position.y = -4.0;
         baseDirt.receiveShadow = true; baseDirt.castShadow = true;
         terrainGroup.add(baseDirt);
 
-        const baseRock = new THREE.Mesh(new THREE.CylinderGeometry(this.ISLAND_SIZE * 0.45, this.ISLAND_SIZE * 0.15, 20.0, 9), this.matRock);
+        const baseRock = new THREE.Mesh(new THREE.CylinderGeometry(radius - 1.0, radius * 0.3, 20.0, 9), this.matRock);
         baseRock.position.y = -18.0;
         baseRock.castShadow = true; baseRock.receiveShadow = true;
         terrainGroup.add(baseRock);
 
         for (let i = 0; i < 5; i++) {
             const stalactite = new THREE.Mesh(new THREE.ConeGeometry(1 + Math.random()*2, 4 + Math.random()*6, 5), this.matDirt);
-            stalactite.position.set((Math.random()-0.5)*(this.ISLAND_SIZE-3), -8.0 - Math.random()*2, (Math.random()-0.5)*(this.ISLAND_SIZE-3));
+            const sr = Math.sqrt(Math.random()) * (radius - 2);
+            const stheta = Math.random() * 2 * Math.PI;
+            stalactite.position.set(sr * Math.cos(stheta), -8.0 - Math.random()*2, sr * Math.sin(stheta));
             stalactite.rotation.x = Math.PI;
             stalactite.castShadow = true;
             terrainGroup.add(stalactite);
         }
 
-        this.addGrassToBlock(terrainGroup, this.ISLAND_SIZE, this.ISLAND_SIZE, 0.4);
-
-        const numElevations = isCentral ? 1 : Math.floor(Math.random() * 3) + 2;
-        for(let i=0; i<numElevations; i++) {
-            const w = 6 + Math.random() * 6; const d = 6 + Math.random() * 6; const h = 0.4 + Math.random() * 1.5;
-            let px = (Math.random() - 0.5) * (this.ISLAND_SIZE - w - 2); let pz = (Math.random() - 0.5) * (this.ISLAND_SIZE - d - 2);
-
-            if (isCentral && Math.abs(px) < 6 && Math.abs(pz) < 6) { px = 7; pz = -7; }
-
-            const elevGrass = new THREE.Mesh(new THREE.BoxGeometry(w, 0.4, d), this.matGrass);
-            elevGrass.position.set(px, 0.4 + h - 0.2, pz);
-            elevGrass.receiveShadow = true; elevGrass.castShadow = true;
-            terrainGroup.add(elevGrass); this.groundMeshes.push(elevGrass);
-
-            const elevDirt = new THREE.Mesh(new THREE.BoxGeometry(w - 0.2, h - 0.4, d - 0.2), this.matDirt);
-            elevDirt.position.set(px, 0.4 + (h - 0.4)/2, pz);
-            elevDirt.receiveShadow = true; elevDirt.castShadow = true;
-            terrainGroup.add(elevDirt);
-
-            const localGroup = new THREE.Group(); localGroup.position.set(px, 0, pz);
-            this.addGrassToBlock(localGroup, w, d, 0.4 + h);
-            terrainGroup.add(localGroup);
-        }
+        this.addGrassToCircle(terrainGroup, radius, 0.4);
 
         if (!isCentral) {
             const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
@@ -1371,16 +1355,21 @@ export class HubEnvironment {
             return 0; // Flat floor inside tent
         }
 
-        if (!this.groundMeshes || this.groundMeshes.length === 0) return 0;
+        // Check if on any active island (Central + Expansion slots up to built island count)
+        const built = gameState.buildingsBuilt ? gameState.buildingsBuilt.island : 0;
+        const radius = this.ISLAND_SIZE / 2.0;
+        const safeRadius = radius + 1.5;
 
-        const origin = pos.clone();
-        origin.y += 10.0;
-        this.raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+        // Check central island
+        if (Math.hypot(pos.x, pos.z) <= safeRadius) return 0.4;
 
-        const intersects = this.raycaster.intersectObjects(this.groundMeshes, false);
-        if (intersects.length > 0) {
-            return intersects[0].point.y;
+        // Check active expansions
+        for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
+            const slot = this.expansionSlots[i];
+            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.4;
         }
+
+        // If not over any ground, trigger abyss
         return -50;
     }
 
@@ -1390,7 +1379,19 @@ export class HubEnvironment {
             return distFromTentCenter > 4.5;
         }
 
-        const distFromCenter = Math.hypot(pos.x, pos.z);
-        return distFromCenter > (this.ISLAND_SIZE + 1.5);
+        // Use collision radius based on the circular island shape
+        const islandRadius = this.ISLAND_SIZE / 2.0;
+        const safeRadius = islandRadius + 1.5;
+
+        // Check if player is on central island
+        if (Math.hypot(pos.x, pos.z) <= safeRadius) return false;
+
+        const built = gameState.buildingsBuilt ? gameState.buildingsBuilt.island : 0;
+        for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
+            const slot = this.expansionSlots[i];
+            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return false; // Inside an expansion
+        }
+
+        return true; // Outside all islands bounds
     }
 }
