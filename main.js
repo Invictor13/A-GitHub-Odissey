@@ -6,6 +6,7 @@ import { HubEnvironment } from './src/world_builder/HubEnvironment.js';
 import { ProceduralMap } from './src/world_builder/ProceduralMap.js';
 import { WorldMap } from './src/world_builder/WorldMap.js';
 import { MobileControls } from './src/ui/MobileControls.js';
+import { InteractionManager } from './src/systems/InteractionManager.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -37,6 +38,10 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
+
+window.interactionManager = new InteractionManager(camera, renderer.domElement, () => {
+    return currentEnvironment && currentEnvironment.interactiveObjects ? currentEnvironment.interactiveObjects : [];
+});
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -578,6 +583,10 @@ function animate() {
 
     if (window.InvisibleUI && typeof penitent !== 'undefined' && penitent !== null) {
         window.InvisibleUI.update(window.gameState, penitent, window.gameState.delta);
+    }
+
+    if (window.interactionManager) {
+        window.interactionManager.update();
     }
 }
 
