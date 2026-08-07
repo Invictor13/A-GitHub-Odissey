@@ -22,6 +22,7 @@ export class HubEnvironment {
 
         this.groundMeshes = [];
         this.interactiveObjects = [];
+        this.placedSkyIslands = [];
 
         this.ISLAND_SIZE = 60.0;
 
@@ -764,6 +765,11 @@ export class HubEnvironment {
             });
         }
 
+        // Track sky structures for collision and walkability
+        if (type === 'ilha_satelite' || type === 'ponte_magica') {
+            this.placedSkyIslands.push({ type, x, y, z, ry });
+        }
+
         if (isNew) {
             gameState.hubState.structures.push({ type, x, y, z, ry });
             gameState.save();
@@ -809,9 +815,25 @@ export class HubEnvironment {
     placeDecorStructure() {
         if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh || !this.canPlaceInGrid) return;
 
-        if (Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z) > this.ISLAND_SIZE) {
-            window.showToast("❌ Escolha um local seguro na ilha!", "text-red-400", "fa-circle-xmark");
-            return;
+        const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
+        const dist = Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z);
+        const MAX_SKY_DISTANCE = 90.0;
+
+        let canPlace = false;
+        if (isSkyStructure) {
+            const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 4.0 : 1.5;
+            const isOutsideIslands = this.checkCollision(this.previewMesh.position, safeDistance);
+            canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
+            if (!canPlace) {
+                window.showToast("❌ Escolha um local vazio no céu (abismo)! E evite sobrepor ilhas.", "text-red-400", "fa-circle-xmark");
+                return;
+            }
+        } else {
+            canPlace = dist < this.ISLAND_SIZE;
+            if (!canPlace) {
+                window.showToast("❌ Escolha um local seguro na ilha!", "text-red-400", "fa-circle-xmark");
+                return;
+            }
         }
 
         this.instantiatePlacedStructure(
@@ -824,7 +846,7 @@ export class HubEnvironment {
         );
 
         this.cancelGridPlacement();
-        window.showToast("✔ Elemento construído com sucesso na ilha!", "text-green-400", "fa-circle-check");
+        window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
     }
 
     handleGridMouseMove(e, camera) {
@@ -843,7 +865,20 @@ export class HubEnvironment {
             this.gridSnapPos.z = Math.floor(pt.z / step) * step + step / 2;
             this.gridSnapPos.y = Math.sin(this.gridSnapPos.x * 0.3) * Math.cos(this.gridSnapPos.z * 0.3) * 0.5 + 0.05;
 
-            if (Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z) < this.ISLAND_SIZE) {
+            const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
+            const dist = Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z);
+            const MAX_SKY_DISTANCE = 90.0;
+
+            let canPlace = false;
+            if (isSkyStructure) {
+                const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 4.0 : 1.5;
+                const isOutsideIslands = this.checkCollision(this.gridSnapPos, safeDistance);
+                canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
+            } else {
+                canPlace = dist < this.ISLAND_SIZE;
+            }
+
+            if (canPlace) {
                 this.previewMesh.position.copy(this.gridSnapPos);
                 this.previewMesh.rotation.y = this.previewRotationY;
                 this.previewMesh.visible = true;
@@ -1369,6 +1404,28 @@ export class HubEnvironment {
             if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.4;
         }
 
+        // Check dynamically placed sky islands and magic bridges
+        for (let island of this.placedSkyIslands) {
+            if (island.type === 'ilha_satelite') {
+                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= 4.0) {
+                    return 0.25; // Grass level of satellite island
+                }
+            } else if (island.type === 'ponte_magica') {
+                // Simplified AABB logic: Unrotate player relative to bridge center
+                const dx = pos.x - island.x;
+                const dz = pos.z - island.z;
+                const cosA = Math.cos(-island.ry);
+                const sinA = Math.sin(-island.ry);
+                const localX = dx * cosA - dz * sinA;
+                const localZ = dx * sinA + dz * cosA;
+
+                // Magic bridge dimensions approx: width X = 1.4, length Z = 1.5 (span from -0.75 to 0.75 roughly)
+                if (Math.abs(localX) <= 0.7 && Math.abs(localZ) <= 0.9) {
+                    return 0.15; // Plank level
+                }
+            }
+        }
+
         // If not over any ground, trigger abyss
         return -50;
     }
@@ -1381,7 +1438,7 @@ export class HubEnvironment {
 
         // Use collision radius based on the circular island shape
         const islandRadius = this.ISLAND_SIZE / 2.0;
-        const safeRadius = islandRadius + 1.5;
+        const safeRadius = islandRadius + 1.5 + (radius || 0);
 
         // Check if player is on central island
         if (Math.hypot(pos.x, pos.z) <= safeRadius) return false;
@@ -1390,6 +1447,25 @@ export class HubEnvironment {
         for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
             const slot = this.expansionSlots[i];
             if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return false; // Inside an expansion
+        }
+
+        // Check dynamically placed sky structures
+        for (let island of this.placedSkyIslands) {
+            if (island.type === 'ilha_satelite') {
+                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= (4.0 + (radius || 0))) return false;
+            } else if (island.type === 'ponte_magica') {
+                const dx = pos.x - island.x;
+                const dz = pos.z - island.z;
+                const cosA = Math.cos(-island.ry);
+                const sinA = Math.sin(-island.ry);
+                const localX = dx * cosA - dz * sinA;
+                const localZ = dx * sinA + dz * cosA;
+
+                const checkX = 0.7 + (radius || 0);
+                const checkZ = 0.9 + (radius || 0);
+
+                if (Math.abs(localX) <= checkX && Math.abs(localZ) <= checkZ) return false;
+            }
         }
 
         return true; // Outside all islands bounds
