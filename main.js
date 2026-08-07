@@ -282,6 +282,21 @@ if (btnCancelGrid) {
     });
 }
 
+// Codex button binding
+const btnJournalNew = document.getElementById('btn-journal-new');
+if (btnJournalNew) {
+    btnJournalNew.addEventListener('click', () => {
+        if (window.codexUI) {
+            window.codexUI.toggle();
+
+            // Defer orbit controls update just like the keyboard shortcut
+            setTimeout(() => {
+                controls.enabled = !window.codexUI.isOpen && (!window.inventoryUI || !window.inventoryUI.isOpen);
+            }, 10);
+        }
+    });
+}
+
 // Tab Switching in Eros Menu
 const tabConstructionsBtn = document.getElementById('tab-btn-constructions');
 const tabDecorationsBtn = document.getElementById('tab-btn-decorations');
