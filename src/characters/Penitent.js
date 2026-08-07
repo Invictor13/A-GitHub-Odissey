@@ -306,6 +306,7 @@ export class Penitent {
 
     initInput() {
         document.addEventListener('keydown', (e) => {
+            if (window.hubBuildingState === 'BUILDING_GRID') return;
             const k = (e.key || '').toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = true;
 
             if (this.actionState !== 'inventory') {
@@ -331,11 +332,13 @@ export class Penitent {
         document.addEventListener('keyup', (e) => { const k = (e.key || '').toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = false; });
 
         document.addEventListener('mousedown', (e) => {
+            if (window.hubBuildingState === 'BUILDING_GRID') return;
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
             if (e.button === 0 && !this.isAttacking && !this.isDefending && this.actionState === 'none') { this.isAttacking = true; this.attackTimer = this.ATTACK_DURATION; }
         });
 
         document.addEventListener('keydown', (e) => {
+            if (window.hubBuildingState === 'BUILDING_GRID') return;
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
             if ((e.key === 'r' || e.key === 'R') && !this.isAttacking && this.actionState === 'none') {
                 this.isDefending = true;
@@ -586,7 +589,8 @@ export class Penitent {
         const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
 
         const isResting = this.actionState === 'sit' || this.actionState === 'sleep' || this.actionState === 'inventory' || this.actionState === 'damage';
-        const canMove = !(this.isAttacking && this.isGrounded && !this.isSwimming) && !isResting;
+        const isBuildingGrid = window.hubBuildingState === 'BUILDING_GRID';
+        const canMove = !(this.isAttacking && this.isGrounded && !this.isSwimming) && !isResting && !isBuildingGrid;
 
         let inputX = 0; let inputZ = 0;
         let analogMag = 1.0;
