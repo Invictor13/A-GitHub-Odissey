@@ -96,30 +96,6 @@ export class HubEnvironment {
         this.matWood = new THREE.MeshStandardMaterial({ color: 0x5c2b0c, bumpMap: this.texLeatherBump, bumpScale: 0.05, ...matBase });
         this.matGrass = new THREE.MeshStandardMaterial({ color: 0x15803d, bumpMap: this.texNoiseBump, bumpScale: 0.03, roughness: 0.8, flatShading: true });
 
-        // Grass Shader
-        this.grassGeo = new THREE.BufferGeometry();
-        this.grassGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.15, 0, 0, 0.15, 0, 0, 0.0, 0.8, 0]), 3));
-        this.grassGeo.computeVertexNormals();
-
-        this.grassUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
-        this.matGrassShader = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.9, flatShading: true });
-        this.matGrassShader.onBeforeCompile = (shader) => {
-            shader.uniforms.uTime = this.grassUniforms.uTime; shader.uniforms.uPlayerPos = this.grassUniforms.uPlayerPos;
-            shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nuniform float uTime;\nuniform vec3 uPlayerPos;\nvarying vec3 vGrassTint;`);
-            shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `
-                #include <begin_vertex>
-                vec4 worldPos = instanceMatrix * vec4(position, 1.0);
-                if (position.y > 0.1) {
-                    float wind = sin(uTime * 2.5 + worldPos.x * 0.8 + worldPos.z * 0.8) * 0.22;
-                    transformed.x += wind; transformed.z += wind * 0.6;
-                    float dist = distance(worldPos.xz, uPlayerPos.xz);
-                    if (dist < 1.5) { vec2 push = normalize(worldPos.xz - uPlayerPos.xz) * (1.5 - dist) * 0.6; transformed.x += push.x; transformed.z += push.y; }
-                }
-                vGrassTint = mix(vec3(0.5), vec3(1.2), clamp(position.y * 1.8, 0.0, 1.0));
-            `);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vGrassTint;`);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb *= vGrassTint;`);
-        };
     }
 
     setupLightingAndSky() {
@@ -204,32 +180,6 @@ export class HubEnvironment {
             this.distantIslands.push(distGroup);
         }
 
-        // Placeholders das Ilhas (Expansões Futuras)
-        this.placeholderIslands = [];
-        const placeholderColors = [
-            0x555555, // Ferreiro (Cinza escuro)
-            0x8b5a2b, // Lenhador (Marrom)
-            0x8a2be2, // Mago (Roxo)
-            0xb22222, // Dojo (Vermelho)
-            0x9acd32  // Fazenda (Verde amarelado)
-        ];
-        const placeholderNames = ["Ilha do Ferreiro", "Ilha do Lenhador", "Ilha do Mago", "Ilha do Dojo", "Ilha da Fazenda"];
-
-        const radius = this.ISLAND_SIZE / 2.0;
-        const phGeo = new THREE.CylinderGeometry(radius, radius, 2, 32);
-
-        for (let i = 0; i < 5; i++) {
-            const angle = (i / 5) * Math.PI * 2;
-            const dist = 58; // Distância entre 55 e 60 unidades
-
-            const phMat = new THREE.MeshBasicMaterial({ color: placeholderColors[i] });
-            const phMesh = new THREE.Mesh(phGeo, phMat);
-            phMesh.position.set(Math.cos(angle) * dist, -5, Math.sin(angle) * dist);
-            phMesh.userData = { name: placeholderNames[i] };
-
-            this.skyGroup.add(phMesh);
-            this.placeholderIslands.push(phMesh);
-        }
     }
 
     setupEnvironment() {
@@ -289,7 +239,7 @@ export class HubEnvironment {
             new THREE.Color(0x84cc16)
         ];
 
-        const grassCount = 6000;
+        const grassCount = 100; // Optimization: drastically reduced to 100
         const instancedGrass = new THREE.InstancedMesh(bladeGeo, baseMaterial, grassCount);
         const dummy = new THREE.Object3D();
 
@@ -323,25 +273,6 @@ export class HubEnvironment {
         instancedGrass.instanceMatrix.needsUpdate = true;
         instancedGrass.instanceColor.needsUpdate = true;
         this.centralIsland.add(instancedGrass);
-    }
-
-    addGrassToCircle(group, radius, yLevel) {
-        const area = Math.PI * radius * radius;
-        const count = Math.floor(area * 4.5);
-        const iGrass = new THREE.InstancedMesh(this.grassGeo, this.matGrassShader, count);
-        const dummy = new THREE.Object3D();
-        const grassColor = new THREE.Color(0x22c55e);
-        for(let i = 0; i < count; i++) {
-            const r = Math.sqrt(Math.random()) * (radius - 0.5);
-            const theta = Math.random() * 2 * Math.PI;
-            dummy.position.set(r * Math.cos(theta), yLevel, r * Math.sin(theta));
-            dummy.rotation.y = Math.random() * Math.PI;
-            dummy.scale.setScalar(0.7 + Math.random() * 1.0);
-            dummy.updateMatrix();
-            iGrass.setMatrixAt(i, dummy.matrix);
-            iGrass.setColorAt(i, grassColor);
-        }
-        group.add(iGrass);
     }
 
 
@@ -508,8 +439,6 @@ export class HubEnvironment {
             stalactite.castShadow = true;
             terrainGroup.add(stalactite);
         }
-
-        this.addGrassToCircle(terrainGroup, radius, 0.4);
 
         if (!isCentral) {
             const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
@@ -895,9 +824,9 @@ export class HubEnvironment {
 
         // 5. ILHAS FLUTUANTES
         else if (type === 'ilha_satelite') {
-            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity });
-            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity });
-            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity });
+            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity, wireframe: isPreview });
+            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity, wireframe: isPreview });
+            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity, wireframe: isPreview });
 
             const topGeo = new THREE.CylinderGeometry(4.0, 3.8, 0.5, 12);
             const topMesh = new THREE.Mesh(topGeo, grassMat);
@@ -1500,9 +1429,6 @@ export class HubEnvironment {
     update(delta, time, camera, playerPos) {
         // Trava de segurança para a posição do jogador
         const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
-
-        this.grassUniforms.uTime.value = time;
-        this.grassUniforms.uPlayerPos.value.copy(safePos);
 
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
