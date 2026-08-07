@@ -1447,42 +1447,28 @@ export class HubEnvironment {
         if(this.eros && window.hubBuildingState !== 'INSIDE_TENT') {
             const distToEros = safePos.distanceTo(this.eros.group.position);
 
-            let isMoving = false;
-
             if (distToEros < 5.0 && !this.isModalOpen && window.hubBuildingState === 'EXPLORING') {
-                this.isNearEros = true;
-
-                const targetAngle = Math.atan2(safePos.x - this.eros.group.position.x, safePos.z - this.eros.group.position.z);
-                let diff = targetAngle - this.eros.group.rotation.y;
-                while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                this.eros.group.rotation.y += diff * 6 * delta;
-
-            } else {
-                this.isNearEros = false;
-
-                if (this.erosWaitTimer > 0) {
-                    this.erosWaitTimer -= delta;
-                } else {
-                    const distToTarget = this.eros.group.position.distanceTo(this.erosTargetPos);
-                    if (distToTarget < 0.5) {
-                        this.erosWaitTimer = 2 + Math.random() * 5;
-                        this.erosTargetPos.set((Math.random() - 0.5) * 12, 0.4, (Math.random() - 0.5) * 12);
-                    } else {
-                        isMoving = true;
-                        const erosMoveDir = new THREE.Vector3().subVectors(this.erosTargetPos, this.eros.group.position);
-                        erosMoveDir.y = 0; erosMoveDir.normalize();
-                        this.eros.group.position.addScaledVector(erosMoveDir, 2.5 * delta);
-
-                        const targetAngle = Math.atan2(erosMoveDir.x, erosMoveDir.z);
-                        let diff = targetAngle - this.eros.group.rotation.y;
-                        while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
-                        this.eros.group.rotation.y += diff * 8 * delta;
+                if(!this.isNearEros) {
+                    window.currentNearbyObject = {
+                        name: 'Eros', // Ensure the name matches the Raycaster tag for clearing logic
+                        action: () => {
+                            window.hubBuildingState = 'BUILDING';
+                            const hubUI = document.getElementById('hub-status-ui');
+                            const buildUI = document.getElementById('build-ui');
+                            if(hubUI) hubUI.classList.add('opacity-0');
+                            if(buildUI) buildUI.classList.remove('hidden');
+                        }
+                    };
+                    const prompt = document.getElementById('interaction-prompt');
+                    if(prompt) {
+                        prompt.style.opacity = '1';
+                        document.getElementById('prompt-text').textContent = 'Falar com Eros (Construir)';
                     }
                 }
+                this.isNearEros = true;
+            } else {
+                this.isNearEros = false;
             }
-
-            const erosFloorY = this.getFloorY(this.eros.group.position);
-            this.eros.group.position.y += (erosFloorY - this.eros.group.position.y) * 10 * delta;
 
             if(this.erosSpot) {
                 this.erosSpot.position.set(this.eros.group.position.x, 10, this.eros.group.position.z);
@@ -1490,7 +1476,7 @@ export class HubEnvironment {
                 this.erosSpot.target.updateMatrixWorld();
             }
 
-            this.eros.update(delta, isMoving, false);
+            this.eros.update(delta);
         }
 
         // Check interactive objects
