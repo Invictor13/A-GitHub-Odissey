@@ -194,6 +194,20 @@ try {
     console.warn("Could not dynamically import InventoryUI", e);
 }
 
+// Initialize Codex UI
+let codexUI = null;
+try {
+    import('./src/ui/codex_ui.js').then(module => {
+        codexUI = new module.CodexUI();
+        window.codexUI = codexUI;
+    }).catch(err => {
+        console.warn("Could not load CodexUI", err);
+    });
+} catch (e) {
+    console.warn("Could not dynamically import CodexUI", e);
+}
+
+
 // Inventory Toggle Event
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
@@ -202,6 +216,14 @@ window.addEventListener('keydown', (e) => {
             inventoryUI.toggle();
             controls.enabled = !inventoryUI.isOpen;
         }
+    }
+
+    // Manage OrbitControls state for CodexUI as well
+    if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'j' || e.key === 'Escape') && codexUI) {
+        // We defer updating orbit controls slightly because CodexUI's toggle runs synchronously in its own listener
+        setTimeout(() => {
+            controls.enabled = !codexUI.isOpen && (!inventoryUI || !inventoryUI.isOpen);
+        }, 10);
     }
 });
 
@@ -257,6 +279,21 @@ const btnCancelGrid = document.getElementById('btn-cancel-grid');
 if (btnCancelGrid) {
     btnCancelGrid.addEventListener('click', () => {
         if(currentEnvironment) currentEnvironment.cancelGridPlacement();
+    });
+}
+
+// Codex button binding
+const btnJournalNew = document.getElementById('btn-journal-new');
+if (btnJournalNew) {
+    btnJournalNew.addEventListener('click', () => {
+        if (window.codexUI) {
+            window.codexUI.toggle();
+
+            // Defer orbit controls update just like the keyboard shortcut
+            setTimeout(() => {
+                controls.enabled = !window.codexUI.isOpen && (!window.inventoryUI || !window.inventoryUI.isOpen);
+            }, 10);
+        }
     });
 }
 
