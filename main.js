@@ -317,6 +317,28 @@ if(cardEmbark) {
 window.hubBuildingState = 'EXPLORING';
 
 // Initialize Background Scene for Menu
+
+const btnCancelExpedition = document.getElementById('btn-cancel-expedition');
+if (btnCancelExpedition) {
+    btnCancelExpedition.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentEnvironment && currentEnvironment.closeExpeditionUI) {
+            currentEnvironment.closeExpeditionUI();
+        }
+    });
+}
+
+const btnConfirmExpedition = document.getElementById('btn-confirm-expedition');
+if (btnConfirmExpedition) {
+    btnConfirmExpedition.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentEnvironment && currentEnvironment.closeExpeditionUI) {
+            currentEnvironment.closeExpeditionUI();
+        }
+        window.changeGameState('WORLD_MAP');
+    });
+}
+
 currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();

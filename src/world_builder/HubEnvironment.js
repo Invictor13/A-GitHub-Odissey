@@ -239,6 +239,9 @@ export class HubEnvironment {
         this.centralIsland = this.createIslandMesh(0, 0, true);
         this.hubGroup.add(this.centralIsland);
 
+        // Portal Island
+        this.createPortalIsland(0, 0, -35);
+
         // Expansion Group
         this.expansionGroup = new THREE.Group();
         this.hubGroup.add(this.expansionGroup);
@@ -302,6 +305,138 @@ export class HubEnvironment {
         }
         group.add(iGrass);
     }
+
+
+    createPortalIsland(x, y, z) {
+        const portalGroup = new THREE.Group();
+        portalGroup.position.set(x, y, z);
+
+        // --- 1. Island Base ---
+        const islandMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, flatShading: true });
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8, flatShading: true });
+        const dirtMat = new THREE.MeshStandardMaterial({ color: 0x291d16, roughness: 0.85, flatShading: true });
+
+        const topGeo = new THREE.CylinderGeometry(6.0, 5.5, 0.6, 16);
+        const topMesh = new THREE.Mesh(topGeo, grassMat);
+        topMesh.position.y = 0.3;
+        topMesh.receiveShadow = true; topMesh.castShadow = true;
+        portalGroup.add(topMesh);
+
+        const dirtGeo = new THREE.CylinderGeometry(5.5, 4.5, 1.5, 16);
+        const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
+        dirtMesh.position.y = -0.75;
+        dirtMesh.receiveShadow = true; dirtMesh.castShadow = true;
+        portalGroup.add(dirtMesh);
+
+        const botGeo = new THREE.ConeGeometry(4.5, 8.0, 12);
+        const botMesh = new THREE.Mesh(botGeo, islandMat);
+        botMesh.position.y = -5.5;
+        botMesh.rotation.x = Math.PI;
+        botMesh.receiveShadow = true; botMesh.castShadow = true;
+        portalGroup.add(botMesh);
+
+        // --- 2. Ancient Portal Structure ---
+        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });
+
+        // Base platform for portal
+        const platformMesh = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 1.5), stoneMat);
+        platformMesh.position.y = 0.7;
+        platformMesh.receiveShadow = true; platformMesh.castShadow = true;
+        portalGroup.add(platformMesh);
+
+        // Pillars
+        const pillarGeo = new THREE.BoxGeometry(0.8, 3.5, 0.8);
+        const leftPillar = new THREE.Mesh(pillarGeo, stoneMat);
+        leftPillar.position.set(-1.5, 2.5, 0);
+        leftPillar.receiveShadow = true; leftPillar.castShadow = true;
+        portalGroup.add(leftPillar);
+
+        const rightPillar = new THREE.Mesh(pillarGeo, stoneMat);
+        rightPillar.position.set(1.5, 2.5, 0);
+        rightPillar.receiveShadow = true; rightPillar.castShadow = true;
+        portalGroup.add(rightPillar);
+
+        // Arch (Top)
+        const archGeo = new THREE.BoxGeometry(3.8, 0.8, 0.8);
+        const arch = new THREE.Mesh(archGeo, stoneMat);
+        arch.position.set(0, 4.5, 0);
+        arch.receiveShadow = true; arch.castShadow = true;
+        portalGroup.add(arch);
+
+        // --- 3. Magic Energy Center ---
+        const magicMat = new THREE.MeshStandardMaterial({
+            color: 0x0ea5e9, emissive: 0x0ea5e9, emissiveIntensity: 0.8,
+            transparent: true, opacity: 0.7, side: THREE.DoubleSide
+        });
+        const energyGeo = new THREE.PlaneGeometry(2.2, 3.4);
+        const energyMesh = new THREE.Mesh(energyGeo, magicMat);
+        energyMesh.position.set(0, 2.5, 0);
+        portalGroup.add(energyMesh);
+
+        // Light source
+        const portalLight = new THREE.PointLight(0x0ea5e9, 2.0, 15);
+        portalLight.position.set(0, 2.5, 0.5);
+        portalGroup.add(portalLight);
+
+        this.hubGroup.add(portalGroup);
+
+        // --- 4. Stepping Stones Path ---
+        // Add Stepping Stones directly to hubGroup
+        for (let i = 1; i <= 4; i++) {
+            const zPos = -16 - (i * 3.0); // Z from -19 to -28
+            const stoneSize = 1.2 + Math.random() * 0.4;
+            const sGeo = new THREE.CylinderGeometry(stoneSize, stoneSize - 0.2, 0.8, 8);
+            const sMesh = new THREE.Mesh(sGeo, stoneMat);
+
+            // Add a grass patch on top
+            const sGrass = new THREE.Mesh(new THREE.CylinderGeometry(stoneSize, stoneSize, 0.2, 8), grassMat);
+            sGrass.position.y = 0.5;
+            sMesh.add(sGrass);
+
+            // Give it some hover variance
+            sMesh.position.set((Math.random() - 0.5) * 1.5, 0.2 + (Math.random() * 0.3), zPos);
+            sMesh.rotation.y = Math.random() * Math.PI;
+
+            this.hubGroup.add(sMesh);
+
+            // Track stepping stones for walkability
+            if (!this.portalSteppingStones) this.portalSteppingStones = [];
+            this.portalSteppingStones.push({
+                x: sMesh.position.x,
+                y: sMesh.position.y + 0.5, // Walkable height
+                z: sMesh.position.z,
+                radius: stoneSize
+            });
+        }
+
+        // --- 5. Registration ---
+        this.portalIslandData = { x, y: 0.6, z, radius: 6.0 }; // Walkable radius
+
+        this.interactiveObjects.push({
+            name: 'PortalExpedicao',
+            position: new THREE.Vector3(x, y + 0.6, z),
+            radius: 4.5,
+            action: () => this.openExpeditionUI(),
+            prompt: 'Pressione E para Ativar o Portal de Expedição'
+        });
+    }
+
+    openExpeditionUI() {
+        const expeditionUI = document.getElementById('expedition-ui');
+        if (expeditionUI) {
+            expeditionUI.classList.remove('hidden');
+            window.hubBuildingState = 'UI_OPEN'; // Pause interactions
+        }
+    }
+
+    closeExpeditionUI() {
+        const expeditionUI = document.getElementById('expedition-ui');
+        if (expeditionUI) {
+            expeditionUI.classList.add('hidden');
+            window.hubBuildingState = 'EXPLORING';
+        }
+    }
+
 
     createIslandMesh(x, z, isCentral = false) {
         const group = new THREE.Group();
@@ -1404,6 +1539,20 @@ export class HubEnvironment {
             if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.4;
         }
 
+        // Check Portal Island
+        if (this.portalIslandData && Math.hypot(pos.x - this.portalIslandData.x, pos.z - this.portalIslandData.z) <= this.portalIslandData.radius) {
+            return this.portalIslandData.y;
+        }
+
+        // Check Portal Stepping Stones
+        if (this.portalSteppingStones) {
+            for (let stone of this.portalSteppingStones) {
+                if (Math.hypot(pos.x - stone.x, pos.z - stone.z) <= stone.radius + 0.5) {
+                    return stone.y;
+                }
+            }
+        }
+
         // Check dynamically placed sky islands and magic bridges
         for (let island of this.placedSkyIslands) {
             if (island.type === 'ilha_satelite') {
@@ -1447,6 +1596,20 @@ export class HubEnvironment {
         for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
             const slot = this.expansionSlots[i];
             if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return false; // Inside an expansion
+        }
+
+        // Check Portal Island
+        if (this.portalIslandData && Math.hypot(pos.x - this.portalIslandData.x, pos.z - this.portalIslandData.z) <= this.portalIslandData.radius) {
+            return false;
+        }
+
+        // Check Portal Stepping Stones
+        if (this.portalSteppingStones) {
+            for (let stone of this.portalSteppingStones) {
+                if (Math.hypot(pos.x - stone.x, pos.z - stone.z) <= stone.radius + 0.5) {
+                    return false;
+                }
+            }
         }
 
         // Check dynamically placed sky structures
