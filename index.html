@@ -7,7 +7,7 @@
 <title>A GitHub Odyssey</title>
 <style>
         body { margin: 0; overflow: hidden; background-color: #020617; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
-        #error-console { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(220, 38, 38, 0.95); color: white; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999; display: none; white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        #error-console { position: fixed; bottom: 20px; right: 20px; max-width: 350px; background: rgba(220, 38, 38, 0.95); color: white; padding: 14px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999; display: none; white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.8); border: 1px solid rgba(255,100,100,0.5); transition: opacity 0.3s ease, transform 0.3s ease; }
 
         .btn-embark { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; color: white; cursor: pointer; margin-top: 10px;}
         .btn-embark:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6); }
@@ -275,6 +275,46 @@
     @keyframes pulse-weight-critical {
       0% { border-color: rgba(220, 38, 38, 0.2); box-shadow: inset 0 0 50px rgba(220, 38, 38, 0.1); }
       100% { border-color: rgba(220, 38, 38, 0.6); box-shadow: inset 0 0 80px rgba(220, 38, 38, 0.3); }
+    }
+
+
+    /* New Hotbar Slot Styling */
+    #hotbar-grid .inventory-slot {
+        width: 44px;
+        height: 44px;
+        background: rgba(15, 12, 22, 0.8);
+        border: 2px solid rgba(212, 175, 55, 0.6);
+        border-radius: 8px;
+        position: relative;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    @media (min-width: 769px) {
+        #hotbar-grid .inventory-slot {
+            width: 52px;
+            height: 52px;
+        }
+    }
+    #hotbar-grid .inventory-slot::after {
+        /* This will be handled by JS adding the number or we can use nth-child */
+    }
+
+
+    /* Mobile Touch Controls Integration & Responsiveness */
+    @media (max-width: 768px) {
+        #hub-status-ui {
+            transform: scale(0.85);
+            transform-origin: top left;
+        }
+        #mobile-controls-container {
+            display: block !important;
+        }
+    }
+    @media (min-width: 769px) {
+        /* Desktop specific adjustments */
+        #mobile-controls-container {
+            display: none !important;
+        }
     }
 
 </style>
@@ -554,26 +594,49 @@
 <div id="weight-critical-vignette"></div>
 
 <!-- Hub Status Overlays -->
-<div id="hub-status-ui" class="absolute top-20 left-0 right-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4 md:p-6 transition-all duration-700 opacity-0 text-white">
-    <div class="flex flex-wrap justify-between items-start gap-4">
-        <div class="p-3.5 rounded-2xl flex items-center gap-3 pointer-events-auto bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
-            <div class="w-11 h-11 rounded-xl bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-yellow-400 shadow-inner">
-                <i id="location-icon" class="fa-solid fa-cloud text-xl"></i>
-            </div>
-            <div>
-                <h2 id="location-title" class="font-bold text-sm text-gray-100 uppercase tracking-wider">Santuário Celeste</h2>
-                <p id="location-subtitle" class="text-xs text-yellow-400 font-medium">Dia 1 • 08:00 • ☀️ Ensolarado</p>
-            </div>
-        </div>
 
-        <!-- Weather & Controls -->
-        <div class="p-2.5 rounded-2xl flex items-center gap-3 pointer-events-auto bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
-            <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/30">
-                <i id="weather-badge-icon" class="fa-solid fa-sun text-yellow-400"></i>
-                <span id="weather-badge-text">Ensolarado</span>
-            </div>
+<!-- Hub Status Overlays & Unified Main Header -->
+<div id="hub-status-ui" class="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none hidden z-40 flex flex-col p-4 md:p-5 transition-all duration-700 opacity-0 text-white glass-panel border border-yellow-500/30 shadow-2xl rounded-2xl bg-[rgba(15,12,22,0.8)] max-w-[280px]">
+
+    <div class="flex items-center gap-3 mb-3 border-b border-yellow-500/20 pb-2">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-yellow-500/50 flex items-center justify-center text-yellow-400 text-xl shadow-lg shadow-amber-950/50">
+            <i id="location-icon" class="fa-solid fa-cloud"></i>
+        </div>
+        <div>
+            <h2 id="location-title" class="font-bold text-sm md:text-base text-gray-100 uppercase tracking-wider font-title">Santuário Celeste</h2>
+            <p id="location-subtitle" class="text-[11px] text-yellow-400 font-medium font-game">Dia 1 • 08:00 • ☀️ Ensolarado</p>
         </div>
     </div>
+
+    <!-- Vitals Bars -->
+    <div id="vitals-container" class="flex flex-col gap-2 w-full mt-1">
+        <!-- HP Bar -->
+        <div class="flex items-center gap-2" title="Pontos de Vida">
+            <i class="fa-solid fa-heart text-red-600 text-[10px] w-3 text-center"></i>
+            <div class="flex-grow h-1.5 bg-black/60 rounded-full overflow-hidden border border-red-900/50">
+                <div id="vital-hp" class="h-full bg-red-600 transition-all duration-300" style="width: 100%"></div>
+            </div>
+            <span class="text-[10px] font-mono font-bold text-red-300 w-8 text-right" id="txt-hp">100%</span>
+        </div>
+        <!-- Food (Mana temp replacement) Bar -->
+        <div class="flex items-center gap-2" title="Fome">
+            <i class="fa-solid fa-drumstick-bite text-amber-500 text-[10px] w-3 text-center"></i>
+            <div class="flex-grow h-1.5 bg-black/60 rounded-full overflow-hidden border border-amber-900/50">
+                <div id="vital-food" class="h-full bg-amber-500 transition-all duration-300" style="width: 75%"></div>
+            </div>
+            <span class="text-[10px] font-mono font-bold text-amber-300 w-8 text-right" id="txt-food">75%</span>
+        </div>
+        <!-- Water (Stamina temp replacement) Bar -->
+        <div class="flex items-center gap-2" title="Sede">
+            <i class="fa-solid fa-droplet text-sky-500 text-[10px] w-3 text-center"></i>
+            <div class="flex-grow h-1.5 bg-black/60 rounded-full overflow-hidden border border-sky-900/50">
+                <div id="vital-water" class="h-full bg-sky-500 transition-all duration-300" style="width: 60%"></div>
+            </div>
+            <span class="text-[10px] font-mono font-bold text-sky-300 w-8 text-right" id="txt-water">60%</span>
+        </div>
+    </div>
+</div>
+
 </div>
 
 <!-- Main HUD Gold Counter -->
@@ -581,49 +644,7 @@
     <i class="fa-solid fa-coins text-yellow-400"></i>
     <span id="hud-gold-value" class="text-yellow-400 font-bold font-mono text-sm tracking-widest">0</span>
 </div>
-<header id="main-header" class="max-w-7xl w-full mx-auto mb-4 pointer-events-auto transition-all duration-700">
-<div class="rounded-xl p-2 md:p-3 flex flex-wrap justify-between items-center gap-2 md:gap-4 bg-black/40 backdrop-blur-md border border-yellow-500/30 shadow-xl">
-<!-- Player Info -->
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-xl shadow-lg shadow-amber-950/50">
-<i class="fa-solid fa-book-skull"></i>
-</div>
-<div>
-<div class="flex items-center gap-2">
-<h1 class="text-sm md:text-base font-bold tracking-wider text-amber-100 uppercase font-title">Penitente #001</h1>
-<span class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded font-mono font-semibold" id="run-badge">
-              INCURSÃO ATIVA
-            </span>
-</div>
-<p class="text-xs text-amber-200/70 font-script flex items-center gap-2">
-<span><i class="fa-solid fa-compass text-amber-400 mr-1"></i> Local: <strong class="text-amber-100">Planalto das Almas (Nó #04)</strong></span>
-</p>
-</div>
-</div>
-<!-- Player Vitals (HP, Fome, Sede) com Decaimento Ativo -->
-<div id="vitals-container" class="flex items-center gap-2 text-sm px-2 py-1">
-<!-- HP Minimalist -->
-<div class="flex items-center gap-2" title="Pontos de Vida">
-<i class="fa-solid fa-heart text-red-600 text-base drop-shadow-md"></i>
-<span class="text-sm font-mono font-bold text-red-300" id="txt-hp">100%</span>
-<!-- Invisible element for compatibility with EnemyManager.js seeking 'vital-hp' element if needed, though EnemyManager modifies style.width -->
-<div id="vital-hp" style="display:none; width: 100%"></div>
-</div>
-</div>
-<!-- Weight Controls & LocalStorage Actions -->
-<div class="flex items-center gap-3">
-<div id="weight-container" class="flex items-center gap-2 text-right ui-element-faded">
-<i class="fa-solid fa-bag-shopping text-amber-500/80 text-lg drop-shadow"></i>
-<span class="text-sm font-bold font-mono text-white/80" id="weight-text">0.0 / 25.0 kg</span>
-<div id="weight-bar" style="display:none; width: 0%"></div>
-</div>
-<!-- Reset Save Button -->
-<button class="text-xs bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1.5 rounded-lg border border-red-800/80 transition flex items-center gap-1 font-mono" title="Reiniciar Progresso (Limpar Dados Guardados)">
-<i class="fa-solid fa-rotate-left"></i>
-</button>
-</div>
-</div>
-</header><main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow pointer-events-auto hidden" id="inventory-modal">
+<main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow pointer-events-auto hidden" id="inventory-modal">
 <!-- LEFT PANEL: Equipamentos & Bônus de Conjunto (3 cols) -->
 <section class="lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col justify-between">
 <div>
@@ -745,33 +766,33 @@
 <span class="text-[10px] text-amber-300/60 font-script">Arraste aqui para incinerar o item</span>
 </div>
 </section>
-</main><footer class="max-w-7xl w-full mx-auto mt-4 pointer-events-auto">
-<div class="glass-panel rounded-xl p-3 flex items-center justify-center">
-<div class="flex items-center gap-3">
-<span class="text-xs font-bold uppercase tracking-wider text-amber-300/80 hidden sm:inline font-sub">Atalhos Roteados (1-5):</span>
-<div class="flex gap-2" id="hotbar-grid">
-<!-- Slots 1-5 populated dynamically -->
-</div>
-</div>
-</div>
+</main>
+
+<!-- Hotbar (1-5) -->
+<footer class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
+    <div class="flex gap-2 md:gap-3" id="hotbar-grid">
+        <!-- Manually adding the 5 slots since they are not generated by JS currently -->
+        <div class="inventory-slot flex items-center justify-center">
+            <span class="absolute top-1 left-1.5 text-[10px] font-bold text-amber-500/80">1</span>
+        </div>
+        <div class="inventory-slot flex items-center justify-center">
+            <span class="absolute top-1 left-1.5 text-[10px] font-bold text-amber-500/80">2</span>
+        </div>
+        <div class="inventory-slot flex items-center justify-center">
+            <span class="absolute top-1 left-1.5 text-[10px] font-bold text-amber-500/80">3</span>
+        </div>
+        <div class="inventory-slot flex items-center justify-center">
+            <span class="absolute top-1 left-1.5 text-[10px] font-bold text-amber-500/80">4</span>
+        </div>
+        <div class="inventory-slot flex items-center justify-center">
+            <span class="absolute top-1 left-1.5 text-[10px] font-bold text-amber-500/80">5</span>
+        </div>
+    </div>
 </footer>
+
+
 <!-- Bottom Left Vitals (Fome/Sede) -->
-<div id="bottom-vitals" class="fixed bottom-6 left-6 z-40 flex flex-col gap-3 ui-element-faded pointer-events-none">
-    <div class="flex items-center gap-2">
-        <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-lg">
-            <i class="fa-solid fa-drumstick-bite"></i>
-        </div>
-        <span class="text-sm font-mono font-bold text-amber-300 drop-shadow" id="txt-food">75%</span>
-        <div id="vital-food" style="display:none; width: 75%"></div>
-    </div>
-    <div class="flex items-center gap-2">
-        <div class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-sky-500/30 flex items-center justify-center text-sky-500 shadow-lg">
-            <i class="fa-solid fa-droplet"></i>
-        </div>
-        <span class="text-sm font-mono font-bold text-sky-300 drop-shadow" id="txt-water">60%</span>
-        <div id="vital-water" style="display:none; width: 60%"></div>
-    </div>
-</div>
+
 <div class="fixed hidden z-50 pointer-events-none glass-panel p-3.5 rounded-xl shadow-2xl max-w-xs border border-amber-800/80 fade-in" id="tooltip">
 <div class="flex justify-between items-start gap-3 mb-1">
 <h3 class="font-bold text-sm text-amber-100 font-title" id="tt-title">Nome do Item</h3>

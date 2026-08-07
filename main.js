@@ -533,9 +533,9 @@ window.InvisibleUI = {
         const hpVignette = document.getElementById('hp-critical-vignette');
         const weightVignette = document.getElementById('weight-critical-vignette');
 
-        const hpPerc = gameState.vitals.hp;
-        const foodPerc = gameState.vitals.food;
-        const waterPerc = gameState.vitals.water;
+        const hpPerc = gameState?.vitals?.hp ?? 0;
+        const foodPerc = gameState?.vitals?.food ?? 0;
+        const waterPerc = gameState?.vitals?.water ?? 0;
 
         const isInventoryOpen = document.getElementById('inventory-modal') && !document.getElementById('inventory-modal').classList.contains('hidden');
         const isHPAlert = hpPerc < 30;
