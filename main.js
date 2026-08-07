@@ -481,7 +481,13 @@ function animate() {
                     targetCamPos = new THREE.Vector3(2.5, 7.0, 7.0);
                     targetLookAt = new THREE.Vector3(2.5, 0.5, 0.5);
                 } else if (window.hubBuildingState === 'BUILDING_GRID') {
-                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 22, 12));
+                    let camDistY = 22;
+                    let camDistZ = 12;
+                    if (currentEnvironment && currentEnvironment.selectedBuildType && (currentEnvironment.selectedBuildType === 'ilha_satelite' || currentEnvironment.selectedBuildType === 'ponte_magica')) {
+                        camDistY = 35;
+                        camDistZ = 20;
+                    }
+                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, camDistY, camDistZ));
                     targetLookAt = playerPos.clone();
                 }
 

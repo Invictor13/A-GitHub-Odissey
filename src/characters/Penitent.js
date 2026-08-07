@@ -710,8 +710,13 @@ export class Penitent {
             this.velocityY = 0;
             this.isGrounded = true;
 
-            // Smoothly glide character to target floorY to absorb steps
-            this.group.position.y += (floorY - this.group.position.y) * 15.0 * delta;
+            // Smoothly glide character to target floorY to absorb steps or snap if very close
+            const diffY = Math.abs(floorY - this.group.position.y);
+            if (diffY < 0.01) {
+                this.group.position.y = floorY;
+            } else {
+                this.group.position.y += (floorY - this.group.position.y) * 15.0 * delta;
+            }
 
             // Update last safe pos when grounded and not falling
             this.lastSafePos.copy(this.group.position);

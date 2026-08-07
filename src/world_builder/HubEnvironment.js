@@ -960,13 +960,18 @@ export class HubEnvironment {
             const isOutsideIslands = this.checkCollision(this.previewMesh.position, safeDistance);
             canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
             if (!canPlace) {
-                window.showToast("❌ Escolha um local vazio no céu (abismo)! E evite sobrepor ilhas.", "text-red-400", "fa-circle-xmark");
+                if (!isOutsideIslands) {
+                    window.showToast("❌ Espaço insuficiente! As ilhas não podem se sobrepor.", "text-red-400", "fa-circle-xmark");
+                } else {
+                    window.showToast("❌ Escolha um local vazio no céu (abismo) próximo à ilha central!", "text-red-400", "fa-circle-xmark");
+                }
                 return;
             }
         } else {
-            canPlace = dist < this.ISLAND_SIZE;
+            const isInsideSafeGround = !this.checkCollision(this.previewMesh.position, 0.5);
+            canPlace = isInsideSafeGround;
             if (!canPlace) {
-                window.showToast("❌ Escolha um local seguro na ilha!", "text-red-400", "fa-circle-xmark");
+                window.showToast("❌ Escolha um local seguro no solo da ilha!", "text-red-400", "fa-circle-xmark");
                 return;
             }
         }
@@ -1010,7 +1015,8 @@ export class HubEnvironment {
                 const isOutsideIslands = this.checkCollision(this.gridSnapPos, safeDistance);
                 canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
             } else {
-                canPlace = dist < this.ISLAND_SIZE;
+                const isInsideSafeGround = !this.checkCollision(this.gridSnapPos, 0.5);
+                canPlace = isInsideSafeGround;
             }
 
             if (canPlace) {
@@ -1065,7 +1071,9 @@ export class HubEnvironment {
 
         if (Array.isArray(gameState.hubState.structures)) {
             gameState.hubState.structures.forEach(st => {
-                this.instantiatePlacedStructure(st.type, st.x, st.y, st.z, st.ry, false);
+                if (st && typeof st.x === 'number' && typeof st.z === 'number') {
+                    this.instantiatePlacedStructure(st.type, st.x, st.y, st.z, st.ry, false);
+                }
             });
         }
     }
@@ -1555,16 +1563,19 @@ export class HubEnvironment {
 
         // Check dynamically placed sky islands and magic bridges
         for (let island of this.placedSkyIslands) {
+            if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
+
             if (island.type === 'ilha_satelite') {
                 if (Math.hypot(pos.x - island.x, pos.z - island.z) <= 4.0) {
                     return 0.25; // Grass level of satellite island
                 }
             } else if (island.type === 'ponte_magica') {
                 // Simplified AABB logic: Unrotate player relative to bridge center
+                const ry = island.ry || 0;
                 const dx = pos.x - island.x;
                 const dz = pos.z - island.z;
-                const cosA = Math.cos(-island.ry);
-                const sinA = Math.sin(-island.ry);
+                const cosA = Math.cos(-ry);
+                const sinA = Math.sin(-ry);
                 const localX = dx * cosA - dz * sinA;
                 const localZ = dx * sinA + dz * cosA;
 
@@ -1614,13 +1625,16 @@ export class HubEnvironment {
 
         // Check dynamically placed sky structures
         for (let island of this.placedSkyIslands) {
+            if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
+
             if (island.type === 'ilha_satelite') {
                 if (Math.hypot(pos.x - island.x, pos.z - island.z) <= (4.0 + (radius || 0))) return false;
             } else if (island.type === 'ponte_magica') {
+                const ry = island.ry || 0;
                 const dx = pos.x - island.x;
                 const dz = pos.z - island.z;
-                const cosA = Math.cos(-island.ry);
-                const sinA = Math.sin(-island.ry);
+                const cosA = Math.cos(-ry);
+                const sinA = Math.sin(-ry);
                 const localX = dx * cosA - dz * sinA;
                 const localZ = dx * sinA + dz * cosA;
 
