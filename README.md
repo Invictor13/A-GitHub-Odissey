@@ -31,6 +31,14 @@ A estrutura de pastas do projeto é modular e organizada da seguinte forma:
 * `/characters` -> Gestão do avatar, rigging, movimentação e lógica de inteligência artificial de inimigos e NPCs.
 * `/items` -> Banco de dados de inventário, gerenciando itens consumíveis, espólio e receitas de crafting.
 * `/constructions` -> Arquivos de layout e especificações técnicas de edifícios e estruturas do mundo.
+* `conceito_inicial/` -> Serve como um dicionário prático com as ideias originais do projeto e deve ser preservado.
+
+---
+
+## 🧹 Boas Práticas e Regras do Repositório
+
+Para manter a organização e a limpeza do projeto:
+* **Arquivos Temporários e Testes:** Arquivos de scripts utilitários avulsos (como scripts em Python, Node.js soltos, ou atualizadores de código), arquivos de testes temporários e artefatos não essenciais ao funcionamento pleno do jogo **NÃO** devem ser adicionados ou mantidos no repositório.
 
 ---
 
