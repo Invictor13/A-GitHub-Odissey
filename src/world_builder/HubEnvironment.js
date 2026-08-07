@@ -246,45 +246,52 @@ export class HubEnvironment {
         this.expansionGroup = new THREE.Group();
         this.hubGroup.add(this.expansionGroup);
 
-        // Animated Grass Tufts
-        this.animatedGrassTufts = [];
+        // Static Grass Optimization (InstancedMesh)
         const bladeGeo = new THREE.ConeGeometry(0.12, 0.7, 3);
         bladeGeo.translate(0, 0.35, 0);
 
-        const materials = [
-            new THREE.MeshStandardMaterial({ color: 0x4ad66d, roughness: 0.8, flatShading: true }),
-            new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.8, flatShading: true }),
-            new THREE.MeshStandardMaterial({ color: 0x84cc16, roughness: 0.8, flatShading: true })
+        const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, flatShading: true });
+
+        const colors = [
+            new THREE.Color(0x4ad66d),
+            new THREE.Color(0x10b981),
+            new THREE.Color(0x84cc16)
         ];
 
-        for (let i = 0; i < 1500; i++) {
+        const grassCount = 6000;
+        const instancedGrass = new THREE.InstancedMesh(bladeGeo, baseMaterial, grassCount);
+        const dummy = new THREE.Object3D();
+
+        for (let i = 0; i < grassCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const radius = Math.sqrt(Math.random()) * ((this.ISLAND_SIZE / 2.0) - 1.0);
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
-            if (Math.hypot(x, z) < 4.0) continue; // Keep player start area clear
-
-            const tuft = new THREE.Group();
-            const bladeCount = 3 + Math.floor(Math.random() * 3);
-            const mat = materials[Math.floor(Math.random() * materials.length)];
-
-            for (let b = 0; b < bladeCount; b++) {
-                const blade = new THREE.Mesh(bladeGeo, mat);
-                blade.rotation.y = Math.random() * Math.PI * 2;
-                blade.rotation.x = (Math.random() - 0.5) * 0.4;
-                blade.rotation.z = (Math.random() - 0.5) * 0.4;
-                blade.scale.setScalar(0.7 + Math.random() * 0.6);
-                tuft.add(blade);
+            if (Math.hypot(x, z) < 4.0) {
+                // To keep count exact without a while loop that might block, we can just place it far away or scale 0
+                dummy.scale.setScalar(0);
+                dummy.updateMatrix();
+                instancedGrass.setMatrixAt(i, dummy.matrix);
+                continue;
             }
 
             const groundY = 0.4;
-            tuft.position.set(x, groundY, z);
-            tuft.userData = { phase: Math.random() * Math.PI * 2, speed: 1.5 + Math.random() * 1.5 };
+            dummy.position.set(x, groundY, z);
+            dummy.rotation.y = Math.random() * Math.PI * 2;
+            dummy.rotation.x = (Math.random() - 0.5) * 0.4;
+            dummy.rotation.z = (Math.random() - 0.5) * 0.4;
+            dummy.scale.setScalar(0.7 + Math.random() * 0.6);
 
-            this.centralIsland.add(tuft);
-            this.animatedGrassTufts.push(tuft);
+            dummy.updateMatrix();
+            instancedGrass.setMatrixAt(i, dummy.matrix);
+
+            instancedGrass.setColorAt(i, colors[Math.floor(Math.random() * colors.length)]);
         }
+
+        instancedGrass.instanceMatrix.needsUpdate = true;
+        instancedGrass.instanceColor.needsUpdate = true;
+        this.centralIsland.add(instancedGrass);
     }
 
     addGrassToCircle(group, radius, yLevel) {
@@ -1409,11 +1416,8 @@ export class HubEnvironment {
     }
 
     animateCampfireAndVegetation(delta, time) {
-        const currentWeather = WEATHER_TYPES[gameState.hubState.currentWeatherKey] || WEATHER_TYPES.SUNNY;
-        const windSway = currentWeather === WEATHER_TYPES.WINDY ? 0.25 : 0.08;
-        this.animatedGrassTufts.forEach(t => {
-            t.rotation.z = Math.sin(time * t.userData.speed + t.userData.phase) * windSway;
-        });
+        // Vento estático - A animação de grama via GPU (Custom Shader)
+        // será implementada futuramente.
     }
 
     update(delta, time, camera, playerPos) {
