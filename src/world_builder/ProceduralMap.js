@@ -282,32 +282,30 @@ export class ProceduralMap {
             pZ = lastRoom.cy - this.gridSize / 2;
         }
 
-        import('../core/GameState.js').then(({ default: gameState }) => {
-            const isBossPortal = gameState.portalCount >= 9;
-            const primaryColor = isBossPortal ? 0xff0000 : 0x60a5fa; // Red/Gold for boss
-            const secondaryColor = isBossPortal ? 0xff6600 : 0x93c5fd;
+        const isBossPortal = window.gameState.portalCount >= 9;
+        const primaryColor = isBossPortal ? 0xff0000 : 0x60a5fa; // Red/Gold for boss
+        const secondaryColor = isBossPortal ? 0xff6600 : 0x93c5fd;
 
-            const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
-            const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-            const portalMesh = new THREE.Mesh(portalGeo, portalMat);
-            portalMesh.rotation.x = Math.PI / 2;
-            portalMesh.position.y = 1.0;
+        const portalGeo = new THREE.TorusGeometry(1.5, 0.2, 16, 64);
+        const portalMat = new THREE.MeshBasicMaterial({ color: primaryColor, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+        const portalMesh = new THREE.Mesh(portalGeo, portalMat);
+        portalMesh.rotation.x = Math.PI / 2;
+        portalMesh.position.y = 1.0;
 
-            const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
-            const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-            const innerMesh = new THREE.Mesh(innerGeo, innerMat);
-            innerMesh.position.y = 2.0;
+        const innerGeo = new THREE.CylinderGeometry(1.4, 1.4, 4, 32, 1, true);
+        const innerMat = new THREE.MeshBasicMaterial({ color: secondaryColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+        innerMesh.position.y = 2.0;
 
-            const light = new THREE.PointLight(primaryColor, 2.5, 10);
-            light.position.y = 2.0;
+        const light = new THREE.PointLight(primaryColor, 2.5, 10);
+        light.position.y = 2.0;
 
-            this.exitPortal.add(portalMesh);
-            this.exitPortal.add(innerMesh);
-            this.exitPortal.add(light);
+        this.exitPortal.add(portalMesh);
+        this.exitPortal.add(innerMesh);
+        this.exitPortal.add(light);
 
-            this.exitPortal.position.set(pX, this.getFloorY(new THREE.Vector3(pX,0,pZ)), pZ);
-            this.mapGroup.add(this.exitPortal);
-        });
+        this.exitPortal.position.set(pX, this.getFloorY(new THREE.Vector3(pX,0,pZ)), pZ);
+        this.mapGroup.add(this.exitPortal);
     }
 
     getPlayerSpawnPosition() {
@@ -459,27 +457,25 @@ export class ProceduralMap {
             if (this.portalActive && this.portalInteractable && targetPos.distanceTo(this.exitPortal.position) < 1.5) {
                 this.portalActive = false;
 
-                import('../core/GameState.js').then(({ default: gameState }) => {
-                    gameState.portalCount++;
-                    gameState.save();
+                window.gameState.portalCount++;
+                window.gameState.save();
 
-                    if (gameState.portalCount >= 10) {
-                        if (this.currentIslandData) {
-                            const nodeId = `${this.currentIslandData.gridX},${this.currentIslandData.gridZ}`;
-                            if (!gameState.completedNodes.includes(nodeId)) {
-                                gameState.completedNodes.push(nodeId);
-                                gameState.pendingUnlocks = this.currentIslandData;
-                            }
+                if (window.gameState.portalCount >= 10) {
+                    if (this.currentIslandData) {
+                        const nodeId = `${this.currentIslandData.gridX},${this.currentIslandData.gridZ}`;
+                        if (!window.gameState.completedNodes.includes(nodeId)) {
+                            window.gameState.completedNodes.push(nodeId);
+                            window.gameState.pendingUnlocks = this.currentIslandData;
                         }
-
-                        gameState.portalCount = 0; // Reset for next map node
-                        gameState.save();
-                        window.changeGameState('WORLD_MAP');
-                    } else {
-                        // Load next rogue-like room
-                        window.changeGameState('ROGUELIKE', { biome: this.currentBiomeId, islandData: this.currentIslandData });
                     }
-                });
+
+                    window.gameState.portalCount = 0; // Reset for next map node
+                    window.gameState.save();
+                    window.changeGameState('WORLD_MAP');
+                } else {
+                    // Load next rogue-like room
+                    window.changeGameState('ROGUELIKE', { biome: this.currentBiomeId, islandData: this.currentIslandData });
+                }
             }
         }
     }
