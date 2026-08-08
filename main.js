@@ -7,6 +7,7 @@ import { ProceduralMap } from './src/world_builder/ProceduralMap.js';
 import { WorldMap } from './src/world_builder/WorldMap.js';
 import { MobileControls } from './src/ui/MobileControls.js';
 import { InteractionManager } from './src/systems/InteractionManager.js';
+import gameState from './src/core/GameState.js';
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -80,11 +81,11 @@ lightningLight.position.set(0, 50, 0);
 scene.add(lightningLight);
 
 // Global state
-window.gameState = {
-    clock: new THREE.Clock(),
-    delta: 0,
-    time: 0
-};
+gameState.load();
+window.gameState = gameState;
+window.gameState.clock = new THREE.Clock();
+window.gameState.delta = 0;
+window.gameState.time = 0;
 
 // Handle window resize
 window.addEventListener('resize', () => {
