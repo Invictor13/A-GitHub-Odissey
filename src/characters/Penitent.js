@@ -1,3 +1,7 @@
+import gameState from '../core/GameState.js';
+import { ITEM_DATABASE } from '../data/ItemData.js';
+import { AnimationController } from '../animations/AnimationController.js';
+import { WeaponModels } from '../items/WeaponModels.js';
 import * as THREE from 'three';
 import { ObjectPool } from '../core/ObjectPoolManager.js';
 
@@ -8,6 +12,7 @@ export class Penitent {
         this.group.scale.setScalar(0.55);
         this.modelGroup = new THREE.Group();
         this.group.add(this.modelGroup);
+        this.animController = new AnimationController(this);
         this.scene.add(this.group);
 
         this.setupMaterials();
@@ -28,7 +33,19 @@ export class Penitent {
         this.isAttacking = false;
         this.attackTimer = 0;
         this.ATTACK_DURATION = 0.4;
+
         this.isDefending = false;
+        this.currentWeaponModel = 'unarmed';
+        this.currentWeaponType = 'unarmed';
+        this.currentShieldType = null;
+        this.comboStep = 1;
+        this.comboMax = 2;
+        this.comboResetTimer = 0;
+        this.currentDamage = 2;
+        this.currentReach = 1.0;
+        window.addEventListener('equipment-changed', () => { if (window.gameState) this.refreshEquipment(); });
+        setTimeout(() => { if (window.gameState) this.refreshEquipment(); }, 100);
+
         this.isSwimming = false;
         this.actionState = 'none';
         this.hasHit = false;
@@ -208,27 +225,13 @@ export class Penitent {
         this.handR = this.createPart(new THREE.IcosahedronGeometry(0.3, 1), this.matSkin, 0, -0.75, 0, 0, 0, 0, this.elbowR);
 
         this.handR.add(this.slotWeapon);
+        this.slotWeapon.position.set(0, -0.1, 0.2);
+        this.slotWeapon.rotation.x = Math.PI / 2;
         this.handL.add(this.slotShield);
+        this.slotShield.position.set(-0.2, -0.1, 0.3);
+        this.slotShield.rotation.y = -Math.PI / 2;
 
-        // ARMA 1
-        this.swordGroup = new THREE.Group(); this.swordGroup.position.set(0, -0.1, 0.2); this.swordGroup.rotation.x = Math.PI / 2;
-        this.createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6), this.matLeatherDark, 0, -0.2, 0, 0, 0, 0, this.swordGroup);
-        this.createPart(new THREE.BoxGeometry(0.5, 0.1, 0.15), this.matGold, 0, 0.1, 0, 0, 0, 0, this.swordGroup);
-        this.createPart(new THREE.BoxGeometry(0.15, 1.4, 0.05), this.matSteel, 0, 0.85, 0, 0, 0, 0, this.swordGroup);
-        this.swordTip = this.createPart(new THREE.ConeGeometry(0.075, 0.3, 4).rotateY(Math.PI/4), this.matSteel, 0, 1.7, 0, 0, 0, 0, this.swordGroup);
 
-        // ARMA 2
-        this.axeGroup = new THREE.Group(); this.axeGroup.position.set(0, -0.1, 0.2); this.axeGroup.rotation.x = Math.PI / 2;
-        this.createPart(new THREE.CylinderGeometry(0.06, 0.06, 1.5, 6), this.matLeatherDark, 0, 0.5, 0, 0, 0, 0, this.axeGroup);
-        this.createPart(new THREE.BoxGeometry(0.6, 0.5, 0.1), this.matSteel, 0.2, 1.0, 0, 0, 0, 0, this.axeGroup);
-        this.createPart(new THREE.ConeGeometry(0.1, 0.4, 4), this.matSteel, -0.2, 1.0, 0, 0, 0, Math.PI/2, this.axeGroup);
-
-        // ESCUDO
-        this.shieldGroup = new THREE.Group(); this.shieldGroup.position.set(-0.2, -0.1, 0.3); this.shieldGroup.rotation.y = -Math.PI / 2;
-        this.createPart(new THREE.CylinderGeometry(0.55, 0.55, 0.1, 14), this.matLeatherDark, 0, 0, 0, Math.PI/2, 0, 0, this.shieldGroup);
-        this.createPart(new THREE.TorusGeometry(0.55, 0.05, 8, 16), this.matSteel, 0, 0, 0, 0, 0, 0, this.shieldGroup);
-        this.createPart(new THREE.SphereGeometry(0.15, 8, 8, 0, Math.PI*2, 0, Math.PI/2), this.matSteel, 0, 0, 0.05, Math.PI/2, 0, 0, this.shieldGroup);
-        this.slotShield.add(this.shieldGroup);
 
         this.slashArcGroup = new THREE.Group();
         this.group.add(this.slashArcGroup);
@@ -266,6 +269,71 @@ export class Penitent {
             this.scene.add(p);
             return p;
         }, 30);
+    }
+
+
+    refreshEquipment() {
+        if (!window.gameState || !window.gameState.equipmentState) return;
+        const weaponId = window.gameState.equipmentState.right_hand;
+        const shieldId = window.gameState.equipmentState.left_hand;
+        const weaponData = weaponId ? ITEM_DATABASE[weaponId] : null;
+        const shieldData = shieldId ? ITEM_DATABASE[shieldId] : null;
+        this.setEquipmentFromData(weaponData, shieldData);
+    }
+
+    setEquipmentFromData(weaponData, shieldData) {
+        this.currentWeaponModel = weaponData ? weaponData.modelType || 'unarmed' : 'unarmed';
+        this.currentWeaponType = weaponData ? weaponData.type || 'unarmed' : 'unarmed';
+        this.currentShieldType = shieldData ? shieldData.modelType || null : null;
+
+        this.ATTACK_DURATION = weaponData ? (0.4 / (weaponData.comboSpeed || 1.0)) : 0.4;
+        this.comboMax = weaponData ? (weaponData.comboMax || 2) : 2;
+        this.currentDamage = weaponData ? (weaponData.damage || 2) : 2;
+        this.currentReach = weaponData ? (weaponData.reach || 1.0) : 1.0;
+
+        this.updateEquipmentVisuals(this.currentWeaponModel, this.currentShieldType);
+    }
+
+    updateEquipmentVisuals(weaponType, shieldType) {
+        this.slotWeapon.clear();
+        this.slotShield.clear();
+        if (this.weaponTip) {
+            this.weaponTip.position.set(0, 0, 0);
+            this.weaponTip.removeFromParent();
+        } else {
+            this.weaponTip = new THREE.Group();
+        }
+
+        let weaponModel;
+        switch (weaponType) {
+            case 'knife':
+                weaponModel = WeaponModels.createKnife();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 0.8, 0); break;
+            case 'sword1h':
+                weaponModel = WeaponModels.createSword1H();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 1.5, 0); break;
+            case 'sword2h':
+                weaponModel = WeaponModels.createSword2H();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.5, 0); break;
+            case 'club':
+                weaponModel = WeaponModels.createClub();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 1.3, 0); break;
+            case 'spear':
+                weaponModel = WeaponModels.createSpear();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.9, 0); break;
+            case 'unarmed':
+            default:
+                weaponModel = new THREE.Group();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 0, 0); break;
+        }
+
+        this.slotWeapon.add(weaponModel);
+        if (shieldType === 'shield' && weaponType !== 'sword2h' && weaponType !== 'spear') {
+            this.slotShield.add(WeaponModels.createShield());
+        }
+
+        this.slotHead.clear(); if(this.currHead !== 0) this.slotHead.add(this.helmetGroup);
+        this.slotArmor.clear(); this.slotArmor.add(this.currArmor === 0 ? this.armorLeatherGroup : this.armorSteelGroup);
     }
 
     spawnVFX(pos, type, count) {
@@ -334,7 +402,21 @@ export class Penitent {
         document.addEventListener('mousedown', (e) => {
             if (window.hubBuildingState === 'BUILDING_GRID') return;
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
-            if (e.button === 0 && !this.isAttacking && !this.isDefending && this.actionState === 'none') { this.isAttacking = true; this.attackTimer = this.ATTACK_DURATION; }
+
+            if (e.button === 0 && !this.isAttacking && !this.isDefending && this.actionState === 'none') {
+                this.isAttacking = true;
+                this.attackTimer = this.ATTACK_DURATION;
+
+                // Combo progression
+                if (this.comboResetTimer > 0) {
+                    this.comboStep++;
+                    if (this.comboStep > this.comboMax) this.comboStep = 1;
+                } else {
+                    this.comboStep = 1;
+                }
+                this.comboResetTimer = 0;
+            }
+
         });
 
         document.addEventListener('keydown', (e) => {
@@ -353,231 +435,9 @@ export class Penitent {
     }
 
     updateAnimations(delta, isMoving, moveSpeed) {
-        this.animTime += delta;
-        this.headPivot.rotation.set(0, 0, 0); this.torso.rotation.set(0, 0, 0);
-        this.bodyGroup.position.set(0, 0, 0); this.torso.scale.set(1.2, 1, 0.95);
-
-        const rawDeltaY = this.penitente.position.y - this.prevPosY; this.prevPosY = this.penitente.position.y;
-        this.smoothedDeltaY += (rawDeltaY - this.smoothedDeltaY) * 15.0 * delta;
-
-        let gravityImpact = -this.smoothedDeltaY * 6.0; if (this.isSwimming) gravityImpact = 0.5;
-
-        const windDrag = isMoving ? (moveSpeed > 10 ? -0.7 : -0.3) : 0;
-        const runBounce = isMoving && this.isGrounded && !this.isSwimming ? Math.abs(Math.sin(this.animTime * (this.keys.shift ? 18 : 10))) * 0.3 : 0;
-
-        let attackImpact = 0;
-        const isResting = this.actionState === 'sit' || this.actionState === 'sleep' || this.actionState === 'inventory' || this.actionState === 'damage';
-
-        if (this.actionState === 'damage') {
-            this.bodyGroup.rotation.x = -0.3;
-            this.headPivot.rotation.x = -0.4;
-            this.shoulderL.rotation.set(-0.5, 0, 1.2);
-            this.shoulderR.rotation.set(-0.5, 0, -1.2);
-            this.elbowL.rotation.set(-0.2, 0, 0); this.elbowR.rotation.set(-0.2, 0, 0);
-            this.bodyGroup.position.x += (Math.random() - 0.5) * 0.15;
-            this.bodyGroup.position.z += (Math.random() - 0.5) * 0.15;
+        if (this.animController) {
+            this.animController.update(delta, isMoving, moveSpeed);
         }
-        else if (this.actionState === 'sit') {
-            this.bodyGroup.position.y = -1.1;
-            this.hipL.rotation.set(-1.5, 0.2, 0); this.hipR.rotation.set(-1.5, -0.2, 0);
-            this.kneeL.rotation.set(0.1, 0, 0); this.kneeR.rotation.set(0.1, 0, 0);
-            this.shoulderL.rotation.set(0.2, 0, -0.2); this.shoulderR.rotation.set(0.2, 0, 0.2);
-            this.elbowL.rotation.set(-0.2, 0, 0); this.elbowR.rotation.set(-0.2, 0, 0);
-            this.torso.rotation.x = 0.1; this.headPivot.rotation.x = 0.2;
-        } else if (this.actionState === 'sleep') {
-            this.bodyGroup.position.y = 0.85;
-            this.bodyGroup.position.z = 0;
-            this.bodyGroup.rotation.x = -Math.PI / 2;
-            this.torso.scale.z = 0.95 + Math.sin(this.animTime * 2.5) * 0.08;
-            this.torso.scale.y = 1.0 + Math.sin(this.animTime * 2.5) * 0.05;
-            this.shoulderL.rotation.set(-0.2, 0, -1.2); this.shoulderR.rotation.set(-0.2, 0, 1.2);
-            this.elbowL.rotation.set(0, 0, 0); this.elbowR.rotation.set(0, 0, 0);
-            this.hipL.rotation.set(0, 0, 0); this.hipR.rotation.set(0, 0, 0); this.kneeL.rotation.set(0, 0, 0); this.kneeR.rotation.set(0, 0, 0);
-        } else if (this.actionState === 'inventory') {
-            this.bodyGroup.position.y = Math.sin(this.animTime * 2) * 0.02;
-            this.torso.rotation.x = 0.3; this.headPivot.rotation.x = 0.4;
-            this.shoulderL.rotation.set(0.4, 0, -0.2); this.elbowL.rotation.set(-1.2, 0, 0);
-            this.shoulderR.rotation.set(0.2, 0, 0.2); this.elbowR.rotation.set(-0.2, 0, 0);
-            this.hipL.rotation.set(0, 0, 0); this.hipR.rotation.set(0, 0, 0); this.kneeL.rotation.set(0, 0, 0); this.kneeR.rotation.set(0, 0, 0);
-        }
-        else if (this.isSwimming) {
-            this.bodyGroup.position.y = Math.sin(this.animTime * 3) * 0.1;
-            this.bodyGroup.rotation.x = isMoving ? 0.6 : 0.1; this.headPivot.rotation.x = isMoving ? -0.5 : 0;
-            if (isMoving) {
-                const swimCycle = this.animTime * 8;
-                this.shoulderL.rotation.set(-1.0 + Math.sin(swimCycle) * 0.8, 0, -0.4);
-                this.shoulderR.rotation.set(-1.0 + Math.sin(swimCycle + Math.PI) * 0.8, 0, 0.4);
-                this.elbowL.rotation.set(-0.2, 0, 0); this.elbowR.rotation.set(-0.2, 0, 0);
-                this.hipL.rotation.set(Math.sin(swimCycle*2) * 0.4, 0, 0); this.hipR.rotation.set(-Math.sin(swimCycle*2) * 0.4, 0, 0);
-                this.kneeL.rotation.set(0.2, 0, 0); this.kneeR.rotation.set(0.2, 0, 0);
-            } else {
-                this.shoulderL.rotation.set(-0.2, 0, -0.5); this.shoulderR.rotation.set(-0.2, 0, 0.5);
-                this.elbowL.rotation.set(-0.5, 0, 0); this.elbowR.rotation.set(-0.5, 0, 0);
-                this.hipL.rotation.set(0,0,0); this.hipR.rotation.set(0,0,0); this.kneeL.rotation.set(0,0,0); this.kneeR.rotation.set(0,0,0);
-            }
-        }
-        else {
-            this.bodyGroup.rotation.set(0, 0, 0);
-            if (!this.isGrounded) {
-                if (this.velocityY > 0) {
-                    if(!this.isAttacking && !this.isDefending) { this.shoulderL.rotation.set(-2.5, 0, -0.3); this.shoulderR.rotation.set(-2.5, 0, 0.3); this.elbowR.rotation.set(0,0,0); }
-                    this.hipL.rotation.set(-0.5, 0, 0); this.hipR.rotation.set(0.2, 0, 0); this.kneeL.rotation.set(0.5, 0, 0); this.kneeR.rotation.set(0.1, 0, 0);
-                } else {
-                    if(!this.isAttacking && !this.isDefending) { this.shoulderL.rotation.set(-1.0, 0, -0.5); this.shoulderR.rotation.set(-1.0, 0, 0.5); }
-                    this.hipL.rotation.set(-0.2, 0, 0); this.hipR.rotation.set(-0.2, 0, 0);
-                }
-            } else {
-                if (!isMoving) {
-                    this.bodyGroup.position.y = Math.sin(this.animTime * 2) * 0.05;
-                    if(!this.isAttacking && !this.isDefending && this.actionState === 'none') {
-                        this.shoulderL.rotation.set(0.1, 0, -0.2); this.shoulderR.rotation.set(0.1, 0, 0.2); this.elbowR.rotation.set(-0.2, 0, 0);
-                    }
-                    if (this.actionState === 'none') this.elbowL.rotation.set(-0.1, 0, 0);
-                    this.hipL.rotation.set(0, 0, 0); this.hipR.rotation.set(0, 0, 0); this.kneeL.rotation.set(0, 0, 0); this.kneeR.rotation.set(0, 0, 0);
-                } else {
-                    const speedMult = this.keys.shift ? 18 : 10; const moveSin = Math.sin(this.animTime * speedMult);
-                    this.bodyGroup.position.y = Math.abs(moveSin) * (this.keys.shift ? 0.35 : 0.2); this.bodyGroup.rotation.x = this.keys.shift ? 0.2 : 0.05;
-                    if(!this.isAttacking && !this.isDefending) {
-                        this.shoulderL.rotation.set(-moveSin * (this.keys.shift ? 1.2 : 0.6), 0, -0.2); this.shoulderR.rotation.set(moveSin * (this.keys.shift ? 1.2 : 0.6), 0, 0.2); this.elbowR.rotation.set(this.keys.shift ? -0.5 : -0.2, 0, 0);
-                    }
-                    this.elbowL.rotation.set(this.keys.shift ? -0.5 : -0.2, 0, 0);
-                    this.hipL.rotation.set(moveSin * (this.keys.shift ? 1.0 : 0.6), 0, 0); this.hipR.rotation.set(-moveSin * (this.keys.shift ? 1.0 : 0.6), 0, 0);
-                    this.kneeL.rotation.set(moveSin > 0 ? moveSin * 0.8 : 0, 0, 0); this.kneeR.rotation.set(moveSin < 0 ? -moveSin * 0.8 : 0, 0, 0);
-                }
-            }
-
-            if (this.isDefending && !this.isAttacking) {
-                this.shoulderL.rotation.set(-0.6, 0.4, -0.6); this.elbowL.rotation.set(-2.0, -1.4, 0);
-                this.torso.rotation.y = -0.7; this.headPivot.rotation.y = 0.7;
-                this.bodyGroup.position.y -= 0.2;
-                this.hipL.rotation.set(-0.5, 0.2, 0); this.kneeL.rotation.set(0.6, 0, 0); this.hipR.rotation.set(0.2, -0.2, 0); this.kneeR.rotation.set(0.4, 0, 0);
-                this.torso.rotation.x += 0.2;
-            }
-
-            if (this.isAttacking) {
-                this.attackTimer -= delta; const progress = 1 - (this.attackTimer / this.ATTACK_DURATION);
-                this.torso.rotation.y = Math.sin(progress * Math.PI) * 0.4;
-                if (progress < 0.35) {
-                    const p = progress / 0.35;
-                    this.shoulderR.rotation.set(-Math.PI * 0.8 * p, -0.2 * p, 0.4 * p); this.elbowR.rotation.set(-1.5 * p, 0, 0);
-                } else {
-                    const p = (progress - 0.35) / 0.65;
-                    this.shoulderR.rotation.set(-Math.PI * 0.8 + (Math.PI * 1.1 * p), -0.2 + (0.7 * p), 0.4 - (0.2 * p));
-                    this.elbowR.rotation.set(-1.5 + (1.2 * p), 0, 0);
-                    if (p > 0.5) {
-                        if (this.slashArcMesh) {
-                            this.slashArcMesh.visible = true;
-                        }
-                        if (!this.hasHit) {
-                            this.hasHit = true; const tipPos = new THREE.Vector3();
-                            if(this.currWeapon === 0) this.swordTip.getWorldPosition(tipPos); else this.axeGroup.getWorldPosition(tipPos);
-                            this.spawnVFX(tipPos, 'slash', 12);
-
-                            if (this.onMeleeHit) {
-                                const forward = new THREE.Vector3();
-                                this.group.getWorldDirection(forward);
-                                // The damage can be determined by the equipped weapon or a default value
-                                // 12 damage was used in the concept code, let's pass a base of 15
-                                this.onMeleeHit(this.group.position, forward, 15, 5.5);
-                            }
-                        }
-                        attackImpact = Math.sin(((p - 0.5) / 0.5) * Math.PI) * 2.0;
-                        this.bodyGroup.position.y -= attackImpact * 0.05; this.torso.rotation.x += attackImpact * 0.15;
-                    }
-                }
-                if (this.attackTimer <= 0) {
-                    this.isAttacking = false; this.hasHit = false; this.torso.rotation.y = 0;
-                    if (this.slashArcMesh) this.slashArcMesh.visible = false;
-                } else if (this.slashArcMesh && this.slashArcMesh.visible) {
-                    // Animate the arc scale and fade out
-                    const t = 1 - (this.attackTimer / this.ATTACK_DURATION);
-                    const scale = 0.5 + t * 0.6;
-                    this.slashArcMesh.scale.set(scale, scale, scale);
-                    this.matSlashArc.opacity = 0.8 * (1.0 - t);
-                }
-            } else if (!this.isDefending && !isResting) {
-                this.hasHit = false; this.torso.rotation.y += (0 - this.torso.rotation.y) * 10 * delta;
-            }
-        }
-
-        if (this.actionState === 'eat') {
-            const chewCycle = Math.sin(this.animTime * 15);
-            this.shoulderL.rotation.set(-1.0, 0.6, -0.2);
-            this.elbowL.rotation.set(-2.0, 0, 0);
-            this.headPivot.rotation.x = chewCycle * 0.05;
-        } else if (this.actionState === 'drink') {
-            const gulpCycle = Math.sin(this.animTime * 8);
-            this.shoulderL.rotation.set(-1.2, 0.6, -0.2);
-            this.elbowL.rotation.set(-2.2, 0, 0);
-            this.headPivot.rotation.x = -0.4 + gulpCycle * 0.08;
-        }
-
-        let emotion = 'neutral';
-        if (this.actionState === 'sleep') emotion = 'sleep';
-        else if (this.actionState === 'inventory') emotion = 'focus';
-        else if (this.actionState === 'damage') emotion = 'hurt';
-        else if (this.isAttacking) emotion = 'angry';
-        else if (this.isDefending) emotion = 'guard';
-        else if (!this.isGrounded && this.velocityY > 5) emotion = 'jump';
-        else if (!this.isGrounded && this.velocityY < -5) emotion = 'fall';
-
-        let targetBrowZ = -0.25, targetMouthX = 1.0, targetMouthY = 1.0;
-        if (emotion === 'angry') { targetBrowZ = -0.6; targetMouthX = 0.6; targetMouthY = 0.6; }
-        else if (emotion === 'guard') { targetBrowZ = -0.5; targetMouthX = 0.5; targetMouthY = 0.3; }
-        else if (emotion === 'jump') { targetBrowZ = 0.1; targetMouthX = 0.6; targetMouthY = 1.5; }
-        else if (emotion === 'fall') { targetBrowZ = 0.4; targetMouthX = 1.4; targetMouthY = 0.5; }
-        else if (emotion === 'sleep') { targetBrowZ = 0; targetMouthX = 0.5; targetMouthY = 0.5; }
-        else if (emotion === 'focus') { targetBrowZ = -0.4; targetMouthX = 0.8; targetMouthY = 0.8; }
-        else if (emotion === 'hurt') { targetBrowZ = 0.6; targetMouthX = 1.2; targetMouthY = 1.5; }
-
-        if (this.actionState === 'eat') targetMouthY = 1.0 + Math.abs(Math.sin(this.animTime * 15)) * 1.5;
-        else if (this.actionState === 'drink') { targetMouthY = 2.0; targetMouthX = 0.5; }
-
-        this.browL.rotation.z += (targetBrowZ - this.browL.rotation.z) * 15 * delta; this.browR.rotation.z += (-targetBrowZ - this.browR.rotation.z) * 15 * delta;
-        this.mouth.scale.x += (targetMouthX - this.mouth.scale.x) * 15 * delta; this.mouth.scale.y += (targetMouthY - this.mouth.scale.y) * 15 * delta;
-
-        this.blinkTimer -= delta;
-        if (this.blinkTimer <= 0) { this.isBlinking = true; this.blinkTimer = 2.0 + Math.random() * 4.0; this.blinkDuration = 0.15; }
-        if (this.isBlinking || emotion === 'hurt') {
-            this.blinkDuration -= delta; this.eyeL.scale.y = 0.1; this.eyeR.scale.y = 0.1;
-            if (this.blinkDuration <= 0) this.isBlinking = false;
-        } else {
-            let targetEyeScale = (emotion === 'fall' || emotion === 'jump') ? 1.3 : 1.0;
-            if (emotion === 'angry' || emotion === 'guard' || emotion === 'focus') targetEyeScale = 0.7;
-            if (emotion === 'sleep') targetEyeScale = 0.05;
-            this.eyeL.scale.y += (targetEyeScale - this.eyeL.scale.y) * 20 * delta; this.eyeR.scale.y += (targetEyeScale - this.eyeR.scale.y) * 20 * delta;
-        }
-
-        this.animatedHair.forEach(hair => {
-            if(this.currHead !== 0) return;
-            const wind = Math.sin(this.animTime * 3 + hair.offset) * 0.05;
-            let targetRx = hair.baseRx + wind; let targetRz = hair.baseRz + Math.cos(this.animTime * 2 + hair.offset) * 0.03;
-
-            if (hair.isBangs) {
-                targetRx -= gravityImpact * hair.reactionStrength; targetRx -= windDrag * hair.reactionStrength * 0.15; targetRx -= runBounce * hair.reactionStrength;
-                if (Math.abs(windDrag) > 0.1) targetRz += Math.abs(windDrag) * (hair.baseRz > 0 ? 1 : -1) * 1.5;
-            } else {
-                targetRx += gravityImpact * hair.reactionStrength; targetRx += windDrag * hair.reactionStrength; targetRx += runBounce * hair.reactionStrength;
-            }
-
-            if (attackImpact > 0) {
-                if (hair.isBangs) targetRx += attackImpact * hair.reactionStrength * 0.4; else targetRx -= attackImpact * hair.reactionStrength * 0.4;
-            }
-            if (this.actionState === 'inventory') targetRx += 0.3;
-            if (this.actionState === 'damage') targetRx += 0.5;
-
-            hair.mesh.rotation.x += (targetRx - hair.mesh.rotation.x) * 18 * delta; hair.mesh.rotation.z += (targetRz - hair.mesh.rotation.z) * 18 * delta;
-        });
-
-        this.animatedCoat.forEach(flap => {
-            if(this.currArmor !== 0) return;
-            const wind = Math.sin(this.animTime * 4 + flap.offset) * 0.05; let targetRx = flap.baseRx + wind;
-            targetRx += gravityImpact * 0.5; targetRx -= windDrag * 1.8; targetRx += runBounce * 0.6;
-            if (attackImpact > 0) targetRx += attackImpact * 0.5;
-            if (this.isDefending || this.actionState === 'sit') targetRx += 0.3;
-            if (this.actionState === 'damage') targetRx -= 0.5;
-            flap.mesh.rotation.x += (targetRx - flap.mesh.rotation.x) * 12 * delta;
-        });
     }
 
     update(delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc) {

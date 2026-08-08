@@ -5,6 +5,25 @@ import gameState from '../core/GameState.js';
 import { inventoryManager } from './InventoryManager.js';
 
 export const LOOT_TABLES = {
+    Chest_Wood: [
+        { itemId: 'potion_hp_medium', chance: 0.5 },
+        { itemId: 'wooden_shield', chance: 0.4 },
+        { itemId: 'rusty_dagger', chance: 0.3 },
+        { itemId: 'wooden_club', chance: 0.4 },
+        { itemId: 'gold_coin', chance: 1.0, amount: [5, 15] }
+    ],
+    Chest_Iron: [
+        { itemId: 'elixir_celestial', chance: 0.3 },
+        { itemId: 'iron_sword', chance: 0.3 },
+        { itemId: 'militia_spear', chance: 0.4 },
+        { itemId: 'leather_armor', chance: 0.5 },
+        { itemId: 'gold_coin', chance: 1.0, amount: [15, 30] }
+    ],
+    Chest_Divine: [
+        { itemId: 'greatsword', chance: 1.0 },
+        { itemId: 'elixir_celestial', chance: 1.0 },
+        { itemId: 'gold_coin', chance: 1.0, amount: [50, 100] }
+    ],
     Slime: [
         { itemId: 'potion_hp_small', chance: 0.3 },
         { itemId: 'herb_astral', chance: 0.4 },
@@ -33,16 +52,32 @@ export const LOOT_TABLES = {
     ]
 };
 
-// Colors for drops based on rarity or type
-const MAT_GOLD = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa8800, emissiveIntensity: 0.5 });
-const MAT_POTION = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xaa0000, emissiveIntensity: 0.5 });
-const MAT_GEAR = new THREE.MeshStandardMaterial({ color: 0x4444ff, emissive: 0x2222aa, emissiveIntensity: 0.5 });
-const MAT_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x22aa22, emissive: 0x116611, emissiveIntensity: 0.5 });
+const MAT_COMMON = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444, emissiveIntensity: 0.5 });
+const MAT_UNCOMMON = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 0.8 });
+const MAT_RARE = new THREE.MeshStandardMaterial({ color: 0x0000ff, emissive: 0x0000aa, emissiveIntensity: 0.8 });
+const MAT_EPIC = new THREE.MeshStandardMaterial({ color: 0x800080, emissive: 0x600060, emissiveIntensity: 0.8 });
+const MAT_DIVINE = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa8800, emissiveIntensity: 1.0 });
+
+function getMatForRarity(rarity) {
+    if (rarity === 'uncommon') return MAT_UNCOMMON;
+    if (rarity === 'rare') return MAT_RARE;
+    if (rarity === 'epic') return MAT_EPIC;
+    if (rarity === 'divine') return MAT_DIVINE;
+    return MAT_COMMON;
+}
+
+function getHexForRarity(rarity) {
+    if (rarity === 'uncommon') return 0x00ff00;
+    if (rarity === 'rare') return 0x0000ff;
+    if (rarity === 'epic') return 0x800080;
+    if (rarity === 'divine') return 0xffd700;
+    return 0xffffff;
+}
 
 function createPickupMesh() {
     const group = new THREE.Group();
     // Default shape is a small cube, will be updated per item
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), MAT_MATERIAL);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), MAT_COMMON);
     mesh.castShadow = true;
     group.add(mesh);
     group.mesh = mesh; // reference
@@ -108,24 +143,27 @@ export class LootManager {
             magnetized: false
         };
 
-        // Adjust mesh based on type
+        const rarityMat = getMatForRarity(itemData.rarity);
+        const rarityHex = getHexForRarity(itemData.rarity);
+
         if (itemData.type === 'currency') {
             pickupGroup.mesh.geometry = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
-            pickupGroup.mesh.geometry.rotateX(Math.PI / 2); // coin stands up
-            pickupGroup.mesh.material = MAT_GOLD;
+            pickupGroup.mesh.geometry.rotateX(Math.PI / 2);
+            pickupGroup.mesh.material = MAT_DIVINE;
             pickupGroup.light.color.setHex(0xffd700);
         } else if (itemData.type === 'consumable') {
             pickupGroup.mesh.geometry = new THREE.CylinderGeometry(0.1, 0.15, 0.4, 8);
-            pickupGroup.mesh.material = MAT_POTION;
-            pickupGroup.light.color.setHex(0xff0000);
-        } else if (itemData.type.startsWith('armor') || itemData.type === 'weapon') {
-            pickupGroup.mesh.geometry = new THREE.OctahedronGeometry(0.25);
-            pickupGroup.mesh.material = MAT_GEAR;
-            pickupGroup.light.color.setHex(0x4444ff);
+            pickupGroup.mesh.material = rarityMat;
+            pickupGroup.light.color.setHex(rarityHex);
+        } else if (itemData.type.startsWith('weapon') || itemData.type.startsWith('armor')) {
+            pickupGroup.mesh.geometry = new THREE.OctahedronGeometry(0.3);
+            pickupGroup.mesh.material = rarityMat;
+            pickupGroup.light.color.setHex(rarityHex);
+            pickupGroup.light.intensity = 2.0;
         } else {
             pickupGroup.mesh.geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-            pickupGroup.mesh.material = MAT_MATERIAL;
-            pickupGroup.light.color.setHex(0x22aa22);
+            pickupGroup.mesh.material = rarityMat;
+            pickupGroup.light.color.setHex(rarityHex);
         }
 
         pickupGroup.visible = true;
