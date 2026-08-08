@@ -332,7 +332,7 @@ export class Penitent {
             this.slotShield.add(WeaponModels.createShield());
         }
 
-        this.slotHead.clear(); if(this.currHead !== 0) this.slotHead.add(this.helmetGroup);
+        this.slotHead.clear(); this.slotHead.add(this.currHead === 0 ? this.hairGroup : this.helmetGroup);
         this.slotArmor.clear(); this.slotArmor.add(this.currArmor === 0 ? this.armorLeatherGroup : this.armorSteelGroup);
     }
 
