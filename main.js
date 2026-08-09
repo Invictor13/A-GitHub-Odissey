@@ -462,6 +462,12 @@ window.changeGameState = function(newState, params) {
 
         console.log("Transição para o WORLD MAP em progresso...");
     } else if (GAME_STATE === 'ROGUELIKE') {
+        const hubUI = document.getElementById('hub-status-ui');
+        if(hubUI) {
+            hubUI.classList.remove('hidden');
+            setTimeout(() => { hubUI.classList.remove('opacity-0'); }, 100);
+        }
+
         currentEnvironment = new ProceduralMap(scene);
         currentEnvironment.generateGrid(100, params?.islandData);
         const biome = params?.biome || 'campos_pastos';
@@ -505,6 +511,15 @@ function animate() {
     } else if (GAME_STATE === 'WORLD_MAP') {
         controls.update();
     } else if (penitent) {
+        // Update Mobile Controls Action Button based on Interaction Proximity
+        if (window.mobileControls && window.mobileControls.isTouchDevice) {
+            const hasInteraction = window.currentNearbyObject !== null && window.currentNearbyObject !== undefined;
+            if (window.mobileControls.lastInteractionState !== hasInteraction) {
+                window.mobileControls.updateActionState(hasInteraction);
+                window.mobileControls.lastInteractionState = hasInteraction;
+            }
+        }
+
         const getFloorFunc = (pos) => (currentEnvironment && typeof currentEnvironment.getFloorY === 'function') ? currentEnvironment.getFloorY(pos) : 0;
         const checkCollisionFunc = (pos, radius) => (currentEnvironment && typeof currentEnvironment.checkCollision === 'function') ? currentEnvironment.checkCollision(pos, radius) : false;
 
