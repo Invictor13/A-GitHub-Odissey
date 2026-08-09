@@ -2,6 +2,7 @@ import gameState from '../core/GameState.js';
 import { ITEM_DATABASE } from '../data/ItemData.js';
 import { AnimationController } from '../animations/AnimationController.js';
 import { WeaponModels } from '../items/WeaponModels.js';
+import { ArmorModels } from '../items/ArmorModels.js';
 import * as THREE from 'three';
 import { ObjectPool } from '../core/ObjectPoolManager.js';
 
@@ -63,7 +64,8 @@ export class Penitent {
         this.staminaDrainRate = 25;
         this.createFloatingStaminaBar();
 
-        this.currHead = 0;
+        this.currHelmet = 'none'; // Novo sistema
+        this.currHead = 0; // legado
         this.currArmor = 0;
         this.currWeapon = 0;
 
@@ -188,32 +190,40 @@ export class Penitent {
 
         this.headPivot.add(this.slotHead);
 
-        // CABEÇA 1
+        // CABEÇA - CABELO
         this.hairGroup = new THREE.Group(); this.hairGroup.position.set(0, 0.6, 0);
+        this.hairTopGroup = new THREE.Group(); this.hairGroup.add(this.hairTopGroup);
+        this.hairBaseGroup = new THREE.Group(); this.hairGroup.add(this.hairBaseGroup);
         this.animatedHair = [];
-        this.createPart(new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI*2, 0, Math.PI/1.5), this.matHair, 0, 0.1, -0.1, 0, 0, 0, this.hairGroup).scale.set(1.1, 1.05, 1.1);
+
+        // Base head hair (part of top)
+        this.createPart(new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI*2, 0, Math.PI/1.5), this.matHair, 0, 0.1, -0.1, 0, 0, 0, this.hairTopGroup).scale.set(1.1, 1.05, 1.1);
+
         const lockGeo = new THREE.ConeGeometry(0.25, 1.4, 4); lockGeo.translate(0, 0.7, 0);
         for (let i = 0; i < 95; i++) {
             const angle = Math.random() * Math.PI * 2; const radius = Math.sqrt(Math.random()) * 1.05;
             const x = Math.sin(angle) * radius; const z = Math.cos(angle) * radius;
             let y = 0.2 + Math.sqrt(Math.max(0, 1.1 - radius*radius)) * 0.75;
             let rx = 0; let rz = 0; let isBangs = false; let size = 0.6 + Math.random() * 0.6;
+
+            let isTop = false;
+
             if (z > 0.4 && y < 0.8) { isBangs = true; rx = 1.7 + (Math.random() - 0.5) * 0.4; rz = (x * -0.5); size *= 0.9; }
             else if (z < -0.3) { rx = -1.0 + (Math.random() - 0.5) * 0.5; rz = (x * -0.5); size *= 0.8; }
             else if (radius > 0.7) { rx = (z * -0.5) + (Math.random() - 0.5) * 0.3; rz = (x < 0 ? 1.2 : -1.2) + (Math.random() - 0.5) * 0.3; }
-            else { rx = (Math.random() - 0.5) * 0.6; rz = (Math.random() - 0.5) * 0.6; size *= 1.3; }
+            else { rx = (Math.random() - 0.5) * 0.6; rz = (Math.random() - 0.5) * 0.6; size *= 1.3; isTop = true; } // Top hair
+
             if (z > 0.8 && Math.abs(x) < 0.4 && y < 0.5) continue;
-            const mesh = this.createPart(lockGeo, this.matHair, x, y, z, rx, 0, rz, this.hairGroup); mesh.scale.set(size, size, size);
+
+            // Assign to top or base based on y position and type
+            const targetGroup = (isTop || y > 0.7) ? this.hairTopGroup : this.hairBaseGroup;
+
+            const mesh = this.createPart(lockGeo, this.matHair, x, y, z, rx, 0, rz, targetGroup); mesh.scale.set(size, size, size);
             this.animatedHair.push({ mesh, baseRx: rx, baseRz: rz, offset: i * 0.1, reactionStrength: isBangs ? 1.5 : (0.8 + (i % 5) * 0.2), isBangs: isBangs });
         }
 
-        // CABEÇA 2
-        this.helmetGroup = new THREE.Group(); this.helmetGroup.position.set(0, 0.2, 0);
-        this.createPart(new THREE.CylinderGeometry(1.05, 1.05, 1.4, 16), this.matSteel, 0, 0.3, 0, 0, 0, 0, this.helmetGroup);
-        this.createPart(new THREE.SphereGeometry(1.05, 16, 16, 0, Math.PI*2, 0, Math.PI/2), this.matSteel, 0, 1.0, 0, 0, 0, 0, this.helmetGroup);
-        this.createPart(new THREE.BoxGeometry(1.2, 0.2, 1.05), this.matVisor, 0, 0.45, 0.15, 0, 0, 0, this.helmetGroup);
-        this.createPart(new THREE.ConeGeometry(0.2, 0.8, 6), this.matLeatherDark, -1.0, 0.8, 0, -0.2, 0, 0.6, this.helmetGroup);
-        this.createPart(new THREE.ConeGeometry(0.2, 0.8, 6), this.matLeatherDark, 1.0, 0.8, 0, -0.2, 0, -0.6, this.helmetGroup);
+        // CAPACETE ANTIGO REMOVIDO PARA USAR SISTEMA NOVO
+        this.helmetGroup = new THREE.Group(); this.helmetGroup.position.set(0, 0.2, 0); // Mantido apenas para fallback / legibilidade temporária
 
         // BRAÇOS E PERNAS
         this.shoulderL = new THREE.Group(); this.shoulderL.position.set(-1.35, 3.0, 0); this.bodyGroup.add(this.shoulderL);
@@ -407,7 +417,7 @@ export class Penitent {
             this.slotShield.add(WeaponModels.createShield());
         }
 
-        this.slotHead.clear(); this.slotHead.add(this.currHead === 0 ? this.hairGroup : this.helmetGroup);
+        this.updateHelmetVisuals();
         this.slotArmor.clear(); this.slotArmor.add(this.currArmor === 0 ? this.armorLeatherGroup : this.armorSteelGroup);
     }
 
@@ -437,13 +447,47 @@ export class Penitent {
         }
     }
 
+    updateHelmetVisuals() {
+        this.slotHead.clear();
+
+        // Assume default hair visibility
+        this.hairTopGroup.visible = true;
+        this.hairBaseGroup.visible = true;
+        this.slotHead.add(this.hairGroup);
+
+        if (!this.currHelmet || this.currHelmet === 'none') {
+            return;
+        }
+
+        const helmetModel = ArmorModels.createHelmet(this.currHelmet);
+        if (helmetModel) {
+            this.slotHead.add(helmetModel);
+            const coverage = helmetModel.userData.coverage || 'full';
+
+            if (coverage === 'partial') {
+                this.hairTopGroup.visible = false;
+                this.hairBaseGroup.visible = true;
+            } else if (coverage === 'full') {
+                this.hairTopGroup.visible = false;
+                this.hairBaseGroup.visible = false;
+            }
+        }
+    }
+
     updateGear() {
-        this.slotHead.clear(); this.slotHead.add(this.currHead === 0 ? this.hairGroup : this.helmetGroup);
+        this.updateHelmetVisuals();
         this.slotArmor.clear(); this.slotArmor.add(this.currArmor === 0 ? this.armorLeatherGroup : this.armorSteelGroup);
         this.slotWeapon.clear(); this.slotWeapon.add(this.currWeapon === 0 ? this.swordGroup : this.axeGroup);
     }
 
-    toggleHelmet() { this.currHead = (this.currHead + 1) % 2; this.updateGear(); }
+    setHelmetType(type) { this.currHelmet = type; this.updateGear(); }
+    toggleHelmet() {
+        // Fallback temporário para testes
+        const types = ['none', 'leather', 'iron', 'steel', 'gold', 'diamond'];
+        const currentIdx = types.indexOf(this.currHelmet || 'none');
+        this.currHelmet = types[(currentIdx + 1) % types.length];
+        this.updateGear();
+    }
     setArmorType(type) { this.currArmor = type; this.updateGear(); }
     setWeaponType(type) { this.currWeapon = type; this.updateGear(); }
 
