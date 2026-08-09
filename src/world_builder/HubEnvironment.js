@@ -842,8 +842,20 @@ export class HubEnvironment {
     handleGridMouseMove(e, camera) {
         if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh) return;
 
-        this.mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
-        this.mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        // Support touch coordinates as well
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        }
+
+        if (this.isDraggingBuild) {
+            this.hasDraggedDuringBuild = true;
+        }
+
+        this.mouseVec.x = (clientX / window.innerWidth) * 2 - 1;
+        this.mouseVec.y = -(clientY / window.innerHeight) * 2 + 1;
 
         this.raycaster.setFromCamera(this.mouseVec, camera);
         const intersects = this.raycaster.intersectObject(this.gridPlane);
@@ -1076,18 +1088,37 @@ export class HubEnvironment {
         // For continuous building of floors
         this.pointerDownHandler = (e) => {
             if(window.hubBuildingState === 'BUILDING_GRID') {
-                if (e.target.closest('#grid-mode-ui') || e.target.closest('.interaction-prompt')) return;
+                if (e.target.closest('#grid-mode-ui') || e.target.closest('.interaction-prompt') || e.target.closest('#mobile-controls-container')) return;
+
+                const isTouch = e.pointerType === 'touch';
 
                 if (this.isFloorType(this.selectedBuildType)) {
                     this.isDraggingBuild = true;
+                    this.placeDecorStructure();
+                } else if (isTouch) {
+                    this.isDraggingBuild = true;
+                    this.hasDraggedDuringBuild = false;
+                    this.handleGridMouseMove(e, this.camera);
+                } else {
+                    this.placeDecorStructure();
                 }
-                this.placeDecorStructure();
             }
         };
 
         this.pointerUpHandler = (e) => {
             if(window.hubBuildingState === 'BUILDING_GRID') {
+                if (this.isDraggingBuild && !this.isFloorType(this.selectedBuildType) && e.pointerType === 'touch') {
+                    if (this.hasDraggedDuringBuild) {
+                        const confirmed = confirm("Construir neste local?");
+                        if (confirmed) {
+                            this.placeDecorStructure();
+                        }
+                    } else {
+                        this.placeDecorStructure();
+                    }
+                }
                 this.isDraggingBuild = false;
+                this.hasDraggedDuringBuild = false;
             }
         };
 

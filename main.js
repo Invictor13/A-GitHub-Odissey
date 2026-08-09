@@ -341,6 +341,15 @@ document.addEventListener('click', (e) => {
         toggleJournal();
     }
 });
+document.addEventListener('touchstart', (e) => {
+    const btn = e.target.closest('#btn-mobile-inventory');
+    if (btn) {
+        if (window.inventoryUI) {
+            window.inventoryUI.toggle();
+            controls.enabled = !window.inventoryUI.isOpen;
+        }
+    }
+});
 
 // Tab Switching in Eros Menu
 const tabInteriorsBtn = document.getElementById('tab-btn-interiors');

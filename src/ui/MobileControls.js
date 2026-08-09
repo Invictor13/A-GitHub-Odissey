@@ -82,7 +82,7 @@ export class MobileControls {
         this.menusContainer = document.createElement('div');
         this.menusContainer.style.position = 'absolute';
         this.menusContainer.style.right = '20px';
-        this.menusContainer.style.top = '80px';
+        this.menusContainer.style.top = '90px';
         this.menusContainer.style.display = 'flex';
         this.menusContainer.style.flexDirection = 'row';
         this.menusContainer.style.gap = '15px';
@@ -93,7 +93,7 @@ export class MobileControls {
         this.menusContainerLeft = document.createElement('div');
         this.menusContainerLeft.style.position = 'absolute';
         this.menusContainerLeft.style.left = '20px';
-        this.menusContainerLeft.style.top = '80px';
+        this.menusContainerLeft.style.top = '140px';
         this.menusContainerLeft.style.display = 'flex';
         this.menusContainerLeft.style.flexDirection = 'row';
         this.menusContainerLeft.style.gap = '15px';
@@ -168,6 +168,7 @@ export class MobileControls {
 
         // Setup top menus buttons
         const btnInventory = createButton('Inv', 'i', 'KeyI', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
+        btnInventory.id = 'btn-mobile-inventory';
         const btnJournal = createButton('Diário', 'j', 'KeyJ', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
         btnJournal.id = 'btn-mobile-journal';
 
