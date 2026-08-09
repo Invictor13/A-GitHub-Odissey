@@ -78,6 +78,17 @@ export class MobileControls {
         this.buttonsContainer.style.pointerEvents = 'none'; // Container shouldn't block, only buttons
         this.container.appendChild(this.buttonsContainer);
 
+        // Top right menus container
+        this.menusContainer = document.createElement('div');
+        this.menusContainer.style.position = 'absolute';
+        this.menusContainer.style.right = '20px';
+        this.menusContainer.style.top = '80px'; // Shifted down to not overlap with gold UI
+        this.menusContainer.style.display = 'flex';
+        this.menusContainer.style.flexDirection = 'row';
+        this.menusContainer.style.gap = '15px';
+        this.menusContainer.style.pointerEvents = 'none'; // Container shouldn't block, only buttons
+        this.container.appendChild(this.menusContainer);
+
         const createButton = (label, keyToSimulate, codeToSimulate = '', isMouse = false, mouseBtn = 0, size = 60, color = 'rgba(255,255,255,0.3)') => {
             const btn = document.createElement('button');
             btn.innerText = label;
@@ -143,6 +154,13 @@ export class MobileControls {
 
         this.buttonsContainer.appendChild(topRow);
         this.buttonsContainer.appendChild(bottomRow);
+
+        // Setup top right menus buttons
+        const btnInventory = createButton('Inv', 'i', 'KeyI', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
+        const btnJournal = createButton('Diário', 'j', 'KeyJ', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
+
+        this.menusContainer.appendChild(btnJournal);
+        this.menusContainer.appendChild(btnInventory);
     }
 
     setupTouchEvents() {
