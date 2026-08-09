@@ -315,9 +315,24 @@ export class Penitent {
             case 'sword2h':
                 weaponModel = WeaponModels.createSword2H();
                 weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.5, 0); break;
+            case 'bastard_sword':
+                weaponModel = WeaponModels.createBastardSword();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.0, 0); break;
             case 'club':
                 weaponModel = WeaponModels.createClub();
                 weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 1.3, 0); break;
+            case 'hammer':
+                weaponModel = WeaponModels.createHammer();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 1.5, 0); break;
+            case 'pickaxe':
+                weaponModel = WeaponModels.createPickaxe();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 1.5, 0); break;
+            case 'magic_staff':
+                weaponModel = WeaponModels.createMagicStaff();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.0, 0); break;
+            case 'gauntlet':
+                weaponModel = WeaponModels.createGauntlet();
+                weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 0.5, 0); break;
             case 'spear':
                 weaponModel = WeaponModels.createSpear();
                 weaponModel.add(this.weaponTip); this.weaponTip.position.set(0, 2.9, 0); break;
@@ -328,7 +343,7 @@ export class Penitent {
         }
 
         this.slotWeapon.add(weaponModel);
-        if (shieldType === 'shield' && weaponType !== 'sword2h' && weaponType !== 'spear') {
+        if (shieldType === 'shield' && weaponType !== 'sword2h' && weaponType !== 'spear' && weaponType !== 'magic_staff' && weaponType !== 'bastard_sword' && weaponType !== 'hammer' && weaponType !== 'pickaxe') {
             this.slotShield.add(WeaponModels.createShield());
         }
 
