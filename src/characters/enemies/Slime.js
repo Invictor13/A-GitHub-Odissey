@@ -159,8 +159,8 @@ export class Slime extends Enemy {
 
         // Attack logic
         if (distToPlayer < 2.0 && this.attackCooldown <= 0) {
-            if (playerContext && typeof playerContext.takeDamage === 'function') {
-                playerContext.takeDamage(12);
+            if (targetContext && typeof targetContext.takeDamage === 'function') {
+                targetContext.takeDamage(12);
             }
             this.attackCooldown = 1.0;
         }

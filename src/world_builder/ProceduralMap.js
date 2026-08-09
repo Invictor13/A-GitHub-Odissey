@@ -256,6 +256,11 @@ export class ProceduralMap {
 
         this.activeBiome.build3DGeometry(this.terrainGroup, this.chunksList);
         this.activeBiome.spawnEnemies(this.enemies);
+        // Ensure interactiveObjects array exists so NPCs can be interacted with
+        if (!this.interactiveObjects) this.interactiveObjects = [];
+        if (typeof this.activeBiome.spawnNPCs === 'function') {
+            this.activeBiome.spawnNPCs(this.terrainGroup, this.enemies, this.interactiveObjects);
+        }
         this.totalEnemiesSpawned = this.enemies.length;
 
         for (const enemy of this.enemies) {

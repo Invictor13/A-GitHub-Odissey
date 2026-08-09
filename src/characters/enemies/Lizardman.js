@@ -157,14 +157,26 @@ export class Lizardman extends Enemy {
 
     update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
-        const playerPos = playerContext?.pos || playerContext;
-        super.update(delta, playerPos);
+        const defaultPos = playerContext?.pos || playerContext;
 
-        if (this.attackCooldown > 0) this.attackCooldown -= delta;
+        let targetContext = playerContext;
+        let targetPos = defaultPos;
 
+        if (playerContext && typeof playerContext.findClosestTarget === 'function') {
+            targetContext = playerContext.findClosestTarget(this.group.position, 15.0);
+            targetPos = targetContext ? targetContext.pos : null;
+        }
+
+        super.update(delta, targetPos);
+
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= delta;
+        }
+
+        // Fast chase logic
         let isMoving = false;
-        if (playerPos) {
-            const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
+        if (targetPos) {
+            const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
             dir.y = 0; const dist = dir.length();
             if (dist > 1.4) {
                 dir.normalize();

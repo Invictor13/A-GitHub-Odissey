@@ -116,8 +116,17 @@ export class Goblin extends Enemy {
 
     update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
-        const playerPos = playerContext?.pos || playerContext;
-        super.update(delta, playerPos);
+        const defaultPos = playerContext?.pos || playerContext;
+
+        let targetContext = playerContext;
+        let targetPos = defaultPos;
+
+        if (playerContext && typeof playerContext.findClosestTarget === 'function') {
+            targetContext = playerContext.findClosestTarget(this.group.position, 15.0);
+            targetPos = targetContext ? targetContext.pos : null;
+        }
+
+        super.update(delta, targetPos);
 
         if (this.attackCooldown > 0) {
             this.attackCooldown -= delta;
@@ -125,8 +134,8 @@ export class Goblin extends Enemy {
 
         // Fast chase logic
         let isMoving = false;
-        if (playerPos) {
-            const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
+        if (targetPos) {
+            const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
             dir.y = 0;
             const dist = dir.length();
             if (dist > 1.2) {
@@ -151,8 +160,8 @@ export class Goblin extends Enemy {
             }
 
             if (dist < 2.0 && this.attackCooldown <= 0) {
-                if (playerContext && typeof playerContext.takeDamage === 'function') {
-                    playerContext.takeDamage(12);
+                if (targetContext && typeof targetContext.takeDamage === 'function') {
+                    targetContext.takeDamage(12);
                 }
                 this.attackCooldown = 1.0;
 
