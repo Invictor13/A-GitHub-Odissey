@@ -30,6 +30,51 @@ export const CODEX_DATABASE = {
             masteryLevel: 0,
             description: 'Restaura a saúde do Penitente.',
             stats: { healAmount: 50 }
+        },
+        {
+            id: 'item_helmet_leather',
+            name: 'Capuz de Couro',
+            category: 'inventory_items',
+            discovered: false,
+            masteryLevel: 0,
+            description: 'Um simples capuz de couro que oferece proteção básica.',
+            stats: { defense: 2 }
+        },
+        {
+            id: 'item_helmet_iron',
+            name: 'Elmo de Ferro',
+            category: 'inventory_items',
+            discovered: false,
+            masteryLevel: 0,
+            description: 'Elmo pesado e resistente feito de ferro maciço.',
+            stats: { defense: 5 }
+        },
+        {
+            id: 'item_helmet_steel',
+            name: 'Elmo de Aço Aprimorado',
+            category: 'inventory_items',
+            discovered: false,
+            masteryLevel: 0,
+            description: 'Elmo forjado com maestria para cavaleiros experientes.',
+            stats: { defense: 8 }
+        },
+        {
+            id: 'item_helmet_gold',
+            name: 'Coroa de Ouro',
+            category: 'inventory_items',
+            discovered: false,
+            masteryLevel: 0,
+            description: 'Um símbolo de nobreza, brilha no escuro, mas protege pouco.',
+            stats: { defense: 3, luck: 10 }
+        },
+        {
+            id: 'item_helmet_diamond',
+            name: 'Elmo de Diamante Mágico',
+            category: 'inventory_items',
+            discovered: false,
+            masteryLevel: 0,
+            description: 'Resistência quase divina esculpida em cristais.',
+            stats: { defense: 15, magicResist: 10 }
         }
     ],
     sanctuary: [
