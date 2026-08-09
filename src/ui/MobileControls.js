@@ -169,6 +169,7 @@ export class MobileControls {
         // Setup top menus buttons
         const btnInventory = createButton('Inv', 'i', 'KeyI', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
         const btnJournal = createButton('Diário', 'j', 'KeyJ', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
+        btnJournal.id = 'btn-mobile-journal';
 
         this.menusContainerLeft.appendChild(btnJournal);
         this.menusContainer.appendChild(btnInventory);
