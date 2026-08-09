@@ -12,6 +12,7 @@ export class Enemy {
         this.hp = hp;
         this.maxHp = hp;
         this.speed = speed;
+        this.attackDamage = 10;
         this.attackRadius = attackRadius;
         this.isDead = false;
 
@@ -28,6 +29,11 @@ export class Enemy {
     takeDamage(amount) {
         if (this.isDead) return;
         this.hp -= amount;
+
+        if (window.showFloatingText && this.group && this.group.position) {
+            window.showFloatingText(`${amount}`, this.group.position, '#ffaa00');
+        }
+
         if (this.hp <= 0) {
             this.die();
         }

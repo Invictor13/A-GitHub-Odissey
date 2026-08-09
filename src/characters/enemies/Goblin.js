@@ -39,6 +39,7 @@ import { Enemy } from './Enemy.js';
 export class Goblin extends Enemy {
     constructor(scene, position) {
         super(scene, position, 20, 3.5);
+        this.attackDamage = 8;
         this.velocityY = 0;
         this.attackCooldown = 0;
 
@@ -161,7 +162,7 @@ export class Goblin extends Enemy {
 
             if (dist < 2.0 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') {
-                    targetContext.takeDamage(12);
+                    targetContext.takeDamage(this.attackDamage);
                 }
                 this.attackCooldown = 1.0;
 

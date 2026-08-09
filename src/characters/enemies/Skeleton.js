@@ -39,6 +39,7 @@ import { Enemy } from './Enemy.js';
 export class Skeleton extends Enemy {
     constructor(scene, position) {
         super(scene, position, 30, 2.0);
+        this.attackDamage = 12;
         this.velocityY = 0;
         this.attackCooldown = 0;
 
@@ -173,7 +174,7 @@ export class Skeleton extends Enemy {
 
             if (dist < 2.5 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') {
-                    targetContext.takeDamage(15);
+                    targetContext.takeDamage(this.attackDamage);
                 }
                 this.attackCooldown = 1.2;
 

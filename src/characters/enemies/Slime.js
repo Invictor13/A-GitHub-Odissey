@@ -19,6 +19,7 @@ import { Enemy } from './Enemy.js';
 export class Slime extends Enemy {
     constructor(scene, position) {
         super(scene, position, 15, 1.5);
+        this.attackDamage = 6;
 
         this.color = slimeColors[Math.floor(Math.random() * slimeColors.length)];
         this.baseScale = (0.8 + Math.random() * 0.6) * 1.5;
@@ -160,7 +161,7 @@ export class Slime extends Enemy {
         // Attack logic
         if (distToPlayer < 2.0 && this.attackCooldown <= 0) {
             if (targetContext && typeof targetContext.takeDamage === 'function') {
-                targetContext.takeDamage(12);
+                targetContext.takeDamage(this.attackDamage);
             }
             this.attackCooldown = 1.0;
         }
