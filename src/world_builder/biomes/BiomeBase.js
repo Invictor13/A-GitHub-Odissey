@@ -1,4 +1,10 @@
 import * as THREE from 'three';
+import { CampProp } from '../../characters/npcs/CampProp.js';
+import { Merchant } from '../../characters/npcs/Merchant.js';
+import { Guard } from '../../characters/npcs/Guard.js';
+import { Explorer } from '../../characters/npcs/Explorer.js';
+import { Alchemist } from '../../characters/npcs/Alchemist.js';
+
 
 // Simple 2D Noise Implementation (Value Noise)
 function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
@@ -65,6 +71,91 @@ export class BiomeBase {
     build3DGeometry(terrainGroup, chunksList) {}
     spawnEnemies(enemiesArray) {}
 
+
+
+    spawnNPCs(terrainGroup, enemiesArray, interactablesArray) {
+        // Decide whether to spawn a POI in this level (e.g., 60% chance)
+        if (Math.random() > 0.6) return;
+
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 100) {
+            // Find a valid spot (like chest spawning)
+            const tx = Math.floor(Math.random() * this.gridSize);
+            const tz = Math.floor(Math.random() * this.gridSize);
+
+            if (this.grid[tx] && this.grid[tx][tz] && this.grid[tx][tz].type === this.TILE_FLOOR) {
+                const elev = this.grid[tx][tz].elev * this.STEP_HEIGHT;
+                // Exclude water or extreme edges
+                if (elev <= 0 || tx < 10 || tx > this.gridSize - 10 || tz < 10 || tz > this.gridSize - 10) {
+                    attempts++;
+                    continue;
+                }
+
+                const wx = (tx - this.gridSize/2) * 2.0;
+                const wz = (tz - this.gridSize/2) * 2.0;
+                const pos = new THREE.Vector3(wx, elev, wz);
+
+                this.createNPCCamp(pos, terrainGroup, enemiesArray, interactablesArray);
+                placed = true;
+            }
+            attempts++;
+        }
+    }
+
+    createNPCCamp(position, terrainGroup, enemiesArray, interactablesArray) {
+        const campTypes = ['merchant', 'guard', 'alchemist', 'explorer'];
+        const type = campTypes[Math.floor(Math.random() * campTypes.length)];
+
+        let campGroup;
+        let npcs = [];
+
+        if (type === 'merchant') {
+            campGroup = CampProp.createTent(this.scene, position);
+            const npc = new Merchant(this.scene, new THREE.Vector3(position.x + 1.5, position.y, position.z + 1.5));
+            npcs.push(npc);
+
+            // Add interactable for NPC
+            if (interactablesArray) interactablesArray.push({ mesh: npc.group, action: () => npc.interact(window.penitentGroup) });
+
+        } else if (type === 'guard') {
+            campGroup = CampProp.createCampfire(this.scene, position);
+            // Spawn 2 guards around campfire
+            const g1 = new Guard(this.scene, new THREE.Vector3(position.x + 1.5, position.y, position.z + 1.0));
+            const g2 = new Guard(this.scene, new THREE.Vector3(position.x - 1.5, position.y, position.z - 1.0));
+            npcs.push(g1, g2);
+
+            if (interactablesArray) {
+                interactablesArray.push({ mesh: g1.group, action: () => g1.interact(window.penitentGroup) });
+                interactablesArray.push({ mesh: g2.group, action: () => g2.interact(window.penitentGroup) });
+            }
+
+            // Add campfire to interactables/update list if we want it animated, but skip for now
+
+        } else if (type === 'alchemist') {
+            campGroup = CampProp.createCauldron(this.scene, position);
+            const npc = new Alchemist(this.scene, new THREE.Vector3(position.x - 1.2, position.y, position.z + 1.2));
+            npcs.push(npc);
+
+            if (interactablesArray) interactablesArray.push({ mesh: npc.group, action: () => npc.interact(window.penitentGroup) });
+
+        } else if (type === 'explorer') {
+            // Explorer might just sit near a campfire
+            campGroup = CampProp.createCampfire(this.scene, position);
+            const npc = new Explorer(this.scene, new THREE.Vector3(position.x + 1.0, position.y, position.z));
+            npcs.push(npc);
+
+            if (interactablesArray) interactablesArray.push({ mesh: npc.group, action: () => npc.interact(window.penitentGroup) });
+        }
+
+        terrainGroup.add(campGroup);
+
+        // Add NPCs to enemiesArray so they get updated by EnemyManager
+        for (const npc of npcs) {
+            if (enemiesArray) enemiesArray.push(npc);
+        }
+    }
 
     spawnChests(terrainGroup, interactablesArray) {
         let chestCount = 3 + Math.floor(Math.random() * 3);

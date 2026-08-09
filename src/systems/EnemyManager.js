@@ -50,7 +50,7 @@ export class EnemyManager {
         this.lootManager.spawnLoot(enemyType, enemy.group.position);
     }
 
-    update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollisionFunc) {
+update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollisionFunc) {
         if (!playerGroup) return;
         const playerPos = playerGroup.position;
 
@@ -75,6 +75,36 @@ export class EnemyManager {
 
                     window.gameState.save();
                 }
+            },
+            // Give enemies the ability to find targets (player or NPCs)
+            findClosestTarget: (enemyPos, maxDist = 20) => {
+                let closest = playerContext;
+                let minDist = enemyPos.distanceTo(playerPos);
+
+                if (minDist > maxDist) {
+                    closest = null;
+                    minDist = maxDist;
+                }
+
+                // Check against NPCs if any are in the enemies array
+                for (const entity of this.enemies) {
+                    if (entity.isDead || entity === playerContext) continue;
+                    // Check if it's an NPC (friendly/neutral)
+                    if (entity.constructor.name === 'Merchant' || entity.constructor.name === 'Guard' || entity.constructor.name === 'Alchemist' || entity.constructor.name === 'Explorer') {
+                        const dist = enemyPos.distanceTo(entity.group.position);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = {
+                                pos: entity.group.position,
+                                takeDamage: (amount) => entity.takeDamage(amount),
+                                isNPC: true,
+                                entity: entity
+                            };
+                        }
+                    }
+                }
+
+                return closest;
             }
         };
 
@@ -91,7 +121,7 @@ export class EnemyManager {
             }
 
             // Update AI for all active enemies without spatial culling
-            enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+            enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc, this);
         }
     }
 

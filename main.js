@@ -190,12 +190,17 @@ const btnEmbarkModal = document.getElementById('btnEmbarkModal');
 // Initialize Inventory UI
 let inventoryUI = null;
 try {
-    import('./src/ui/InventoryUI.js').then(module => {
-        inventoryUI = new module.InventoryUI();
-        window.inventoryUI = inventoryUI;
+import('./src/ui/InventoryUI.js').then(module => {
+        window.inventoryUI = new module.InventoryUI();
     }).catch(err => {
         console.warn("Could not load InventoryUI, playing without it.", err);
     });
+
+    try {
+        import('./src/ui/ShopUI.js').then(module => {
+            window.shopUI = new module.ShopUI();
+        });
+    } catch(e) {}
 } catch (e) {
     console.warn("Could not dynamically import InventoryUI", e);
 }
