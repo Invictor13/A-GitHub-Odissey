@@ -43,6 +43,7 @@ function createPivotedStripGeo(width, height, depth) {
 export class Lizardman extends Enemy {
     constructor(scene, position) {
         super(scene, position, 40, 2.8);
+        this.attackDamage = 16;
         this.velocityY = 0;
         this.attackCooldown = 0;
         this.baseHipsY = 1.0;
@@ -192,7 +193,7 @@ export class Lizardman extends Enemy {
                 isMoving = true;
             }
             if (dist < 2.2 && this.attackCooldown <= 0) {
-                if (playerContext && typeof playerContext.takeDamage === 'function') playerContext.takeDamage(15);
+                if (targetContext && typeof targetContext.takeDamage === 'function') targetContext.takeDamage(this.attackDamage);
                 this.attackCooldown = 1.2;
                 this.rightShoulder.rotation.x = -1.8;
             }

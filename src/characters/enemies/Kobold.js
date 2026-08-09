@@ -50,6 +50,7 @@ function createLeafShapeGeo(width, height) {
 export class Kobold extends Enemy {
     constructor(scene, position) {
         super(scene, position, 18, 4.0);
+        this.attackDamage = 8;
         this.velocityY = 0;
         this.attackCooldown = 0;
         this.baseHipsY = 0.9;
@@ -196,7 +197,7 @@ export class Kobold extends Enemy {
                 isMoving = true;
             }
             if (dist < 2.0 && this.attackCooldown <= 0) {
-                if (playerContext && typeof playerContext.takeDamage === 'function') playerContext.takeDamage(10);
+                if (targetContext && typeof targetContext.takeDamage === 'function') targetContext.takeDamage(this.attackDamage);
                 this.attackCooldown = 1.0;
                 this.rightElbow.rotation.x = -1.5;
             }

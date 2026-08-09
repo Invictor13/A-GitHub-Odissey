@@ -58,22 +58,32 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
         const playerContext = {
             pos: playerPos,
             takeDamage: (amount) => {
-                if (window.gameState) {
-                    window.gameState.vitals.hp = Math.max(0, window.gameState.vitals.hp - amount);
-                    // Survival feature: getting hit increases hunger
-                    window.gameState.vitals.food = Math.max(0, window.gameState.vitals.food - 2);
+                try {
+                    if (window.gameState && window.gameState.vitals) {
+                        window.gameState.vitals.hp = Math.max(0, window.gameState.vitals.hp - amount);
+                        // Survival feature: getting hit increases hunger
+                        window.gameState.vitals.food = Math.max(0, window.gameState.vitals.food - 2);
 
-                    const hpBar = document.getElementById('vital-hp');
-                    const hpTxt = document.getElementById('txt-hp');
-                    if (hpBar) hpBar.style.width = `${window.gameState.vitals.hp}%`;
-                    if (hpTxt) hpTxt.innerText = `${Math.round(window.gameState.vitals.hp)}%`;
+                        const hpBar = document.getElementById('vital-hp');
+                        const hpTxt = document.getElementById('txt-hp');
+                        if (hpBar) hpBar.style.width = `${window.gameState.vitals.hp}%`;
+                        if (hpTxt) hpTxt.innerText = `${Math.round(window.gameState.vitals.hp)}%`;
 
-                    const foodBar = document.getElementById('vital-food');
-                    const foodTxt = document.getElementById('txt-food');
-                    if (foodBar) foodBar.style.width = `${window.gameState.vitals.food}%`;
-                    if (foodTxt) foodTxt.innerText = `${Math.round(window.gameState.vitals.food)}%`;
+                        const foodBar = document.getElementById('vital-food');
+                        const foodTxt = document.getElementById('txt-food');
+                        if (foodBar) foodBar.style.width = `${window.gameState.vitals.food}%`;
+                        if (foodTxt) foodTxt.innerText = `${Math.round(window.gameState.vitals.food)}%`;
 
-                    window.gameState.save();
+                        if (typeof window.gameState.save === 'function') {
+                            window.gameState.save();
+                        }
+                    }
+
+                    if (window.showFloatingText && playerPos) {
+                        window.showFloatingText(`-${amount}`, playerPos, '#ff4444');
+                    }
+                } catch (e) {
+                    console.error("Error in playerContext.takeDamage:", e);
                 }
             },
             // Give enemies the ability to find targets (player or NPCs)

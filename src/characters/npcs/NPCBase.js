@@ -77,6 +77,10 @@ export class NPCBase {
         if (this.isDead) return;
         this.hp -= amount;
 
+        if (window.showFloatingText && this.group && this.group.position) {
+            window.showFloatingText(`${amount}`, this.group.position, '#ffaa00');
+        }
+
         // Visual feedback (flash red)
         this.meshGroup.traverse((child) => {
             if (child.isMesh && child.material && child.material.emissive) {

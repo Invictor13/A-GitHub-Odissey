@@ -8,6 +8,15 @@ import { WorldMap } from './src/world_builder/WorldMap.js';
 import { MobileControls } from './src/ui/MobileControls.js';
 import { InteractionManager } from './src/systems/InteractionManager.js';
 import gameState from './src/core/GameState.js';
+import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
+
+window.floatingDamageManager = new FloatingDamageManager();
+
+window.showFloatingText = function(text, pos3d, color) {
+    if (window.floatingDamageManager) {
+        window.floatingDamageManager.createFloatingText(text, pos3d, color);
+    }
+};
 
 window.addEventListener('error', (e) => {
     const errBox = document.getElementById('error-console');
@@ -635,6 +644,10 @@ function animate() {
 
     if (window.interactionManager) {
         window.interactionManager.update();
+    }
+
+    if (window.floatingDamageManager) {
+        window.floatingDamageManager.update(window.gameState.delta, camera, window.innerWidth, window.innerHeight);
     }
 }
 

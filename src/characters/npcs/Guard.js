@@ -160,7 +160,9 @@ findClosestEnemy(enemyManager) {
                 // Attack
                 if (this.attackCooldown <= 0) {
                     this.attackCooldown = 1.5;
-                    this.targetEnemy.takeDamage(this.attackDamage);
+                    if (this.targetEnemy && typeof this.targetEnemy.takeDamage === 'function') {
+                        this.targetEnemy.takeDamage(this.attackDamage);
+                    }
 
                     // Simple attack animation
                     const origRot = this.weaponGroup.rotation.x;
