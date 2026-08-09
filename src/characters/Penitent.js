@@ -56,6 +56,13 @@ export class Penitent {
         this.isBlinking = false;
         this.blinkDuration = 0;
 
+        // Stamina System
+        this.stamina = 100;
+        this.maxStamina = 100;
+        this.staminaRegenRate = 15;
+        this.staminaDrainRate = 25;
+        this.createFloatingStaminaBar();
+
         this.currHead = 0;
         this.currArmor = 0;
         this.currWeapon = 0;
@@ -271,6 +278,59 @@ export class Penitent {
         }, 30);
     }
 
+
+    createFloatingStaminaBar() {
+        // Create an HTML element for the floating stamina bar
+        this.staminaBarContainer = document.createElement('div');
+        this.staminaBarContainer.style.position = 'absolute';
+        this.staminaBarContainer.style.width = '40px';
+        this.staminaBarContainer.style.height = '4px';
+        this.staminaBarContainer.style.backgroundColor = 'rgba(0,0,0,0.6)';
+        this.staminaBarContainer.style.border = '1px solid rgba(0,0,0,0.8)';
+        this.staminaBarContainer.style.borderRadius = '2px';
+        this.staminaBarContainer.style.pointerEvents = 'none';
+        this.staminaBarContainer.style.display = 'none';
+        this.staminaBarContainer.style.zIndex = '50';
+        this.staminaBarContainer.style.transform = 'translate(-50%, -50%)';
+
+        this.staminaBarFill = document.createElement('div');
+        this.staminaBarFill.style.width = '100%';
+        this.staminaBarFill.style.height = '100%';
+        this.staminaBarFill.style.backgroundColor = '#38bdf8'; // sky blue
+        this.staminaBarFill.style.borderRadius = '1px';
+        this.staminaBarFill.style.transition = 'width 0.1s linear';
+
+        this.staminaBarContainer.appendChild(this.staminaBarFill);
+        document.body.appendChild(this.staminaBarContainer);
+    }
+
+    updateFloatingStaminaBar(camera) {
+        if (this.stamina >= this.maxStamina) {
+            this.staminaBarContainer.style.display = 'none';
+            return;
+        }
+
+        this.staminaBarContainer.style.display = 'block';
+        this.staminaBarFill.style.width = `${(this.stamina / this.maxStamina) * 100}%`;
+
+        // Project position above player's head
+        const headPos = new THREE.Vector3();
+        headPos.copy(this.group.position);
+        headPos.y += 2.5; // offset above head
+
+        headPos.project(camera);
+
+        const x = (headPos.x * .5 + .5) * window.innerWidth;
+        const y = (headPos.y * -.5 + .5) * window.innerHeight;
+
+        // If behind camera, hide
+        if (headPos.z > 1) {
+            this.staminaBarContainer.style.display = 'none';
+        } else {
+            this.staminaBarContainer.style.left = `${x}px`;
+            this.staminaBarContainer.style.top = `${y}px`;
+        }
+    }
 
     refreshEquipment() {
         if (!window.gameState || !window.gameState.equipmentState) return;
@@ -493,8 +553,13 @@ export class Penitent {
 
         const moveVec = new THREE.Vector3(inputX, 0, inputZ);
 
-        let targetSpeed = this.keys.shift ? this.maxRunSpeed : this.maxSpeed;
-        if (this.isDefending) targetSpeed = this.keys.shift ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
+        let isSprinting = false;
+        if (this.keys.shift && this.stamina > 0 && moveVec.lengthSq() > 0) {
+            isSprinting = true;
+        }
+
+        let targetSpeed = isSprinting ? this.maxRunSpeed : this.maxSpeed;
+        if (this.isDefending) targetSpeed = isSprinting ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
         if (this.isSwimming) targetSpeed = 5;
 
         if (moveVec.lengthSq() > 0) {
@@ -538,7 +603,17 @@ export class Penitent {
                     this.group.rotation.y += diff * 4 * delta;
                 }
             }
+
+            if (isSprinting) {
+                this.stamina = Math.max(0, this.stamina - this.staminaDrainRate * delta);
+            } else {
+                this.stamina = Math.min(this.maxStamina, this.stamina + this.staminaRegenRate * delta);
+            }
+        } else {
+            this.stamina = Math.min(this.maxStamina, this.stamina + this.staminaRegenRate * delta);
         }
+
+        this.updateFloatingStaminaBar(camera);
 
         // Clamp to World Bounds if provided
         if (getMapBoundsFunc) {

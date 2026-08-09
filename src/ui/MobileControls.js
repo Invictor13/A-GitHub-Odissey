@@ -82,12 +82,23 @@ export class MobileControls {
         this.menusContainer = document.createElement('div');
         this.menusContainer.style.position = 'absolute';
         this.menusContainer.style.right = '20px';
-        this.menusContainer.style.top = '80px'; // Shifted down to not overlap with gold UI
+        this.menusContainer.style.top = '80px';
         this.menusContainer.style.display = 'flex';
         this.menusContainer.style.flexDirection = 'row';
         this.menusContainer.style.gap = '15px';
         this.menusContainer.style.pointerEvents = 'none'; // Container shouldn't block, only buttons
         this.container.appendChild(this.menusContainer);
+
+        // Top left menus container
+        this.menusContainerLeft = document.createElement('div');
+        this.menusContainerLeft.style.position = 'absolute';
+        this.menusContainerLeft.style.left = '20px';
+        this.menusContainerLeft.style.top = '80px';
+        this.menusContainerLeft.style.display = 'flex';
+        this.menusContainerLeft.style.flexDirection = 'row';
+        this.menusContainerLeft.style.gap = '15px';
+        this.menusContainerLeft.style.pointerEvents = 'none';
+        this.container.appendChild(this.menusContainerLeft);
 
         const createButton = (label, keyToSimulate, codeToSimulate = '', isMouse = false, mouseBtn = 0, size = 60, color = 'rgba(255,255,255,0.3)') => {
             const btn = document.createElement('button');
@@ -139,27 +150,27 @@ export class MobileControls {
         bottomRow.style.gap = '15px';
 
         const btnJump = createButton('Pulo', ' ', 'Space', false, 0, 45, 'rgba(100, 200, 255, 0.3)');
-        const btnInteract = createButton('Ação', 'e', 'KeyE', false, 0, 45, 'rgba(100, 255, 100, 0.3)');
 
         const btnDefend = createButton('Def', '', '', true, 2, 50, 'rgba(255, 150, 50, 0.3)');
         const btnAttack = createButton('Atq', '', '', true, 0, 60, 'rgba(255, 50, 50, 0.3)');
-        const btnSprint = createButton('Corr', 'Shift', 'ShiftLeft', false, 0, 45, 'rgba(200, 100, 255, 0.3)');
 
-        topRow.appendChild(btnInteract);
+        // Single button for Action and Sprint, defaults to Sprint
+        this.btnActionSprint = createButton('Corr', 'Shift', 'ShiftLeft', false, 0, 45, 'rgba(200, 100, 255, 0.3)');
+
         topRow.appendChild(btnDefend);
 
-        bottomRow.appendChild(btnSprint);
+        bottomRow.appendChild(this.btnActionSprint);
         bottomRow.appendChild(btnJump);
         bottomRow.appendChild(btnAttack);
 
         this.buttonsContainer.appendChild(topRow);
         this.buttonsContainer.appendChild(bottomRow);
 
-        // Setup top right menus buttons
+        // Setup top menus buttons
         const btnInventory = createButton('Inv', 'i', 'KeyI', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
         const btnJournal = createButton('Diário', 'j', 'KeyJ', false, 0, 45, 'rgba(255, 255, 255, 0.2)');
 
-        this.menusContainer.appendChild(btnJournal);
+        this.menusContainerLeft.appendChild(btnJournal);
         this.menusContainer.appendChild(btnInventory);
     }
 
@@ -262,6 +273,53 @@ export class MobileControls {
             this.joystickData.active = false;
             if (this.joystickBase) this.joystickBase.style.display = 'none';
             if (this.joystickStick) this.joystickStick.style.display = 'none';
+        }
+    }
+
+    updateActionState(hasInteraction) {
+        if (!this.btnActionSprint) return;
+
+        if (hasInteraction) {
+            this.btnActionSprint.innerText = 'Ação';
+            this.btnActionSprint.style.backgroundColor = 'rgba(100, 255, 100, 0.3)';
+
+            // Remove previous listeners and swap to E
+            const newBtn = this.btnActionSprint.cloneNode(true);
+            this.btnActionSprint.parentNode.replaceChild(newBtn, this.btnActionSprint);
+            this.btnActionSprint = newBtn;
+
+            this.btnActionSprint.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.btnActionSprint.style.backgroundColor = 'rgba(255,255,255,0.6)';
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true, cancelable: true }));
+            });
+
+            this.btnActionSprint.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.btnActionSprint.style.backgroundColor = 'rgba(100, 255, 100, 0.3)';
+                document.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', code: 'KeyE', bubbles: true, cancelable: true }));
+            });
+
+        } else {
+            this.btnActionSprint.innerText = 'Corr';
+            this.btnActionSprint.style.backgroundColor = 'rgba(200, 100, 255, 0.3)';
+
+            // Revert to Shift
+            const newBtn = this.btnActionSprint.cloneNode(true);
+            this.btnActionSprint.parentNode.replaceChild(newBtn, this.btnActionSprint);
+            this.btnActionSprint = newBtn;
+
+            this.btnActionSprint.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.btnActionSprint.style.backgroundColor = 'rgba(255,255,255,0.6)';
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', code: 'ShiftLeft', bubbles: true, cancelable: true }));
+            });
+
+            this.btnActionSprint.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.btnActionSprint.style.backgroundColor = 'rgba(200, 100, 255, 0.3)';
+                document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', code: 'ShiftLeft', bubbles: true, cancelable: true }));
+            });
         }
     }
 }
