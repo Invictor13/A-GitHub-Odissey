@@ -321,26 +321,29 @@ if (btnJournalNew) {
 }
 
 // Tab Switching in Eros Menu
-const tabConstructionsBtn = document.getElementById('tab-btn-constructions');
-const tabDecorationsBtn = document.getElementById('tab-btn-decorations');
+const tabInteriorsBtn = document.getElementById('tab-btn-interiors');
+const tabExteriorsBtn = document.getElementById('tab-btn-exteriors');
+const tabNatureBtn = document.getElementById('tab-btn-nature');
 const tabFloorsBtn = document.getElementById('tab-btn-floors');
 const tabIslandsBtn = document.getElementById('tab-btn-islands');
 
-const contentConstructions = document.getElementById('tab-content-constructions');
-const contentDecorations = document.getElementById('tab-content-decorations');
+const contentInteriors = document.getElementById('tab-content-interiors');
+const contentExteriors = document.getElementById('tab-content-exteriors');
+const contentNature = document.getElementById('tab-content-nature');
 const contentFloors = document.getElementById('tab-content-floors');
 const contentIslands = document.getElementById('tab-content-islands');
 
 function switchTab(activeBtn, showContent) {
-    [tabConstructionsBtn, tabDecorationsBtn, tabFloorsBtn, tabIslandsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-    [contentConstructions, contentDecorations, contentFloors, contentIslands].forEach(c => { if(c) c.classList.add('hidden'); });
+    [tabInteriorsBtn, tabExteriorsBtn, tabNatureBtn, tabFloorsBtn, tabIslandsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+    [contentInteriors, contentExteriors, contentNature, contentFloors, contentIslands].forEach(c => { if(c) c.classList.add('hidden'); });
 
     if(activeBtn) activeBtn.classList.add('active');
     if(showContent) showContent.classList.remove('hidden');
 }
 
-if(tabConstructionsBtn) tabConstructionsBtn.addEventListener('click', () => switchTab(tabConstructionsBtn, contentConstructions));
-if(tabDecorationsBtn) tabDecorationsBtn.addEventListener('click', () => switchTab(tabDecorationsBtn, contentDecorations));
+if(tabInteriorsBtn) tabInteriorsBtn.addEventListener('click', () => switchTab(tabInteriorsBtn, contentInteriors));
+if(tabExteriorsBtn) tabExteriorsBtn.addEventListener('click', () => switchTab(tabExteriorsBtn, contentExteriors));
+if(tabNatureBtn) tabNatureBtn.addEventListener('click', () => switchTab(tabNatureBtn, contentNature));
 if(tabFloorsBtn) tabFloorsBtn.addEventListener('click', () => switchTab(tabFloorsBtn, contentFloors));
 if(tabIslandsBtn) tabIslandsBtn.addEventListener('click', () => switchTab(tabIslandsBtn, contentIslands));
 
@@ -354,14 +357,15 @@ const bindCard = (id, type) => {
 };
 
 bindCard('card-build-tent', 'barraca');
+bindCard('card-build-mirror', 'espelho');
 bindCard('card-build-campfire', 'fogueira');
 bindCard('card-build-fence', 'fence');
 bindCard('card-build-bench', 'bench');
 bindCard('card-build-lantern', 'lantern');
 bindCard('card-build-target', 'target');
+bindCard('card-build-chest', 'chest');
 bindCard('card-build-tree', 'tree');
 bindCard('card-build-pot', 'pot');
-bindCard('card-build-chest', 'chest');
 bindCard('card-build-mud-tile', 'mud_tile');
 bindCard('card-build-stone-tile', 'stone_tile');
 bindCard('card-build-wood-tile', 'wood_tile');
