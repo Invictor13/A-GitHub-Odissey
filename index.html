@@ -310,13 +310,7 @@
             display: block !important;
         }
         #interaction-prompt {
-            padding: 8px 16px;
-            font-size: 11px;
-            bottom: 120px; /* moved up slightly to clear joystick */
-        }
-        #interaction-prompt span:first-child {
-            padding: 1px 5px;
-            font-size: 10px;
+            display: none !important;
         }
     }
     @media (min-width: 769px) {
@@ -632,20 +626,20 @@
 <!-- Hub Status Overlays -->
 
 <!-- Hub Status Overlays & Unified Main Header -->
-<div id="hub-status-ui" class="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none hidden z-40 flex flex-col p-4 md:p-5 transition-all duration-700 opacity-0 text-white glass-panel border border-yellow-500/30 shadow-2xl rounded-2xl bg-[rgba(15,12,22,0.8)] max-w-[280px]">
+<div id="hub-status-ui" class="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none hidden z-40 flex flex-col transition-all duration-700 opacity-0 text-white max-w-[280px]">
 
-    <div class="flex items-center gap-3 mb-3 border-b border-yellow-500/20 pb-2">
+    <div class="flex items-center gap-3 mb-2 pb-1">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-yellow-500/50 flex items-center justify-center text-yellow-400 text-xl shadow-lg shadow-amber-950/50">
             <i id="location-icon" class="fa-solid fa-cloud"></i>
         </div>
         <div>
-            <h2 id="location-title" class="font-bold text-sm md:text-base text-gray-100 uppercase tracking-wider font-title">Santuário Celeste</h2>
-            <p id="location-subtitle" class="text-[11px] text-yellow-400 font-medium font-game">Dia 1 • 08:00 • ☀️ Ensolarado</p>
+            <h2 id="location-title" class="font-bold text-sm md:text-base text-gray-100 uppercase tracking-wider font-title drop-shadow-md">Santuário Celeste</h2>
+            <p id="location-subtitle" class="text-[11px] text-yellow-400 font-medium font-game drop-shadow-md">Dia 1 • 08:00 • ☀️ Ensolarado</p>
         </div>
     </div>
 
     <!-- Vitals Icons -->
-    <div id="vitals-container" class="flex gap-4 w-full mt-2 justify-center border-t border-yellow-500/20 pt-2">
+    <div id="vitals-container" class="flex gap-4 w-full mt-1 justify-start pt-1">
         <!-- HP Icon -->
         <div class="flex flex-col items-center gap-1" title="Pontos de Vida">
             <i class="fa-solid fa-heart text-red-600 text-lg drop-shadow-md"></i>

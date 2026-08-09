@@ -307,18 +307,31 @@ if (btnCancelGrid) {
 
 // Codex button binding
 const btnJournalNew = document.getElementById('btn-journal-new');
-if (btnJournalNew) {
-    btnJournalNew.addEventListener('click', () => {
-        if (window.codexUI) {
-            window.codexUI.toggle();
+const btnMobileJournal = document.getElementById('btn-mobile-journal');
 
-            // Defer orbit controls update just like the keyboard shortcut
-            setTimeout(() => {
-                controls.enabled = !window.codexUI.isOpen && (!window.inventoryUI || !window.inventoryUI.isOpen);
-            }, 10);
-        }
-    });
+const toggleJournal = () => {
+    if (window.codexUI) {
+        window.codexUI.toggle();
+
+        // Defer orbit controls update just like the keyboard shortcut
+        setTimeout(() => {
+            controls.enabled = !window.codexUI.isOpen && (!window.inventoryUI || !window.inventoryUI.isOpen);
+        }, 10);
+    }
+};
+
+if (btnJournalNew) {
+    btnJournalNew.addEventListener('click', toggleJournal);
 }
+
+// Em alguns casos o script MobileControls roda depois que o main.js inicializa e o DOM carrega,
+// então uma abordagem por event delegation no botão do diário mobile é mais segura.
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#btn-mobile-journal');
+    if (btn) {
+        toggleJournal();
+    }
+});
 
 // Tab Switching in Eros Menu
 const tabConstructionsBtn = document.getElementById('tab-btn-constructions');
