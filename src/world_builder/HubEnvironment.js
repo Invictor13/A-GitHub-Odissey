@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import gameState from '../core/GameState.js';
 import { Eros } from '../characters/Eros.js';
+import { StructureBuilder } from './structures/StructureBuilder.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -38,6 +39,10 @@ export class HubEnvironment {
         this.selectedBuildType = null;
         this.previewRotationY = 0;
         this.canPlaceInGrid = false;
+
+        // Drag Build System for Floors
+        this.isDraggingBuild = false;
+        this.lastBuiltPos = new THREE.Vector3();
 
         // Build Pivot for Free Camera
         this.buildPivot = new THREE.Object3D();
@@ -675,202 +680,8 @@ export class HubEnvironment {
         }
     }
 
-    create3DObject(type, isPreview = false) {
-        const group = new THREE.Group();
-        const opacity = isPreview ? 0.65 : 1.0;
-        const transparent = isPreview;
-
-        // 1. CONSTRUÇÕES (A Barraca Remodelada Radicalmente)
-        if (type === 'barraca') {
-            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.8, transparent, opacity });
-            const canvasMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xddc088, roughness: 0.7, transparent, opacity, side: THREE.DoubleSide });
-            const trimMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x854d0e, roughness: 0.6, transparent, opacity });
-            const rugMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x0f766e, roughness: 0.7, transparent, opacity });
-
-            // Elevated Hexagonal Timber Platform
-            const platform = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.8, 0.25, 8), woodMat);
-            platform.position.y = 0.125;
-            group.add(platform);
-
-            // Entrance Steps
-            const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.8), woodMat);
-            step.position.set(0, 0.06, 3.6);
-            group.add(step);
-
-            // Entrance Welcome Rug
-            const rug = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.03, 1.2), rugMat);
-            rug.position.set(0, 0.26, 2.5);
-            group.add(rug);
-
-            // Timber A-Frame Pillars
-            const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 3.8), woodMat);
-            p1.position.set(-1.8, 1.8, 2.2); p1.rotation.z = -0.32; group.add(p1);
-
-            const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 3.8), woodMat);
-            p2.position.set(1.8, 1.8, 2.2); p2.rotation.z = 0.32; group.add(p2);
-
-            const p3 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 3.8), woodMat);
-            p3.position.set(-1.8, 1.8, -2.2); p3.rotation.z = -0.32; group.add(p3);
-
-            const p4 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 3.8), woodMat);
-            p4.position.set(1.8, 1.8, -2.2); p4.rotation.z = 0.32; group.add(p4);
-
-            // Ridge Beam
-            const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 5.2), woodMat);
-            ridge.position.set(0, 3.3, 0); ridge.rotation.x = Math.PI / 2; group.add(ridge);
-
-            // Main Double-Layer Canopy Roof
-            const roofGeo = new THREE.ConeGeometry(3.5, 3.2, 4, 1, true, 0, Math.PI * 1.6);
-            roofGeo.rotateY(Math.PI * 0.7);
-            const roof = new THREE.Mesh(roofGeo, canvasMat);
-            roof.position.set(0, 1.9, 0);
-            group.add(roof);
-
-            // Overhanging Crest Canopy
-            const topCap = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.2, 4), trimMat);
-            topCap.position.set(0, 3.1, 0); topCap.rotation.y = Math.PI / 4;
-            group.add(topCap);
-
-            // Open Front Drape Curtains
-            const curtainGeo = new THREE.PlaneGeometry(1.2, 2.8, 4, 4);
-            const curtainL = new THREE.Mesh(curtainGeo, trimMat);
-            curtainL.position.set(-1.2, 1.5, 2.1); curtainL.rotation.set(0.15, Math.PI / 4, -0.2); group.add(curtainL);
-            const curtainR = new THREE.Mesh(curtainGeo, trimMat);
-            curtainR.position.set(1.2, 1.5, 2.1); curtainR.rotation.set(0.15, -Math.PI / 4, 0.2); group.add(curtainR);
-
-            // Entrance Brass Hanging Lantern
-            const lanternFrame = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.25), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 }));
-            lanternFrame.position.set(0, 2.6, 2.3); group.add(lanternFrame);
-            if (!isPreview) {
-                const lanternLight = new THREE.PointLight(0xff9900, 2.5, 8);
-                lanternLight.position.set(0, 2.5, 2.3); group.add(lanternLight);
-            }
-
-        // 2. ENFEITES
-        } else if (type === 'fogueira') {
-            const rockMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4b5563, transparent, opacity });
-            for(let i = 0; i < 8; i++) {
-                const a = (i / 8) * Math.PI * 2;
-                const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28), rockMat);
-                s.position.set(Math.cos(a) * 0.9, 0.1, Math.sin(a) * 0.9); group.add(s);
-            }
-            const logMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x27170c, transparent, opacity });
-            for(let i = 0; i < 4; i++) {
-                const log = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.2), logMat);
-                log.rotation.z = Math.PI / 3; log.rotation.y = (i * Math.PI) / 2; log.position.y = 0.18; group.add(log);
-            }
-            if (!isPreview) {
-                const fLight = new THREE.PointLight(0xff5500, 2.8, 12);
-                fLight.position.y = 0.7; group.add(fLight);
-                group.userData = { isCampfire: true, light: fLight };
-            }
-        } else if (type === 'fence') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, transparent, opacity, roughness: 0.8 });
-            const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2), mat); post1.position.set(-0.7, 0.6, 0); group.add(post1);
-            const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2), mat); post2.position.set(0.7, 0.6, 0); group.add(post2);
-            const rail1 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.08), mat); rail1.position.set(0, 0.8, 0); group.add(rail1);
-            const rail2 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.08), mat); rail2.position.set(0, 0.4, 0); group.add(rail2);
-        } else if (type === 'bench') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x92400e, transparent, opacity, roughness: 0.9 });
-            const seat = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.6), mat); seat.position.y = 0.45; group.add(seat);
-            const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg1.position.set(-0.6, 0.18, 0); group.add(leg1);
-            const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg2.position.set(0.6, 0.18, 0); group.add(leg2);
-        } else if (type === 'lantern') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, transparent, opacity, roughness: 0.4 });
-            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.6), mat); post.position.y = 0.8; group.add(post);
-            const box = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.35), new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.9 }));
-            box.position.y = 1.6; group.add(box);
-            if (!isPreview) {
-                const l = new THREE.PointLight(0xfacc15, 2.0, 8); l.position.y = 1.6; group.add(l);
-            }
-        } else if (type === 'target') {
-            const matWood = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, transparent, opacity });
-            const matRing = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xef4444, transparent, opacity });
-            const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg1.position.set(-0.3, 0.9, -0.2); leg1.rotation.z = -0.2; group.add(leg1);
-            const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg2.position.set(0.3, 0.9, -0.2); leg2.rotation.z = 0.2; group.add(leg2);
-            const leg3 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg3.position.set(0, 0.9, 0.3); leg3.rotation.x = -0.3; group.add(leg3);
-            const board = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.1, 16), matRing); board.rotation.x = Math.PI/2; board.position.set(0, 1.2, 0.1); group.add(board);
-        } else if (type === 'tree') {
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 1.0), new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x451a03, transparent, opacity })); trunk.position.y = 0.5; group.add(trunk);
-            const foliageMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x047857, transparent, opacity, flatShading: true });
-            const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.6, 6), foliageMat); c1.position.y = 1.4; group.add(c1);
-            const c2 = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.4, 6), foliageMat); c2.position.y = 2.1; group.add(c2);
-            const c3 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.1, 6), foliageMat); c3.position.y = 2.7; group.add(c3);
-        } else if (type === 'pot') {
-            const potMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x9a3412, roughness: 0.8, transparent, opacity });
-            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.6, 12), potMat); pot.position.y = 0.3; group.add(pot);
-            const flowerMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xf43f5e, transparent, opacity });
-            const flower = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25), flowerMat); flower.position.y = 0.7; group.add(flower);
-        } else if (type === 'chest') {
-            const chestMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x713f12, roughness: 0.7, transparent, opacity });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.6), chestMat); body.position.y = 0.25; group.add(body);
-            const metalMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xfacc15, metalness: 0.8, transparent, opacity });
-            const lock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.08), metalMat); lock.position.set(0, 0.25, 0.31); group.add(lock);
-
-        // 3. SOLOS (Pisos / Tiles de Terreno)
-        } else if (type === 'mud_tile') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x54381e, roughness: 0.95, transparent, opacity });
-            const tile = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.04, 1.5), mat); tile.position.y = 0.02; group.add(tile);
-        } else if (type === 'stone_tile') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x64748b, roughness: 0.8, transparent, opacity });
-            const tile = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 1.5), mat); tile.position.y = 0.025; group.add(tile);
-        } else if (type === 'wood_tile') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, roughness: 0.85, transparent, opacity });
-            const tile = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 1.5), mat); tile.position.y = 0.025; group.add(tile);
-        } else if (type === 'granite_tile') {
-            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.4, metalness: 0.2, transparent, opacity });
-            const tile = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 1.5), mat); tile.position.y = 0.03; group.add(tile);
-        }
-
-        // 5. ILHAS FLUTUANTES
-        else if (type === 'ilha_satelite') {
-            const islandMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, roughness: 0.9, flatShading: true, transparent, opacity, wireframe: isPreview });
-            const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity, wireframe: isPreview });
-            const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity, wireframe: isPreview });
-
-            const topGeo = new THREE.CylinderGeometry(4.0, 3.8, 0.5, 12);
-            const topMesh = new THREE.Mesh(topGeo, grassMat);
-            topMesh.position.y = 0.25;
-            group.add(topMesh);
-
-            const dirtGeo = new THREE.CylinderGeometry(3.8, 3.5, 1.0, 12);
-            const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
-            dirtMesh.position.y = -0.5;
-            group.add(dirtMesh);
-
-            const botGeo = new THREE.ConeGeometry(3.5, 6.0, 10);
-            const botMesh = new THREE.Mesh(botGeo, islandMat);
-            botMesh.position.y = -4.0;
-            botMesh.rotation.x = Math.PI;
-            group.add(botMesh);
-        } else if (type === 'ponte_magica') {
-            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.8, transparent, opacity });
-            const magicMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.8, transparent: true, opacity: isPreview ? 0.4 : 0.8 });
-
-            // Planks
-            for (let i = -1; i <= 1; i++) {
-                const plank = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 0.4), woodMat);
-                plank.position.set(0, 0, i * 0.5);
-                group.add(plank);
-            }
-
-            // Magic Beams
-            const beam1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), magicMat);
-            beam1.position.set(-0.6, 0, 0);
-            beam1.rotation.x = Math.PI / 2;
-            group.add(beam1);
-
-            const beam2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), magicMat);
-            beam2.position.set(0.6, 0, 0);
-            beam2.rotation.x = Math.PI / 2;
-            group.add(beam2);
-        }
-
-        return group;
-    }
-
     instantiatePlacedStructure(type, x, y, z, ry, isNew = true) {
-        const finalMesh = this.create3DObject(type, false);
+        const finalMesh = StructureBuilder.create3DObject(type, false);
         finalMesh.position.set(x, y, z);
         finalMesh.rotation.y = ry || 0;
 
@@ -906,6 +717,17 @@ export class HubEnvironment {
                 action: () => window.showToast("🔥 Você se aquece ao lado da fogueira do Santuário.", "fa-fire", "fa-fire"),
                 prompt: 'Aquecer-se na Fogueira'
             });
+        } else if (type === 'espelho') {
+            finalMesh.userData.interactable = true;
+            finalMesh.userData.name = 'Espelho';
+            this.interactiveObjects.push({
+                name: 'Espelho',
+                mesh: finalMesh,
+                position: new THREE.Vector3(x, y, z),
+                radius: 3.0,
+                action: () => window.showToast("Customização de Aparência (Em Breve)", "text-blue-400", "fa-person"),
+                prompt: 'Alterar Aparência'
+            });
         }
 
         // Track sky structures for collision and walkability
@@ -931,7 +753,7 @@ export class HubEnvironment {
         if(gridModeUI) gridModeUI.classList.remove('hidden');
 
         if(this.previewMesh) { this.scene.remove(this.previewMesh); this.previewMesh = null; }
-        this.previewMesh = this.create3DObject(type, true);
+        this.previewMesh = StructureBuilder.create3DObject(type, true);
         this.scene.add(this.previewMesh);
 
         this.canPlaceInGrid = false;
@@ -960,7 +782,7 @@ export class HubEnvironment {
         }
     }
 
-    placeDecorStructure() {
+    placeDecorStructure(isContinuous = false) {
         if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh || !this.canPlaceInGrid) return;
 
         const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
@@ -989,6 +811,17 @@ export class HubEnvironment {
             }
         }
 
+        // Prevent placing duplicate structures at the exact same spot
+        const isDuplicate = gameState.hubState.structures.some(s =>
+            s.type === this.selectedBuildType &&
+            Math.abs(s.x - this.previewMesh.position.x) < 0.1 &&
+            Math.abs(s.z - this.previewMesh.position.z) < 0.1
+        );
+
+        if (isDuplicate) {
+             return;
+        }
+
         this.instantiatePlacedStructure(
             this.selectedBuildType,
             this.previewMesh.position.x,
@@ -998,8 +831,12 @@ export class HubEnvironment {
             true
         );
 
-        this.cancelGridPlacement();
-        window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
+        this.lastBuiltPos.copy(this.previewMesh.position);
+
+        if (!this.isFloorType(this.selectedBuildType) && !isContinuous) {
+            this.cancelGridPlacement();
+            window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
+        }
     }
 
     handleGridMouseMove(e, camera) {
@@ -1036,6 +873,14 @@ export class HubEnvironment {
                 this.previewMesh.position.copy(this.gridSnapPos);
                 this.previewMesh.rotation.y = this.previewRotationY;
                 this.previewMesh.visible = true;
+
+                // Continuous drag-build for floor tiles
+                if (this.isDraggingBuild && this.isFloorType(this.selectedBuildType)) {
+                    // Check if we moved to a new grid cell to avoid spamming
+                    if (this.lastBuiltPos.x !== this.gridSnapPos.x || this.lastBuiltPos.z !== this.gridSnapPos.z) {
+                        this.placeDecorStructure(true);
+                    }
+                }
             } else {
                 this.previewMesh.visible = false;
             }
@@ -1220,49 +1065,36 @@ export class HubEnvironment {
         this.barkTimeout = setTimeout(() => { diagBox.style.opacity = '0'; }, 4000);
     }
 
+    isFloorType(type) {
+        return ['mud_tile', 'stone_tile', 'wood_tile', 'granite_tile'].includes(type);
+    }
+
     bindEvents() {
         this.mouseMoveHandler = (e) => this.handleGridMouseMove(e, this.camera);
         this.mouseWheelHandler = (e) => this.handleGridMouseWheel(e);
-        this.clickHandler = (e) => {
+
+        // For continuous building of floors
+        this.pointerDownHandler = (e) => {
             if(window.hubBuildingState === 'BUILDING_GRID') {
-                if (e.target.closest('#grid-mode-ui')) return;
+                if (e.target.closest('#grid-mode-ui') || e.target.closest('.interaction-prompt')) return;
+
+                if (this.isFloorType(this.selectedBuildType)) {
+                    this.isDraggingBuild = true;
+                }
                 this.placeDecorStructure();
             }
         };
 
-        window.addEventListener('mousemove', this.mouseMoveHandler);
-        window.addEventListener('wheel', this.mouseWheelHandler, { passive: false });
-        window.addEventListener('click', this.clickHandler);
-    }
-
-    cleanup() {
-        const disposeGroup = (group) => {
-            if (!group) return;
-            group.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            });
-            this.scene.remove(group);
+        this.pointerUpHandler = (e) => {
+            if(window.hubBuildingState === 'BUILDING_GRID') {
+                this.isDraggingBuild = false;
+            }
         };
 
-        disposeGroup(this.hubGroup);
-        disposeGroup(this.skyGroup);
-        disposeGroup(this.cloudsGroup);
-
-        if (this.erosSpot) {
-            this.scene.remove(this.erosSpot);
-            if(this.erosSpot.target) this.scene.remove(this.erosSpot.target);
-            this.erosSpot.dispose();
-        }
-
-        this.groundMeshes = [];
-        this.npcs = [];
+        window.addEventListener('pointermove', this.mouseMoveHandler);
+        window.addEventListener('wheel', this.mouseWheelHandler, { passive: false });
+        window.addEventListener('pointerdown', this.pointerDownHandler);
+        window.addEventListener('pointerup', this.pointerUpHandler);
     }
 
     cleanup() {
@@ -1295,9 +1127,10 @@ export class HubEnvironment {
         this.groundMeshes = [];
         this.interactiveObjects = [];
 
-        window.removeEventListener('mousemove', this.mouseMoveHandler);
+        window.removeEventListener('pointermove', this.mouseMoveHandler);
         window.removeEventListener('wheel', this.mouseWheelHandler);
-        window.removeEventListener('click', this.clickHandler);
+        window.removeEventListener('pointerdown', this.pointerDownHandler);
+        window.removeEventListener('pointerup', this.pointerUpHandler);
     }
 
     updateDayNightLighting(delta) {

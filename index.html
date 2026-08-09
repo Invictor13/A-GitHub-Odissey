@@ -374,12 +374,15 @@
             </div>
 
             <!-- Category Tabs -->
-            <div class="flex border-b border-slate-700 mb-4 gap-2">
-                <button id="tab-btn-constructions" class="tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-campground"></i> Construções
+            <div class="flex border-b border-slate-700 mb-4 gap-2 flex-wrap">
+                <button id="tab-btn-interiors" class="tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-campground"></i> Interiores
                 </button>
-                <button id="tab-btn-decorations" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
-                    <i class="fa-solid fa-fire"></i> Enfeites
+                <button id="tab-btn-exteriors" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
+                    <i class="fa-solid fa-fire"></i> Exteriores
+                </button>
+                <button id="tab-btn-nature" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
+                    <i class="fa-solid fa-tree"></i> Natureza
                 </button>
                 <button id="tab-btn-floors" class="tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase rounded-t-lg flex items-center gap-2 text-gray-400 hover:text-gray-200 cursor-pointer">
                     <i class="fa-solid fa-border-all"></i> Solos
@@ -391,18 +394,24 @@
 
             <!-- Category Content Grid -->
             <div class="overflow-y-auto pr-1 custom-scrollbar text-white">
-                <!-- 1. CONSTRUÇÕES TAB -->
-                <div id="tab-content-constructions" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- 1. INTERIORES TAB -->
+                <div id="tab-content-interiors" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div id="card-build-tent" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-tent text-4xl text-amber-400 mb-2"></i>
                         <h3 class="font-bold text-sm mb-1 text-yellow-300">A Barraca</h3>
                         <p class="text-[11px] text-gray-400 mb-2">Acomodação de lona e estrutura de madeira com interior acessível.</p>
                         <span class="text-xs bg-slate-900/90 border border-amber-500/40 px-2 py-1 rounded text-amber-300 font-semibold block">Posicionar na Ilha</span>
                     </div>
+                    <div id="card-build-mirror" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-person-rays text-4xl text-cyan-300 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1 text-cyan-200">Espelho</h3>
+                        <p class="text-[11px] text-gray-400 mb-2">Customização de aparência e estilo pessoal.</p>
+                        <span class="text-xs bg-slate-900/90 border border-cyan-500/40 px-2 py-1 rounded text-cyan-300 font-semibold block">Vaidade</span>
+                    </div>
                 </div>
 
-                <!-- 2. ENFEITES TAB -->
-                <div id="tab-content-decorations" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
+                <!-- 2. EXTERIORES TAB -->
+                <div id="tab-content-exteriors" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
                     <div id="card-build-campfire" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-fire-flame-curved text-3xl text-orange-500 mb-2"></i>
                         <h3 class="font-bold text-sm mb-1">Fogueira</h3>
@@ -428,16 +437,6 @@
                         <h3 class="font-bold text-sm mb-1">Alvo de Prática</h3>
                         <span class="text-xs bg-slate-900/90 border border-red-500/40 px-2 py-1 rounded text-red-300 font-semibold block">Treino de Pontaria</span>
                     </div>
-                    <div id="card-build-tree" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
-                        <i class="fa-solid fa-tree text-3xl text-emerald-400 mb-2"></i>
-                        <h3 class="font-bold text-sm mb-1">Pinheiro Jovem</h3>
-                        <span class="text-xs bg-slate-900/90 border border-emerald-500/40 px-2 py-1 rounded text-emerald-300 font-semibold block">Vegetação</span>
-                    </div>
-                    <div id="card-build-pot" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
-                        <i class="fa-solid fa-disease text-3xl text-rose-400 mb-2"></i>
-                        <h3 class="font-bold text-sm mb-1">Vaso de Flores</h3>
-                        <span class="text-xs bg-slate-900/90 border border-rose-500/40 px-2 py-1 rounded text-rose-300 font-semibold block">Ornamental</span>
-                    </div>
                     <div id="card-build-chest" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-box-archive text-3xl text-yellow-600 mb-2"></i>
                         <h3 class="font-bold text-sm mb-1">Baú de Madeira</h3>
@@ -450,7 +449,21 @@
                     </div>
                 </div>
 
-                <!-- 3. SOLOS TAB -->
+                <!-- 3. NATUREZA TAB -->
+                <div id="tab-content-nature" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
+                    <div id="card-build-tree" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-tree text-3xl text-emerald-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Pinheiro Jovem</h3>
+                        <span class="text-xs bg-slate-900/90 border border-emerald-500/40 px-2 py-1 rounded text-emerald-300 font-semibold block">Vegetação</span>
+                    </div>
+                    <div id="card-build-pot" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-disease text-3xl text-rose-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Vaso de Flores</h3>
+                        <span class="text-xs bg-slate-900/90 border border-rose-500/40 px-2 py-1 rounded text-rose-300 font-semibold block">Ornamental</span>
+                    </div>
+                </div>
+
+                <!-- 4. SOLOS TAB -->
                 <div id="tab-content-floors" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
                     <div id="card-build-mud-tile" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-mound text-3xl text-amber-800 mb-2"></i>
@@ -474,7 +487,7 @@
                     </div>
                 </div>
 
-                <!-- 4. ILHAS FLUTUANTES TAB -->
+                <!-- 5. ILHAS FLUTUANTES TAB -->
                 <div id="tab-content-islands" class="grid grid-cols-2 md:grid-cols-3 gap-4 hidden">
                     <div id="card-build-satellite-island" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-cloud text-3xl text-sky-300 mb-2"></i>
