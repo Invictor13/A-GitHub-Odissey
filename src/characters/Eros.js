@@ -35,23 +35,41 @@ export class Eros {
         this.bodyGroup = new THREE.Group();
         this.group.add(this.bodyGroup);
 
-        const matBlack = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+        const mat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+        const hatMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 });
 
-        // Body: rectangular block
-        const bodyGeo = new THREE.BoxGeometry(0.4, 0.4, 0.8);
-        this.bodyMesh = new THREE.Mesh(bodyGeo, matBlack);
-        this.bodyMesh.position.set(0, 0.2, 0);
-        this.bodyMesh.castShadow = true;
-        this.bodyMesh.receiveShadow = true;
-        this.bodyGroup.add(this.bodyMesh);
+        // Body
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.8), mat);
+        body.position.set(0, 0.4, 0);
+        body.castShadow = true;
+        this.bodyGroup.add(body);
 
-        // Head: smaller block
-        const headGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-        this.headMesh = new THREE.Mesh(headGeo, matBlack);
-        this.headMesh.position.set(0, 0.45, 0.4);
-        this.headMesh.castShadow = true;
-        this.headMesh.receiveShadow = true;
-        this.bodyGroup.add(this.headMesh);
+        // Head
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat);
+        head.position.set(0, 0.7, 0.5);
+        this.bodyGroup.add(head);
+
+        // Snout
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        snout.position.set(0, 0.6, 0.75);
+        this.bodyGroup.add(snout);
+
+        // Hat
+        const hat = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI*2, 0, Math.PI/2), hatMat);
+        hat.position.set(0, 0.95, 0.5);
+        this.bodyGroup.add(hat);
+
+        // Brim
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.04, 16), hatMat);
+        brim.position.set(0, 0.95, 0.5);
+        this.bodyGroup.add(brim);
+
+        // Legs
+        for(let i=0; i<4; i++) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3, 0.15), mat);
+            leg.position.set(i%2===0 ? 0.2 : -0.2, 0.15, i<2 ? 0.3 : -0.3);
+            this.bodyGroup.add(leg);
+        }
     }
 
     interact(player) {
