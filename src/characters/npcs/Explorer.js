@@ -14,34 +14,31 @@ export class Explorer extends NPCBase {
     }
 
     buildModel() {
-        // Body (Leather Armor)
-        const bodyGeo = new THREE.CylinderGeometry(0.3, 0.35, 1.3, 8);
-        const armorMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 });
-        const body = new THREE.Mesh(bodyGeo, armorMat);
-        body.position.y = 0.65;
+        this.setupMaterials();
 
-        // Head
-        const headGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = 1.45;
+        // Leather Armor look
+        this.matShirt = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, bumpMap: this.texLeatherBump, bumpScale: 0.1 });
+        this.buildHumanoid();
 
         // Bandana
-        const bandanaGeo = new THREE.BoxGeometry(0.36, 0.1, 0.36);
+        const bandanaGeo = new THREE.BoxGeometry(1.2, 0.3, 1.2);
         const bandanaMat = new THREE.MeshStandardMaterial({ color: 0xaa2222 });
         const bandana = new THREE.Mesh(bandanaGeo, bandanaMat);
-        bandana.position.y = 1.5;
+        bandana.position.y = 0.6;
+        this.headPivot.add(bandana);
 
-        this.meshGroup.add(body);
-        this.meshGroup.add(head);
-        this.meshGroup.add(bandana);
+        // Hide hair top due to bandana
+        this.hairTopGroup = new THREE.Group();
 
         // Slumped over posture since he's injured
-        this.meshGroup.rotation.x = 0.4;
-        this.meshGroup.position.y = -0.3;
+        if(this.bodyGroup) {
+            this.bodyGroup.rotation.x = 0.4;
+            this.bodyGroup.position.y = -0.5;
+            this.headPivot.rotation.x = 0.4;
+        }
     }
 
-interact(player) {
+    interact(player) {
         if (this.isDead) return;
         super.interact(player);
 
@@ -69,8 +66,8 @@ interact(player) {
                 }
 
                 // Stand up straight
-                this.meshGroup.rotation.x = 0;
-                this.meshGroup.position.y = 0;
+                if(this.bodyGroup) { this.bodyGroup.rotation.x = 0; }
+                if(this.bodyGroup) { this.bodyGroup.position.y = 0; this.headPivot.rotation.x = 0; }
 
                 // Reward player with gold or a special item
                 window.gameState.inventory['gold'] = (window.gameState.inventory['gold'] || 0) + 50;

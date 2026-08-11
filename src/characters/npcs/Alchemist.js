@@ -16,34 +16,27 @@ export class Alchemist extends NPCBase {
     }
 
     buildModel() {
-        // Body (Robes)
-        const bodyGeo = new THREE.ConeGeometry(0.4, 1.4, 8);
-        const robeMat = new THREE.MeshStandardMaterial({ color: 0x4a0e4e }); // Deep purple
-        const body = new THREE.Mesh(bodyGeo, robeMat);
-        body.position.y = 0.7;
-
-        // Head
-        const headGeo = new THREE.SphereGeometry(0.25, 8, 8);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = 1.5;
+        this.setupMaterials();
+        // Give her a purple robe look
+        this.matShirt = new THREE.MeshStandardMaterial({ color: 0x4a0e4e, roughness: 0.9 });
+        this.matLeatherDark = new THREE.MeshStandardMaterial({ color: 0x2d082f, roughness: 0.9 });
+        this.buildHumanoid();
 
         // Pointy Hat
-        const hatGeo = new THREE.ConeGeometry(0.35, 0.6, 8);
+        const hatGeo = new THREE.ConeGeometry(1.2, 2.0, 8);
         const hatMat = new THREE.MeshStandardMaterial({ color: 0x2d082f });
         const hat = new THREE.Mesh(hatGeo, hatMat);
-        hat.position.y = 1.8;
-        hat.rotation.x = -0.1;
+        hat.position.set(0, 1.2, -0.2);
+        hat.rotation.x = -0.2;
+        this.headPivot.add(hat);
 
         // Staff/Wand
-        const wandGeo = new THREE.CylinderGeometry(0.02, 0.03, 1.0);
+        const wandGeo = new THREE.CylinderGeometry(0.06, 0.08, 3.0);
         const wandMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
         const wand = new THREE.Mesh(wandGeo, wandMat);
-        wand.position.set(0.3, 0.8, 0.3);
-        wand.rotation.x = Math.PI / 4;
 
         // Glowing gem on wand
-        const gemGeo = new THREE.OctahedronGeometry(0.08);
+        const gemGeo = new THREE.OctahedronGeometry(0.25);
         const gemMat = new THREE.MeshStandardMaterial({
             color: 0x00ffcc,
             emissive: 0x00aa88,
@@ -51,16 +44,15 @@ export class Alchemist extends NPCBase {
             opacity: 0.8
         });
         const gem = new THREE.Mesh(gemGeo, gemMat);
-        gem.position.y = 0.5;
+        gem.position.y = 1.5;
         wand.add(gem);
 
-        this.meshGroup.add(body);
-        this.meshGroup.add(head);
-        this.meshGroup.add(hat);
-        this.meshGroup.add(wand);
+        this.handR.add(wand);
+        wand.position.set(0, 0, 0.4);
+        wand.rotation.x = Math.PI / 4;
     }
 
-interact(player) {
+    interact(player) {
         if (this.isDead) return;
         super.interact(player);
 
