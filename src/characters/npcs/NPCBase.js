@@ -50,9 +50,17 @@ export class NPCBase {
     update(delta, playerContext, getFloorFunc, checkCollisionFunc, enemyManager) {
         if (this.isDead) return;
 
+        if (!this.group.position || this.group.position.x === undefined || this.group.position.z === undefined || isNaN(this.group.position.x) || isNaN(this.group.position.z)) {
+            if (this.spawnPosition) {
+                this.group.position.copy(this.spawnPosition);
+            } else {
+                return;
+            }
+        }
+
         // Basic Gravity
         if (getFloorFunc) {
-            const floorY = getFloorFunc(this.group.position.x, this.group.position.z);
+            const floorY = getFloorFunc(this.group.position);
             if (this.group.position.y > floorY) {
                 this.velocityY -= 20.0 * delta; // Gravity
                 this.group.position.y += this.velocityY * delta;

@@ -486,6 +486,14 @@ export class ProceduralMap {
     }
 
     getFloorY(pos) {
+        if (!pos || pos.x === undefined || pos.z === undefined || isNaN(pos.x) || isNaN(pos.z)) {
+            return 0;
+        }
+
+        if (!this.grid || !this.grid.length || this.gridSize <= 0) {
+            return 0;
+        }
+
         // Bilinear interpolation for smooth elevation
         const gridX = pos.x + this.gridSize / 2;
         const gridZ = pos.z + this.gridSize / 2;
@@ -497,10 +505,13 @@ export class ProceduralMap {
 
         if (x0 < 0 || x1 >= this.gridSize || z0 < 0 || z1 >= this.gridSize) return 0;
 
-        const elev00 = this.grid[x0][z0].elev * this.STEP_HEIGHT;
-        const elev10 = this.grid[x1][z0].elev * this.STEP_HEIGHT;
-        const elev01 = this.grid[x0][z1].elev * this.STEP_HEIGHT;
-        const elev11 = this.grid[x1][z1].elev * this.STEP_HEIGHT;
+        if (!this.grid[x0] || !this.grid[x1]) return 0;
+        if (!this.grid[x0][z0] || !this.grid[x1][z0] || !this.grid[x0][z1] || !this.grid[x1][z1]) return 0;
+
+        const elev00 = (this.grid[x0][z0].elev !== undefined ? this.grid[x0][z0].elev : 0) * this.STEP_HEIGHT;
+        const elev10 = (this.grid[x1][z0].elev !== undefined ? this.grid[x1][z0].elev : 0) * this.STEP_HEIGHT;
+        const elev01 = (this.grid[x0][z1].elev !== undefined ? this.grid[x0][z1].elev : 0) * this.STEP_HEIGHT;
+        const elev11 = (this.grid[x1][z1].elev !== undefined ? this.grid[x1][z1].elev : 0) * this.STEP_HEIGHT;
 
         const wx = gridX - x0;
         const wz = gridZ - z0;
