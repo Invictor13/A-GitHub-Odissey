@@ -172,19 +172,19 @@ export class StructureBuilder {
             const grassMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x15803d, roughness: 0.8, flatShading: true, transparent, opacity, wireframe: isPreview });
             const dirtMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x291d16, roughness: 0.85, flatShading: true, transparent, opacity, wireframe: isPreview });
 
-            const topGeo = new THREE.CylinderGeometry(4.0, 3.8, 0.5, 12);
+            const topGeo = new THREE.CylinderGeometry(14.0, 13.5, 1.0, 24);
             const topMesh = new THREE.Mesh(topGeo, grassMat);
-            topMesh.position.y = 0.25;
+            topMesh.position.y = 0.5;
             group.add(topMesh);
 
-            const dirtGeo = new THREE.CylinderGeometry(3.8, 3.5, 1.0, 12);
+            const dirtGeo = new THREE.CylinderGeometry(13.5, 12.0, 2.0, 24);
             const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
-            dirtMesh.position.y = -0.5;
+            dirtMesh.position.y = -1.0;
             group.add(dirtMesh);
 
-            const botGeo = new THREE.ConeGeometry(3.5, 6.0, 10);
+            const botGeo = new THREE.ConeGeometry(12.0, 16.0, 20);
             const botMesh = new THREE.Mesh(botGeo, islandMat);
-            botMesh.position.y = -4.0;
+            botMesh.position.y = -10.0;
             botMesh.rotation.x = Math.PI;
             group.add(botMesh);
         } else if (type === 'ponte_magica') {
