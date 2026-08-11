@@ -21,15 +21,23 @@ export class WorldMap {
         this.rpgData = {
             field: { names: ["Planície dos Ventos", "Campos Verdes", "Prados Serenos"], diff: ["★☆☆☆☆", "★★☆☆☆"], enemies: ["Slimes", "Bandidos Fracos"], animals: ["Coelhos", "Ovelhas"], fishes: ["Peixe-Dourado", "Carpa"], minerals: ["Pedra", "Cobre"] },
             forest: { names: ["Floresta Anciã", "Bosque Sombrio", "Mata Fechada"], diff: ["★★☆☆☆", "★★★☆☆"], enemies: ["Lobos Selvagens", "Ursos"], animals: ["Cervos", "Javalis"], fishes: ["Salmão", "Truta"], minerals: ["Madeira de Lei", "Ferro"] },
-            desert: { names: ["Deserto Escaldante", "Dunas Esquecidas", "Areias da Morte"], diff: ["★★★☆☆", "★★★★☆"], enemies: ["Escorpiões", "Golens de Areia"], animals: ["Lagartos", "Coiotes"], fishes: ["Peixe-de-Areia"], minerals: ["Ouro", "Quartzo"] }
+            desert: { names: ["Deserto Escaldante", "Dunas Esquecidas", "Areias da Morte"], diff: ["★★★☆☆", "★★★★☆"], enemies: ["Escorpiões", "Golens de Areia"], animals: ["Lagartos", "Coiotes"], fishes: ["Peixe-de-Areia"], minerals: ["Ouro", "Quartzo"] },
+            mushroom: { names: ["Vale dos Cogumelos", "Pântano Fúngico", "Floresta de Esporos"], diff: ["★★★☆☆", "★★★★☆"], enemies: ["Homens-Cogumelo", "Esporos Tóxicos"], animals: ["Lesmas", "Sapos"], fishes: ["Peixe-Cogumelo"], minerals: ["Fungo Brilhante", "Cristal de Esporos"] },
+            bamboo: { names: ["Jardim de Bambu", "Mata de Bambu", "Vale Silencioso"], diff: ["★★☆☆☆", "★★★☆☆"], enemies: ["Ronin Fantasma", "Espíritos"], animals: ["Pandas", "Macacos"], fishes: ["Peixe-Koi"], minerals: ["Bambu Reforçado", "Jade"] },
+            canyon: { names: ["Desfiladeiro Profundo", "Garganta Seca", "Ravina de Pedra"], diff: ["★★★★☆", "★★★★★"], enemies: ["Águias Gigantes", "Golens de Pedra"], animals: ["Cabras", "Lagartos de Fenda"], fishes: ["Peixe-das-Pedras"], minerals: ["Prata", "Rubi"] },
+            mangrove: { names: ["Manguezal Úmido", "Pântano Sombrio", "Águas Turvas"], diff: ["★★★☆☆", "★★★★☆"], enemies: ["Crocodilos", "Zumbis do Pântano"], animals: ["Sapos", "Cobras"], fishes: ["Bagre", "Enguia"], minerals: ["Lama Mágica", "Obsidiana"] }
         };
 
         this.palettes = {
             stone: 0x475569, wood: 0x451a03, bridge: 0x78350f, tent: 0xef4444,
             biomes: {
-                field: { id: 'field', base: 0x573410, top: [0x4ade80, 0x22c55e], leaves: [0x15803d, 0x16a34a], prob: 0.5 },
-                forest: { id: 'forest', base: 0x271907, top: [0x166534, 0x14532d], leaves: [0x064e3b, 0x065f46], prob: 0.3 },
-                desert: { id: 'desert', base: 0xd97706, top: [0xfbbf24, 0xfcd34d], leaves: [0x4d7c0f], prob: 0.2 }
+                field: { id: 'field', base: 0x573410, top: [0x4ade80, 0x22c55e], leaves: [0x15803d, 0x16a34a], prob: 0.25 },
+                forest: { id: 'forest', base: 0x271907, top: [0x166534, 0x14532d], leaves: [0x064e3b, 0x065f46], prob: 0.20 },
+                desert: { id: 'desert', base: 0xd97706, top: [0xfbbf24, 0xfcd34d], leaves: [0x4d7c0f], prob: 0.15 },
+                mushroom: { id: 'mushroom', base: 0x312e81, top: [0x8b5cf6, 0xa78bfa], leaves: [0xd946ef, 0xf0abfc], prob: 0.10 },
+                bamboo: { id: 'bamboo', base: 0x064e3b, top: [0x34d399, 0x6ee7b7], leaves: [0x059669, 0x10b981], prob: 0.10 },
+                canyon: { id: 'canyon', base: 0x7c2d12, top: [0xb45309, 0xd97706], leaves: [0x451a03, 0x78350f], prob: 0.10 },
+                mangrove: { id: 'mangrove', base: 0x1e3a8a, top: [0x3b82f6, 0x60a5fa], leaves: [0x1d4ed8, 0x2563eb], prob: 0.10 }
             }
         };
 
@@ -291,9 +299,14 @@ export class WorldMap {
 
     getBiome() {
         const r = Math.random();
-        if (r < this.palettes.biomes.forest.prob) return 'forest';
-        if (r < this.palettes.biomes.forest.prob + this.palettes.biomes.desert.prob) return 'desert';
-        return 'field';
+        let cumulativeProb = 0;
+        for (const [key, biome] of Object.entries(this.palettes.biomes)) {
+            cumulativeProb += biome.prob;
+            if (r < cumulativeProb) {
+                return key;
+            }
+        }
+        return 'field'; // Fallback
     }
 
     spawnIsland(gridX, gridZ, parentX = null, parentZ = null, isHub = false) {
@@ -412,6 +425,42 @@ export class WorldMap {
             const main = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.4), new THREE.MeshStandardMaterial({ color: biomeDef.leaves[0] }));
             main.position.y = 0.6; main.castShadow = true; group.add(main);
             group.position.set(x, y, z); parent.add(group);
+        } else if (type === 'mushroom') {
+            const group = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 6), new THREE.MeshStandardMaterial({ color: 0x9ca3af })); // Grayish stem
+            trunk.position.y = 0.4; trunk.castShadow = true; group.add(trunk);
+
+            const capGroup = new THREE.Group();
+            const capMat = new THREE.MeshStandardMaterial({ color: biomeDef.leaves[0], flatShading: true });
+            const cap = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
+            cap.position.y = 0.8; cap.castShadow = true; capGroup.add(cap);
+            group.add(capGroup);
+
+            group.scale.setScalar(0.7 + Math.random() * 0.5); group.position.set(x + (Math.random()-0.5)*0.5, y, z + (Math.random()-0.5)*0.5);
+            parent.add(group);
+        } else if (type === 'bamboo') {
+            const group = new THREE.Group();
+            const trunkMat = new THREE.MeshStandardMaterial({ color: biomeDef.leaves[0] });
+            const segments = 3 + Math.floor(Math.random() * 3);
+            for(let i=0; i<segments; i++) {
+                const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.6, 6), trunkMat);
+                seg.position.y = i * 0.6 + 0.3; seg.castShadow = true; group.add(seg);
+                // Add tiny leaves at joints
+                if (i > 0) {
+                    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 3), trunkMat);
+                    leaf.rotation.z = Math.PI / 4; leaf.position.set(0.2, i * 0.6, 0); group.add(leaf);
+                }
+            }
+            group.scale.setScalar(0.7 + Math.random() * 0.5); group.position.set(x + (Math.random()-0.5)*0.5, y, z + (Math.random()-0.5)*0.5);
+            parent.add(group);
+            this.windObjects.push({ obj: group, speed: 2.0 + Math.random(), phase: Math.random() * 10 });
+        } else if (type === 'canyon') {
+            const group = new THREE.Group();
+            // Dead tree or sparse bush
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 1.2, 4), new THREE.MeshStandardMaterial({ color: this.palettes.wood }));
+            trunk.position.y = 0.6; trunk.rotation.z = (Math.random() - 0.5) * 0.2; trunk.castShadow = true; group.add(trunk);
+            group.scale.setScalar(0.7 + Math.random() * 0.5); group.position.set(x + (Math.random()-0.5)*0.5, y, z + (Math.random()-0.5)*0.5);
+            parent.add(group);
         } else {
             const group = new THREE.Group();
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 0.8, 4), new THREE.MeshStandardMaterial({ color: this.palettes.wood }));
