@@ -442,6 +442,21 @@
                         <h3 class="font-bold text-sm mb-1">Baú de Madeira</h3>
                         <span class="text-xs bg-slate-900/90 border border-yellow-600/40 px-2 py-1 rounded text-yellow-300 font-semibold block">Armazenamento</span>
                     </div>
+                    <div id="card-build-furnace" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-fire-burner text-3xl text-orange-500 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Fornalha</h3>
+                        <span class="text-xs bg-slate-900/90 border border-orange-500/40 px-2 py-1 rounded text-orange-300 font-semibold block">Fundição</span>
+                    </div>
+                    <div id="card-build-workbench" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-hammer text-3xl text-amber-500 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Bancada</h3>
+                        <span class="text-xs bg-slate-900/90 border border-amber-500/40 px-2 py-1 rounded text-amber-300 font-semibold block">Criação</span>
+                    </div>
+                    <div id="card-build-anvil" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
+                        <i class="fa-solid fa-gavel text-3xl text-slate-400 mb-2"></i>
+                        <h3 class="font-bold text-sm mb-1">Bigorna</h3>
+                        <span class="text-xs bg-slate-900/90 border border-slate-500/40 px-2 py-1 rounded text-slate-300 font-semibold block">Forja</span>
+                    </div>
                     <div id="card-embark" class="build-card bg-slate-800/60 border border-slate-700 p-4 rounded-xl cursor-pointer text-center">
                         <i class="fa-solid fa-compass text-3xl text-purple-400 mb-2"></i>
                         <h3 class="font-bold text-sm mb-1">Mapa Tático</h3>
@@ -796,11 +811,10 @@
         <!-- CRAFTING TAB (Hidden) -->
         <div id="tab-content-crafting" class="inv-tab-content absolute inset-0 flex flex-col h-full opacity-0 pointer-events-none transition-opacity duration-300">
             <div class="flex items-center justify-between border-b border-amber-900/60 pb-2 mb-3">
-                <span class="text-xs font-bold text-amber-200 uppercase tracking-wider font-title flex items-center"><i class="fa-solid fa-flask-vial text-amber-500 mr-2"></i>Bancada Alquímica</span>
+                <span class="text-xs font-bold text-amber-200 uppercase tracking-wider font-title flex items-center" id="crafting-title"><i class="fa-solid fa-hammer text-amber-500 mr-2"></i>Fabricação Manual</span>
             </div>
-            <div class="overflow-y-auto flex-grow pr-2 custom-scrollbar space-y-2" id="recipe-list">
-                <!-- Recipes loaded by JS. For now just placeholder -->
-                <div class="text-center text-amber-400/50 mt-10 font-script">Módulo de Crafting em desenvolvimento...</div>
+            <div class="overflow-y-auto flex-grow pr-2 custom-scrollbar space-y-3" id="recipe-list">
+                <!-- Recipes will be injected by InventoryUI.js -->
             </div>
         </div>
 

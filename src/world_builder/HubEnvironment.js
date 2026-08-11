@@ -738,6 +738,30 @@ export class HubEnvironment {
             });
         }
 
+        if (type === 'furnace' || type === 'workbench' || type === 'anvil') {
+            const interactableGroup = finalMesh; // the returned group from StructureBuilder
+            interactableGroup.userData = {
+                interactable: true,
+                name: type === 'furnace' ? 'Fornalha' : (type === 'workbench' ? 'Bancada de Trabalho' : 'Bigorna')
+            };
+
+            this.interactiveObjects.push({
+                mesh: interactableGroup,
+                position: new THREE.Vector3(x, y, z),
+                radius: 3.0,
+                action: () => {
+                    if (window.inventoryUI) {
+                        if (!window.inventoryUI.isOpen) {
+                            window.inventoryUI.toggle();
+                        }
+                        const tabBtn = document.getElementById('tab-btn-crafting');
+                        if (tabBtn) tabBtn.click();
+                    }
+                },
+                prompt: type === 'furnace' ? 'Abrir Fornalha' : (type === 'workbench' ? 'Abrir Bancada' : 'Usar Bigorna')
+            });
+        }
+
         // Track sky structures for collision and walkability
         if (type === 'ilha_satelite' || type === 'ponte_magica') {
             this.placedSkyIslands.push({ type, x, y, z, ry });

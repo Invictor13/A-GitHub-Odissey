@@ -2,6 +2,8 @@ export const ITEM_DATABASE = {
     "wood_ancient": { id: "wood_ancient", name: "Madeira Ancestral", type: "material", value: 2, icon: "fa-tree", rarity: "common" },
     "ore_purgatory": { id: "ore_purgatory", name: "Minério do Purgatório", type: "material", value: 3, icon: "fa-cubes", rarity: "common" },
     "herb_astral": { id: "herb_astral", name: "Erva Astral", type: "material", value: 1, icon: "fa-leaf", rarity: "common" },
+    "stick": { id: "stick", name: "Graveto", type: "material", value: 1, icon: "fa-code-branch", rarity: "common" },
+    "stone": { id: "stone", name: "Pedra", type: "material", value: 1, icon: "fa-hill-rockslide", rarity: "common" },
 
     "potion_hp_small": { id: "potion_hp_small", name: "Frasco de Sangue Menor", type: "consumable", value: 5, icon: "fa-flask", rarity: "common", hpRestore: 25 },
     "potion_hp_medium": { id: "potion_hp_medium", name: "Frasco de Sangue", type: "consumable", value: 10, icon: "fa-flask", rarity: "uncommon", hpRestore: 50 },
@@ -15,6 +17,8 @@ export const ITEM_DATABASE = {
     "wooden_club": { id: "wooden_club", name: "Porrete de Madeira", type: "weapon_1h", modelType: "club", value: 5, icon: "fa-gavel", rarity: "common", damage: 6, comboSpeed: 0.8, reach: 1.2, comboMax: 2 },
     "militia_spear": { id: "militia_spear", name: "Lança da Milícia", type: "weapon_2h", modelType: "spear", value: 25, icon: "fa-arrow-up", rarity: "uncommon", damage: 10, comboSpeed: 0.9, reach: 2.8, comboMax: 3 },
     "wooden_shield": { id: "wooden_shield", name: "Escudo de Madeira", type: "armor_offhand", modelType: "shield", value: 10, icon: "fa-shield-halved", rarity: "common", defense: 2 },
+    "wooden_stick": { id: "wooden_stick", name: "Bastão de Madeira", type: "weapon_1h", modelType: "club", value: 3, icon: "fa-gavel", rarity: "common", damage: 4, comboSpeed: 1.0, reach: 1.2, comboMax: 2 },
+    "wooden_spear": { id: "wooden_spear", name: "Lança de Madeira", type: "weapon_2h", modelType: "spear", value: 8, icon: "fa-arrow-up", rarity: "common", damage: 6, comboSpeed: 1.2, reach: 2.5, comboMax: 3 },
 
     "hood_sinner": { id: "hood_sinner", name: "Capuz do Pecador", type: "armor_head", value: 12, icon: "fa-hat-cowboy", rarity: "common", defense: 1 },
     "leather_armor": { id: "leather_armor", name: "Armadura de Couro", type: "armor_chest", value: 18, icon: "fa-shirt", rarity: "common", defense: 3 },

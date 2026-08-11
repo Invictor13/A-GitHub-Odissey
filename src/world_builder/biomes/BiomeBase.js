@@ -231,4 +231,157 @@ export class BiomeBase {
         }
     }
 
+    spawnHarvestables(terrainGroup, interactablesArray) {
+        let harvestCount = 5 + Math.floor(Math.random() * 5); // 5 to 9 harvestables per level
+
+        for (let i = 0; i < harvestCount; i++) {
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 50) {
+                const tx = Math.floor(Math.random() * this.gridSize);
+                const tz = Math.floor(Math.random() * this.gridSize);
+
+                if (this.grid[tx] && this.grid[tx][tz] && this.grid[tx][tz].type === this.TILE_FLOOR) {
+                    const elev = this.grid[tx][tz].elev * this.STEP_HEIGHT;
+                    const wx = (tx - this.gridSize/2) * 2.0;
+                    const wz = (tz - this.gridSize/2) * 2.0;
+
+                    if (Math.random() > 0.5) {
+                        this.createOreVein(wx, elev, wz, terrainGroup, interactablesArray);
+                    } else {
+                        this.createFallenLog(wx, elev, wz, terrainGroup, interactablesArray);
+                    }
+                    placed = true;
+                }
+                attempts++;
+            }
+        }
+    }
+
+    createOreVein(x, y, z, terrainGroup, interactablesArray) {
+        const oreGroup = new THREE.Group();
+        oreGroup.position.set(x, y, z);
+        oreGroup.rotation.y = Math.random() * Math.PI * 2;
+
+        // Chamativo!
+        const matRock = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
+        const matGem = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x008888, emissiveIntensity: 0.8, metalness: 0.5, roughness: 0.2 });
+
+        const rockMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8), matRock);
+        rockMesh.position.y = 0.4;
+        oreGroup.add(rockMesh);
+
+        // Add some glowing crystals sticking out
+        for (let i = 0; i < 3; i++) {
+            const crystal = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.8, 5), matGem);
+            crystal.position.set((Math.random() - 0.5) * 0.8, 0.6 + Math.random() * 0.4, (Math.random() - 0.5) * 0.8);
+            crystal.rotation.set((Math.random() - 0.5) * Math.PI, Math.random() * Math.PI, (Math.random() - 0.5) * Math.PI);
+            oreGroup.add(crystal);
+        }
+
+        const pointLight = new THREE.PointLight(0x00ffff, 1, 4);
+        pointLight.position.y = 1;
+        oreGroup.add(pointLight);
+
+        terrainGroup.add(oreGroup);
+
+        oreGroup.userData = {
+            interactable: true,
+            name: "Minério do Purgatório",
+            harvested: false
+        };
+
+        if (interactablesArray) {
+            interactablesArray.push({
+                mesh: oreGroup,
+                action: () => {
+                    if (!oreGroup.userData.harvested) {
+                        oreGroup.userData.harvested = true;
+                        if (window.lootManager) {
+                            // Give some stone and ore
+                            for(let j=0; j<2; j++) window.lootManager.createPickup('stone', 1, oreGroup.position);
+                            if (Math.random() > 0.3) {
+                                window.lootManager.createPickup('ore_purgatory', 1, oreGroup.position);
+                            }
+                        }
+                        oreGroup.visible = false;
+                        // Opcionalmente, pode ser removido da cena, mas visible = false é mais seguro com referências
+                    }
+                }
+            });
+        }
+    }
+
+    createFallenLog(x, y, z, terrainGroup, interactablesArray) {
+        const logGroup = new THREE.Group();
+        logGroup.position.set(x, y, z);
+        logGroup.rotation.y = Math.random() * Math.PI * 2;
+
+        const matWood = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.95 });
+        const matInside = new THREE.MeshStandardMaterial({ color: 0x8b6540, roughness: 0.8 });
+
+        // Chamativo com alguns cogumelos brilhantes
+        const matMushroom = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0x880088, emissiveIntensity: 0.6 });
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 2.5, 8), matWood);
+        trunk.rotation.z = Math.PI / 2;
+        trunk.position.y = 0.4;
+        logGroup.add(trunk);
+
+        const end1 = new THREE.Mesh(new THREE.CircleGeometry(0.39, 8), matInside);
+        end1.rotation.y = -Math.PI / 2;
+        end1.position.set(-1.26, 0.4, 0);
+        logGroup.add(end1);
+
+        const end2 = new THREE.Mesh(new THREE.CircleGeometry(0.49, 8), matInside);
+        end2.rotation.y = Math.PI / 2;
+        end2.position.set(1.26, 0.4, 0);
+        logGroup.add(end2);
+
+        // Glowing mushrooms
+        for (let i = 0; i < 4; i++) {
+            const mushGroup = new THREE.Group();
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.2), new THREE.MeshStandardMaterial({color: 0xffffff}));
+            stem.position.y = 0.1;
+            const cap = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.15, 8), matMushroom);
+            cap.position.y = 0.2;
+            mushGroup.add(stem, cap);
+
+            mushGroup.position.set((Math.random() - 0.5) * 2, 0.7, (Math.random() - 0.5) * 0.6);
+            mushGroup.rotation.set((Math.random() - 0.5)*0.5, 0, (Math.random() - 0.5)*0.5);
+            logGroup.add(mushGroup);
+        }
+
+        const pointLight = new THREE.PointLight(0xff00ff, 0.8, 3);
+        pointLight.position.y = 1;
+        logGroup.add(pointLight);
+
+        terrainGroup.add(logGroup);
+
+        logGroup.userData = {
+            interactable: true,
+            name: "Tronco Caído",
+            harvested: false
+        };
+
+        if (interactablesArray) {
+            interactablesArray.push({
+                mesh: logGroup,
+                action: () => {
+                    if (!logGroup.userData.harvested) {
+                        logGroup.userData.harvested = true;
+                        if (window.lootManager) {
+                            // Give some sticks and wood
+                            for(let j=0; j<2; j++) window.lootManager.createPickup('stick', 1, logGroup.position);
+                            if (Math.random() > 0.3) {
+                                window.lootManager.createPickup('wood_ancient', 1, logGroup.position);
+                            }
+                        }
+                        logGroup.visible = false;
+                    }
+                }
+            });
+        }
+    }
+
 }
