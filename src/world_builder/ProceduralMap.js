@@ -46,16 +46,46 @@ export class ProceduralMap {
         this.portalActive = true;
 
         // Setup HemisphereLight for the biome
-        this.hemisphereLight = new THREE.HemisphereLight(0x0f172a, 0x1f4214, 0.6); // Dark blue sky, earthy green ground
+        this.hemisphereLight = new THREE.HemisphereLight(0x0f172a, 0x1f4214, 0.6);
+
+        // Weather System
+        this.weatherType = Math.random() < 0.3 ? 'RAIN' : 'CLEAR';
+        this.weatherParticles = null;
+        this.weatherTimer = 0;
+        this.lightningTimer = 0;
         this.scene.add(this.hemisphereLight);
+        this.setupWeather();
         this.portalInteractable = true;
         this.currentIslandData = null;
 
         // Shared uniforms that might be used across biomes
         this.grassUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
+        this.waterUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
 
         this.activeBiome = null;
         this.biomeCache = {};
+    }
+
+    setupWeather() {
+        if (this.weatherType === 'CLEAR') return;
+
+        const particleCount = 2000;
+        const geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(particleCount * 3);
+        const vel = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            pos[i * 3] = (Math.random() - 0.5) * 40;
+            pos[i * 3 + 1] = Math.random() * 20;
+            pos[i * 3 + 2] = (Math.random() - 0.5) * 40;
+            vel.push(0, -10 - Math.random() * 10, 0);
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        const mat = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1, transparent: true, opacity: 0.6 });
+        this.weatherParticles = new THREE.Points(geo, mat);
+        this.weatherParticles.userData.velocities = vel;
+        this.scene.add(this.weatherParticles);
     }
 
     generateGrid(size, islandData = null) {
@@ -339,6 +369,12 @@ export class ProceduralMap {
             this.scene.remove(this.mapGroup);
         }
 
+        if (this.weatherParticles) {
+            this.scene.remove(this.weatherParticles);
+            this.weatherParticles.geometry.dispose();
+            this.weatherParticles.material.dispose();
+            this.weatherParticles = null;
+        }
         this.enemyManager.cleanup();
         this.enemies = [];
         this.totalEnemiesSpawned = 0;
@@ -438,7 +474,43 @@ export class ProceduralMap {
         const targetPos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
 
         this.grassUniforms.uTime.value = time;
+
+        // Update Weather
+        const sunLight = this.scene.children.find(c => c.type === 'DirectionalLight' && c.color.getHex() === 0xffedd5);
+        if (sunLight && this.weatherType === 'RAIN') {
+            sunLight.intensity = 0.5;
+        } else if (sunLight) {
+            sunLight.intensity = 1.6;
+        }
+        if (this.weatherParticles) {
+            this.weatherParticles.position.x = targetPos.x;
+            this.weatherParticles.position.z = targetPos.z;
+            const posAttr = this.weatherParticles.geometry.attributes.position;
+            const vel = this.weatherParticles.userData.velocities;
+            for (let i = 0; i < posAttr.count; i++) {
+                let y = posAttr.getY(i) + vel[i*3+1] * delta;
+                if (y < 0) y = 20;
+                posAttr.setY(i, y);
+            }
+            posAttr.needsUpdate = true;
+
+            // Lightning flash
+            this.lightningTimer -= delta;
+            if (this.lightningTimer <= 0) {
+                if (Math.random() < 0.1) {
+                    const lightningLight = this.scene.children.find(c => c.type === 'DirectionalLight' && c.color.getHex() === 0xe0f2fe);
+                    if (lightningLight) {
+                        lightningLight.intensity = 2.0;
+                        setTimeout(() => { if (lightningLight) lightningLight.intensity = 0; }, 100);
+                    }
+                }
+                this.lightningTimer = Math.random() * 5 + 2;
+            }
+        }
+
         this.grassUniforms.uPlayerPos.value.copy(targetPos);
+        this.waterUniforms.uTime.value = time;
+        this.waterUniforms.uPlayerPos.value.copy(targetPos);
 
         this.updateAntiOcclusion(delta, camera, targetPos);
 

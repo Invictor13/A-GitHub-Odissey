@@ -18,7 +18,7 @@ export class ForestBiome extends BiomeBase {
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x271c19, ...this.matBase });
         this.matRock = new THREE.MeshStandardMaterial({ color: 0x334155, ...this.matBase });
         this.matTrunk = new THREE.MeshStandardMaterial({ color: 0x1c1917, ...this.matBase });
-        this.matWater = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.8, roughness: 0.1, flatShading: true, depthWrite: false });
+        this.matWater = this.getWaterMaterial(0x0ea5e9);
         this.matCanopy = new THREE.MeshStandardMaterial({ color: 0x022c22, ...this.matBase, transparent: true, depthWrite: false });
 
         this.matCanopy.onBeforeCompile = (shader) => {

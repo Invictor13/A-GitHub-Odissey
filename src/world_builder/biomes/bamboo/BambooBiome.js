@@ -14,7 +14,7 @@ export class BambooBiome extends BiomeBase {
         this.matFloor = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x474a28, ...this.matBase });
         this.matRock = new THREE.MeshStandardMaterial({ color: 0x6e7d69, ...this.matBase });
-        this.matWater = new THREE.MeshStandardMaterial({ color: 0x4db6ac, transparent: true, opacity: 0.8, roughness: 0.1, flatShading: true, depthWrite: false });
+        this.matWater = this.getWaterMaterial(0x4db6ac);
 
         this.planeGeo = new THREE.PlaneGeometry(1, 1); this.planeGeo.rotateX(-Math.PI/2);
         this.rockGeo = new THREE.IcosahedronGeometry(0.5, 0);
