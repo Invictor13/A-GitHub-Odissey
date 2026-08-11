@@ -232,17 +232,17 @@ try {
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
         e.preventDefault();
-        if (inventoryUI) {
-            inventoryUI.toggle();
-            controls.enabled = !inventoryUI.isOpen;
+        if (window.inventoryUI) {
+            window.inventoryUI.toggle();
+            controls.enabled = !window.inventoryUI.isOpen;
         }
     }
 
     // Manage OrbitControls state for CodexUI as well
-    if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'j' || e.key === 'Escape') && codexUI) {
+    if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'j' || e.key === 'Escape') && window.codexUI) {
         // We defer updating orbit controls slightly because CodexUI's toggle runs synchronously in its own listener
         setTimeout(() => {
-            controls.enabled = !codexUI.isOpen && (!inventoryUI || !inventoryUI.isOpen);
+            controls.enabled = !window.codexUI.isOpen && (!window.inventoryUI || !window.inventoryUI.isOpen);
         }, 10);
     }
 });

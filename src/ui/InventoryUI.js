@@ -62,6 +62,35 @@ export class InventoryUI {
                 this.handleEquipClick(equipType);
             });
         });
+
+        // Tab Switching Logic
+        const tabBtns = document.querySelectorAll('.inv-tab-btn');
+        const tabContents = document.querySelectorAll('.inv-tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = btn.id.replace('tab-btn-', 'tab-content-');
+
+                // Update active button classes
+                tabBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-amber-900/40', 'text-amber-200', 'border-amber-500/50');
+                    b.classList.add('bg-stone-950/40', 'text-amber-200/50', 'border-transparent');
+                });
+                btn.classList.add('active', 'bg-amber-900/40', 'text-amber-200', 'border-amber-500/50');
+                btn.classList.remove('bg-stone-950/40', 'text-amber-200/50', 'border-transparent');
+
+                // Update visible content
+                tabContents.forEach(content => {
+                    if (content.id === targetId) {
+                        content.classList.remove('opacity-0', 'pointer-events-none');
+                        content.classList.add('opacity-100');
+                    } else {
+                        content.classList.remove('opacity-100');
+                        content.classList.add('opacity-0', 'pointer-events-none');
+                    }
+                });
+            });
+        });
     }
 
     handleBackpackClick(slotIndex) {
