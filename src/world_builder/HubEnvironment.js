@@ -404,6 +404,11 @@ export class HubEnvironment {
         if (expeditionUI) {
             expeditionUI.classList.remove('hidden');
             window.hubBuildingState = 'UI_OPEN'; // Pause interactions
+
+            if (this.portalIslandData) {
+                window.targetPortalPosition = new THREE.Vector3(this.portalIslandData.x, this.portalIslandData.y, this.portalIslandData.z);
+                window.isTransitioning = true;
+            }
         }
     }
 
@@ -412,6 +417,9 @@ export class HubEnvironment {
         if (expeditionUI) {
             expeditionUI.classList.add('hidden');
             window.hubBuildingState = 'EXPLORING';
+
+            window.isTransitioning = false;
+            window.targetPortalPosition = null;
         }
     }
 

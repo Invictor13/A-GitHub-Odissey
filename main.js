@@ -421,6 +421,8 @@ const btnCancelExpedition = document.getElementById('btn-cancel-expedition');
 if (btnCancelExpedition) {
     btnCancelExpedition.addEventListener('click', (e) => {
         e.stopPropagation();
+        window.isTransitioning = false;
+        window.targetPortalPosition = null;
         if (currentEnvironment && currentEnvironment.closeExpeditionUI) {
             currentEnvironment.closeExpeditionUI();
         }
@@ -431,6 +433,8 @@ const btnConfirmExpedition = document.getElementById('btn-confirm-expedition');
 if (btnConfirmExpedition) {
     btnConfirmExpedition.addEventListener('click', (e) => {
         e.stopPropagation();
+        window.isTransitioning = false;
+        window.targetPortalPosition = null;
         if (currentEnvironment && currentEnvironment.closeExpeditionUI) {
             currentEnvironment.closeExpeditionUI();
         }
@@ -620,8 +624,23 @@ function animate() {
                     targetLookAt = pivotPos.clone();
                 }
 
-                camera.position.lerp(targetCamPos, 5 * window.gameState.delta);
-                controls.target.lerp(targetLookAt, 8 * window.gameState.delta);
+                if (window.isTransitioning) {
+                    if (window.targetPortalPosition && typeof window.targetPortalPosition.x === 'number') {
+                        camera.position.lerp(window.targetPortalPosition, 0.05);
+                        controls.target.lerp(window.targetPortalPosition, 0.05);
+                    } else {
+                        console.warn("Posição de destino do portal inválida ou não definida.");
+                        window.isTransitioning = false;
+                    }
+                } else {
+                    if (targetCamPos && typeof targetCamPos.x === 'number') {
+                        camera.position.lerp(targetCamPos, 5 * window.gameState.delta);
+                    }
+                    if (targetLookAt && typeof targetLookAt.x === 'number') {
+                        controls.target.lerp(targetLookAt, 8 * window.gameState.delta);
+                    }
+                }
+
                 controls.update();
             } else {
                 // Lock isometric pitch for exploring
