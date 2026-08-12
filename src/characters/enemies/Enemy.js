@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+import { disposeHierarchy } from '../../core/GraphicsUtils.js';
+
 export class Enemy {
     constructor(scene, position, hp = 20, speed = 3.5, attackRadius = 1.0) {
         this.scene = scene;
@@ -54,6 +56,7 @@ export class Enemy {
 
     destroy() {
         if (this.group && this.group.parent) {
+            disposeHierarchy(this.group);
             this.group.parent.remove(this.group);
         }
     }

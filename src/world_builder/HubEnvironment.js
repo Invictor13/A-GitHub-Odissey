@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import gameState from '../core/GameState.js';
 import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
+import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -785,7 +786,11 @@ export class HubEnvironment {
         const gridModeUI = document.getElementById('grid-mode-ui');
         if(gridModeUI) gridModeUI.classList.remove('hidden');
 
-        if(this.previewMesh) { this.scene.remove(this.previewMesh); this.previewMesh = null; }
+        if(this.previewMesh) {
+            disposeHierarchy(this.previewMesh);
+            this.scene.remove(this.previewMesh);
+            this.previewMesh = null;
+        }
         this.previewMesh = StructureBuilder.create3DObject(type, true);
         this.scene.add(this.previewMesh);
 
@@ -806,7 +811,11 @@ export class HubEnvironment {
         const gridModeUI = document.getElementById('grid-mode-ui');
         if(gridModeUI) gridModeUI.classList.add('hidden');
 
-        if(this.previewMesh) { this.scene.remove(this.previewMesh); this.previewMesh = null; }
+        if(this.previewMesh) {
+            disposeHierarchy(this.previewMesh);
+            this.scene.remove(this.previewMesh);
+            this.previewMesh = null;
+        }
 
         const hubStatusUI = document.getElementById('hub-status-ui');
         if(hubStatusUI) {
@@ -1167,16 +1176,7 @@ export class HubEnvironment {
     cleanup() {
         const disposeGroup = (group) => {
             if (!group) return;
-            group.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            });
+            disposeHierarchy(group);
             this.scene.remove(group);
         };
 
@@ -1186,8 +1186,12 @@ export class HubEnvironment {
         if(this.weatherParticleGroup) disposeGroup(this.weatherParticleGroup);
 
         if (this.erosSpot) {
+            disposeHierarchy(this.erosSpot);
             this.scene.remove(this.erosSpot);
-            if(this.erosSpot.target) this.scene.remove(this.erosSpot.target);
+            if(this.erosSpot.target) {
+                disposeHierarchy(this.erosSpot.target);
+                this.scene.remove(this.erosSpot.target);
+            }
             this.erosSpot.dispose();
         }
 

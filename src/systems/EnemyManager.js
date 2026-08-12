@@ -1,5 +1,6 @@
 import { LootManager } from "./LootManager.js";
 import * as THREE from 'three';
+import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
 export class EnemyManager {
     constructor(scene) {
@@ -180,15 +181,7 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
         this.lootManager.cleanup();
 
         if (this.decalsGroup) {
-            this.decalsGroup.traverse(child => {
-                if (child.isMesh) {
-                    if (child.geometry) child.geometry.dispose();
-                    if (child.material) {
-                        if (child.material.map) child.material.map.dispose();
-                        child.material.dispose();
-                    }
-                }
-            });
+            disposeHierarchy(this.decalsGroup);
             this.scene.remove(this.decalsGroup);
             this.decalsGroup = null;
         }
