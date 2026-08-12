@@ -1,5 +1,21 @@
 import gameState from '../core/GameState.js';
 import { ITEM_DATABASE } from '../data/ItemData.js';
+import { inventoryManager } from '../systems/InventoryManager.js';
+
+const CRAFTING_RECIPES = [
+    {
+        id: 'wooden_stick',
+        name: 'Bastão de Madeira',
+        inputs: [{ itemId: 'stick', amount: 1 }],
+        output: { itemId: 'wooden_stick', amount: 1 }
+    },
+    {
+        id: 'wooden_spear',
+        name: 'Lança de Madeira',
+        inputs: [{ itemId: 'stick', amount: 1 }, { itemId: 'stone', amount: 1 }],
+        output: { itemId: 'wooden_spear', amount: 1 }
+    }
+];
 
 export class InventoryUI {
     constructor() {
@@ -84,6 +100,9 @@ export class InventoryUI {
                     if (content.id === targetId) {
                         content.classList.remove('opacity-0', 'pointer-events-none');
                         content.classList.add('opacity-100');
+                        if (targetId === 'tab-content-crafting') {
+                            this.renderCrafting();
+                        }
                     } else {
                         content.classList.remove('opacity-100');
                         content.classList.add('opacity-0', 'pointer-events-none');
@@ -91,6 +110,80 @@ export class InventoryUI {
                 });
             });
         });
+
+        const recipeList = document.getElementById('recipe-list');
+        if (recipeList) {
+            recipeList.addEventListener('click', (e) => {
+                const craftBtn = e.target.closest('.btn-craft');
+                if (craftBtn) {
+                    this.handleCraftClick(craftBtn.dataset.recipeId);
+                }
+            });
+        }
+    }
+
+    handleCraftClick(recipeId) {
+        const recipe = CRAFTING_RECIPES.find(r => r.id === recipeId);
+        if (!recipe) return;
+
+        // Check if player has required items
+        const backpackState = gameState.backpackState;
+        let canCraft = true;
+
+        for (const input of recipe.inputs) {
+            let totalAmount = 0;
+            for (const slot of backpackState) {
+                if (slot && slot.itemId === input.itemId) {
+                    totalAmount += slot.count;
+                }
+            }
+            if (totalAmount < input.amount) {
+                canCraft = false;
+                break;
+            }
+        }
+
+        if (!canCraft) {
+            if (window.showToast) window.showToast('Recursos insuficientes!', 'text-red-400', 'fa-circle-xmark');
+            return;
+        }
+
+        // Check inventory space (unless output is stackable and we already have a stack, but simpler to just check hasSpace)
+        if (!inventoryManager.hasSpace() && ITEM_DATABASE[recipe.output.itemId].type !== 'material' && ITEM_DATABASE[recipe.output.itemId].type !== 'consumable') {
+             if (window.showToast) window.showToast('Mochila cheia!', 'text-red-400', 'fa-suitcase-rolling');
+             return;
+        }
+
+        // Consume inputs
+        for (const input of recipe.inputs) {
+            let amountToRemove = input.amount;
+            for (let i = 0; i < backpackState.length; i++) {
+                if (amountToRemove <= 0) break;
+                if (backpackState[i] && backpackState[i].itemId === input.itemId) {
+                    if (backpackState[i].count >= amountToRemove) {
+                        backpackState[i].count -= amountToRemove;
+                        amountToRemove = 0;
+                        if (backpackState[i].count === 0) {
+                            backpackState[i] = null;
+                        }
+                    } else {
+                        amountToRemove -= backpackState[i].count;
+                        backpackState[i] = null;
+                    }
+                }
+            }
+        }
+
+        // Add output
+        inventoryManager.addItem(recipe.output.itemId, recipe.output.amount);
+
+        if (window.showToast) {
+            const itemData = ITEM_DATABASE[recipe.output.itemId];
+            window.showToast(`+${recipe.output.amount} ${itemData.name} criado`, 'text-green-400', itemData.icon);
+        }
+
+        this.render();
+        this.renderCrafting();
     }
 
     handleBackpackClick(slotIndex) {
@@ -205,6 +298,60 @@ export class InventoryUI {
                     slot.style.border = '';
                 }
             }
+        });
+    }
+
+    renderCrafting() {
+        if (!this.isOpen) return;
+
+        const recipeList = document.getElementById('recipe-list');
+        if (!recipeList) return;
+
+        recipeList.innerHTML = '';
+
+        CRAFTING_RECIPES.forEach(recipe => {
+            const outputItem = ITEM_DATABASE[recipe.output.itemId];
+
+            let inputsHtml = '';
+            let canCraft = true;
+
+            recipe.inputs.forEach(input => {
+                const inputItem = ITEM_DATABASE[input.itemId];
+
+                let playerAmount = 0;
+                gameState.backpackState.forEach(slot => {
+                    if (slot && slot.itemId === input.itemId) playerAmount += slot.count;
+                });
+
+                const hasEnough = playerAmount >= input.amount;
+                if (!hasEnough) canCraft = false;
+
+                inputsHtml += `
+                    <div class="flex items-center gap-1 text-[10px] ${hasEnough ? 'text-amber-200' : 'text-red-400'}">
+                        <i class="fa-solid ${inputItem.icon}"></i> ${playerAmount}/${input.amount} ${inputItem.name}
+                    </div>
+                `;
+            });
+
+            const recipeDiv = document.createElement('div');
+            recipeDiv.className = 'bg-stone-900/50 border border-amber-900/30 rounded p-2 flex justify-between items-center';
+            recipeDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-stone-950/80 rounded flex items-center justify-center border border-amber-700/50">
+                        <i class="fa-solid ${outputItem.icon} text-amber-500 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-amber-200 font-title mb-1">${recipe.name}</div>
+                        <div class="flex flex-wrap gap-2">
+                            ${inputsHtml}
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-craft px-3 py-1 bg-amber-900/40 hover:bg-amber-700/60 text-amber-200 border border-amber-500/50 rounded text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed" data-recipe-id="${recipe.id}" ${canCraft ? '' : 'disabled'}>
+                    Criar
+                </button>
+            `;
+            recipeList.appendChild(recipeDiv);
         });
     }
 

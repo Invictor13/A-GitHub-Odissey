@@ -261,6 +261,9 @@ export class ProceduralMap {
         if (typeof this.activeBiome.spawnNPCs === 'function') {
             this.activeBiome.spawnNPCs(this.terrainGroup, this.enemies, this.interactiveObjects);
         }
+        if (typeof this.activeBiome.spawnHarvestables === 'function') {
+            this.activeBiome.spawnHarvestables(this.terrainGroup, this.interactiveObjects);
+        }
         this.totalEnemiesSpawned = this.enemies.length;
 
         for (const enemy of this.enemies) {

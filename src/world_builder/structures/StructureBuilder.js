@@ -135,6 +135,29 @@ export class StructureBuilder {
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.6), chestMat); body.position.y = 0.25; group.add(body);
             const metalMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xfacc15, metalness: 0.8, transparent, opacity });
             const lock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.08), metalMat); lock.position.set(0, 0.25, 0.31); group.add(lock);
+        } else if (type === 'furnace') {
+            const stoneMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4b5563, roughness: 0.8, transparent, opacity });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.2), stoneMat); base.position.y = 0.4; group.add(base);
+            const top = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 0.8, 4), stoneMat); top.position.y = 1.2; top.rotation.y = Math.PI / 4; group.add(top);
+            if (!isPreview) {
+                const fireLight = new THREE.PointLight(0xffaa00, 1.5, 5);
+                fireLight.position.set(0, 0.5, 0.65);
+                group.add(fireLight);
+            }
+        } else if (type === 'workbench') {
+            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, roughness: 0.9, transparent, opacity });
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, 0.8), woodMat); top.position.y = 0.8; group.add(top);
+            const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg1.position.set(-0.7, 0.4, -0.3); group.add(leg1);
+            const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg2.position.set(0.7, 0.4, -0.3); group.add(leg2);
+            const leg3 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg3.position.set(-0.7, 0.4, 0.3); group.add(leg3);
+            const leg4 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg4.position.set(0.7, 0.4, 0.3); group.add(leg4);
+        } else if (type === 'anvil') {
+            const metalMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x333333, metalness: 0.8, roughness: 0.4, transparent, opacity });
+            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.9, transparent, opacity });
+            const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.4, 8), woodMat); stump.position.y = 0.2; group.add(stump);
+            const anvilBase = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), metalMat); anvilBase.position.y = 0.5; group.add(anvilBase);
+            const anvilTop = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.3), metalMat); anvilTop.position.y = 0.7; group.add(anvilTop);
+            const horn = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 8), metalMat); horn.position.set(0.55, 0.7, 0); horn.rotation.z = -Math.PI / 2; group.add(horn);
         }
 
         // 3. NATUREZA
