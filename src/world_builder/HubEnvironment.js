@@ -628,12 +628,13 @@ export class HubEnvironment {
     }
 
     setupGridSystem() {
-        this.gridHelper = new THREE.GridHelper(40, 26, 0xfacc15, 0x475569);
+        this.gridHelper = new THREE.GridHelper(200, 100, 0xfacc15, 0x475569);
         this.gridHelper.position.y = 0.12;
         this.gridHelper.visible = false;
         this.hubGroup.add(this.gridHelper);
 
-        this.gridPlane = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({ visible: false }));
+        // Make the grid plane huge so we can navigate the sky to place islands
+        this.gridPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial({ visible: false }));
         this.gridPlane.rotation.x = -Math.PI / 2;
         this.hubGroup.add(this.gridPlane);
     }
@@ -819,11 +820,11 @@ export class HubEnvironment {
 
         const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
         const dist = Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z);
-        const MAX_SKY_DISTANCE = 90.0;
+        const MAX_SKY_DISTANCE = 300.0;
 
         let canPlace = false;
         if (isSkyStructure) {
-            const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 4.0 : 1.5;
+            const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 14.0 : 1.5;
             const isOutsideIslands = this.checkCollision(this.previewMesh.position, safeDistance);
             canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
             if (!canPlace) {
@@ -865,10 +866,7 @@ export class HubEnvironment {
 
         this.lastBuiltPos.copy(this.previewMesh.position);
 
-        if (!this.isFloorType(this.selectedBuildType) && !isContinuous) {
-            this.cancelGridPlacement();
-            window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
-        }
+        window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
     }
 
     handleGridMouseMove(e, camera) {
@@ -897,15 +895,21 @@ export class HubEnvironment {
             const step = 1.5;
             this.gridSnapPos.x = Math.floor(pt.x / step) * step + step / 2;
             this.gridSnapPos.z = Math.floor(pt.z / step) * step + step / 2;
-            this.gridSnapPos.y = Math.sin(this.gridSnapPos.x * 0.3) * Math.cos(this.gridSnapPos.z * 0.3) * 0.5 + 0.05;
 
             const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
+
+            if (isSkyStructure) {
+                this.gridSnapPos.y = (Math.sin(this.gridSnapPos.x * 0.05) * Math.cos(this.gridSnapPos.z * 0.05) * 8.0) - 5.0;
+            } else {
+                this.gridSnapPos.y = Math.sin(this.gridSnapPos.x * 0.3) * Math.cos(this.gridSnapPos.z * 0.3) * 0.5 + 0.05;
+            }
+
             const dist = Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z);
-            const MAX_SKY_DISTANCE = 90.0;
+            const MAX_SKY_DISTANCE = 300.0;
 
             let canPlace = false;
             if (isSkyStructure) {
-                const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 4.0 : 1.5;
+                const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 14.0 : 1.5;
                 const isOutsideIslands = this.checkCollision(this.gridSnapPos, safeDistance);
                 canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
             } else {
@@ -1434,7 +1438,7 @@ export class HubEnvironment {
             if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
 
             if (island.type === 'ilha_satelite') {
-                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= 4.0) {
+                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= 14.0) {
                     return 0.25; // Grass level of satellite island
                 }
             } else if (island.type === 'ponte_magica') {
@@ -1496,7 +1500,7 @@ export class HubEnvironment {
             if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
 
             if (island.type === 'ilha_satelite') {
-                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= (4.0 + (radius || 0))) return false;
+                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= (14.0 + (radius || 0))) return false;
             } else if (island.type === 'ponte_magica') {
                 const ry = island.ry || 0;
                 const dx = pos.x - island.x;

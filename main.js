@@ -616,11 +616,11 @@ function animate() {
                         if (window.keyStates.d || window.keyStates.ArrowRight) currentEnvironment.buildPivot.position.addScaledVector(right, speed * delta);
                     }
 
-                    let camDistY = 25;
-                    let camDistZ = 15;
+                    let camDistY = 35;
+                    let camDistZ = 20;
                     if (currentEnvironment && currentEnvironment.selectedBuildType && (currentEnvironment.selectedBuildType === 'ilha_satelite' || currentEnvironment.selectedBuildType === 'ponte_magica')) {
-                        camDistY = 35;
-                        camDistZ = 20;
+                        camDistY = 60;
+                        camDistZ = 35;
                     }
                     const pivotPos = (currentEnvironment && currentEnvironment.buildPivot) ? currentEnvironment.buildPivot.position : playerPos;
                     targetCamPos = pivotPos.clone().add(new THREE.Vector3(0, camDistY, camDistZ));
