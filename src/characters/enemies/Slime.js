@@ -126,28 +126,28 @@ export class Slime extends Enemy {
 
         // Slow chase logic
         if (!playerPos) return;
-        const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
-        dir.y = 0;
+        this._dirVec.subVectors(playerPos, this.group.position);
+        this._dirVec.y = 0;
 
-        const distToPlayer = dir.length();
+        const distToPlayer = this._dirVec.length();
 
         if (distToPlayer > 1.2 && hopCycle > 0) {
-            dir.normalize();
+            this._dirVec.normalize();
 
             const pRad = 0.4;
-            let nextX = this.group.position.x + dir.x * 1.5 * delta;
-            let nextZ = this.group.position.z + dir.z * 1.5 * delta;
+            let nextX = this.group.position.x + this._dirVec.x * 1.5 * delta;
+            let nextZ = this.group.position.z + this._dirVec.z * 1.5 * delta;
 
             if (checkCollisionFunc) {
                 // Check X movement
-                const testPosX = new THREE.Vector3(nextX, this.group.position.y, this.group.position.z);
-                if (checkCollisionFunc(testPosX, pRad)) {
+                this._testPosX.set(nextX, this.group.position.y, this.group.position.z);
+                if (checkCollisionFunc(this._testPosX, pRad)) {
                     nextX = this.group.position.x; // Blocked on X
                 }
 
                 // Check Z movement
-                const testPosZ = new THREE.Vector3(this.group.position.x, this.group.position.y, nextZ);
-                if (checkCollisionFunc(testPosZ, pRad)) {
+                this._testPosZ.set(this.group.position.x, this.group.position.y, nextZ);
+                if (checkCollisionFunc(this._testPosZ, pRad)) {
                     nextZ = this.group.position.z; // Blocked on Z
                 }
             }
@@ -155,7 +155,7 @@ export class Slime extends Enemy {
             this.group.position.x = nextX;
             this.group.position.z = nextZ;
 
-            this.group.rotation.y = Math.atan2(dir.x, dir.z);
+            this.group.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
         }
 
         // Attack logic

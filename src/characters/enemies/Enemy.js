@@ -20,6 +20,11 @@ export class Enemy {
 
         this.animTime = Math.random() * 10;
         this.manager = null; // Reference to the EnemyManager
+
+        // Cache vectors for zero allocation in child class updates
+        this._dirVec = new THREE.Vector3();
+        this._testPosX = new THREE.Vector3();
+        this._testPosZ = new THREE.Vector3();
     }
 
     update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
