@@ -177,19 +177,21 @@ export class Lizardman extends Enemy {
         // Fast chase logic
         let isMoving = false;
         if (targetPos) {
-            const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
-            dir.y = 0; const dist = dir.length();
+            this._dirVec.subVectors(targetPos, this.group.position);
+            this._dirVec.y = 0; const dist = this._dirVec.length();
             if (dist > 1.4) {
-                dir.normalize();
-                let nextX = this.group.position.x + dir.x * this.speed * delta;
-                let nextZ = this.group.position.z + dir.z * this.speed * delta;
+                this._dirVec.normalize();
+                let nextX = this.group.position.x + this._dirVec.x * this.speed * delta;
+                let nextZ = this.group.position.z + this._dirVec.z * this.speed * delta;
                 const pRad = 0.5;
                 if (checkCollisionFunc) {
-                    if (checkCollisionFunc(new THREE.Vector3(nextX, this.group.position.y, this.group.position.z), pRad)) nextX = this.group.position.x;
-                    if (checkCollisionFunc(new THREE.Vector3(this.group.position.x, this.group.position.y, nextZ), pRad)) nextZ = this.group.position.z;
+                    this._testPosX.set(nextX, this.group.position.y, this.group.position.z);
+                    if (checkCollisionFunc(this._testPosX, pRad)) nextX = this.group.position.x;
+                    this._testPosZ.set(this.group.position.x, this.group.position.y, nextZ);
+                    if (checkCollisionFunc(this._testPosZ, pRad)) nextZ = this.group.position.z;
                 }
                 this.group.position.x = nextX; this.group.position.z = nextZ;
-                this.group.rotation.y = Math.atan2(dir.x, dir.z);
+                this.group.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
                 isMoving = true;
             }
             if (dist < 2.2 && this.attackCooldown <= 0) {

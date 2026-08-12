@@ -601,7 +601,20 @@ export class ProceduralMap {
                     let cell = this.grid[gx][gz];
                     let cellElev = cell.elev * this.STEP_HEIGHT;
                     if (cell.type === this.TILE_SOLID || cell.type === this.TILE_EMPTY || cellElev > pos.y + 1.4) {
-                        return true;
+                        // Spatial partitioning: check actual distance before considering it a collision
+                        // Grid coordinates are centered at (0,0) and scaled by 1
+                        const cellWorldX = gx - this.gridSize / 2;
+                        const cellWorldZ = gz - this.gridSize / 2;
+
+                        const dx = pos.x - cellWorldX;
+                        const dz = pos.z - cellWorldZ;
+                        const distSq = dx * dx + dz * dz;
+
+                        // Roughly cell radius (0.5 * sqrt(2)) + player radius (0.4) = ~1.1
+                        // Squared: 1.1 * 1.1 = 1.21. We use a slightly generous distance for safety
+                        if (distSq < 1.44) {
+                            return true;
+                        }
                     }
                 } else {
                     return true;

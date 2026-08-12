@@ -28,6 +28,13 @@ export class EnemyManager {
 
         this.bloodGeo = new THREE.PlaneGeometry(1.5, 1.5);
         this.bloodGeo.rotateX(-Math.PI / 2);
+
+        // Pre-allocate vectors for melee checks to avoid GC thrashing
+        this._pPos2D = new THREE.Vector2();
+        this._fwd2D = new THREE.Vector2();
+        this._ePos2D = new THREE.Vector2();
+        this._dirToEnemy2D = new THREE.Vector2();
+        this._knockDir = new THREE.Vector3();
     }
 
     addEnemy(enemy) {
@@ -131,26 +138,32 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
                 continue;
             }
 
-            // Update AI for all active enemies without spatial culling
-            enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc, this);
+            // Spatial Culling: Only update enemies within a certain radius of the player
+            // Use squared distance for fast check (e.g., 60 units radius -> 3600 sq)
+            const distSq = enemy.group.position.distanceToSquared(playerPos);
+            if (distSq < 3600) {
+                enemy.update(delta, playerContext, getFloorFunc, checkCollisionFunc, this);
+            }
         }
     }
 
     checkMeleeHit(playerPos, forwardVector, damage, hitDist) {
         const hitEnemies = [];
-        const pPos2D = new THREE.Vector2(playerPos.x, playerPos.z);
-        const fwd2D = new THREE.Vector2(forwardVector.x, forwardVector.z).normalize();
+        this._pPos2D.set(playerPos.x, playerPos.z);
+        this._fwd2D.set(forwardVector.x, forwardVector.z).normalize();
+
+        const hitDistSq = hitDist * hitDist;
 
         for (const enemy of this.enemies) {
             if (enemy.isDead) continue;
 
-            const ePos2D = new THREE.Vector2(enemy.group.position.x, enemy.group.position.z);
-            const dirToEnemy2D = new THREE.Vector2().subVectors(ePos2D, pPos2D);
-            const dist = dirToEnemy2D.length();
+            this._ePos2D.set(enemy.group.position.x, enemy.group.position.z);
+            this._dirToEnemy2D.subVectors(this._ePos2D, this._pPos2D);
 
-            if (dist < hitDist) {
-                dirToEnemy2D.normalize();
-                const dot = fwd2D.dot(dirToEnemy2D);
+            // Fast culling using lengthSq
+            if (this._dirToEnemy2D.lengthSq() < hitDistSq) {
+                this._dirToEnemy2D.normalize();
+                const dot = this._fwd2D.dot(this._dirToEnemy2D);
 
                 // Cone of about 120 degrees (-0.5 to 1.0 on dot product, or more strict like > 0)
                 if (dot > 0.0) {
@@ -159,8 +172,8 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
 
                     // Knockback logic can be added here or inside enemy.takeDamage
                     if (enemy.knockback && enemy.group) {
-                         const knockDir = new THREE.Vector3(dirToEnemy2D.x, 0, dirToEnemy2D.y).normalize();
-                         enemy.knockback.copy(knockDir.multiplyScalar(5.0));
+                         this._knockDir.set(this._dirToEnemy2D.x, 0, this._dirToEnemy2D.y).normalize();
+                         enemy.knockback.copy(this._knockDir.multiplyScalar(5.0));
                          enemy.velocityY = 4.0;
                     }
                 }

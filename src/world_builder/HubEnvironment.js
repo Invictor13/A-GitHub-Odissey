@@ -1468,32 +1468,44 @@ export class HubEnvironment {
 
     checkCollision(pos, radius) {
         if (window.hubBuildingState === 'INSIDE_TENT') {
-            const distFromTentCenter = Math.hypot(pos.x - 200, pos.z - 200);
-            return distFromTentCenter > 4.5;
+            const dx = pos.x - 200;
+            const dz = pos.z - 200;
+            const distSq = dx * dx + dz * dz;
+            return distSq > 4.5 * 4.5; // Avoid Math.hypot inside collision loop
         }
 
         // Use collision radius based on the circular island shape
         const islandRadius = this.ISLAND_SIZE / 2.0;
         const safeRadius = islandRadius + 1.5 + (radius || 0);
+        const safeRadiusSq = safeRadius * safeRadius;
 
-        // Check if player is on central island
-        if (Math.hypot(pos.x, pos.z) <= safeRadius) return false;
+        // Check if player is on central island (spatial partition via squared distance)
+        if ((pos.x * pos.x + pos.z * pos.z) <= safeRadiusSq) return false;
 
         const built = gameState.buildingsBuilt ? gameState.buildingsBuilt.island : 0;
         for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
             const slot = this.expansionSlots[i];
-            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return false; // Inside an expansion
+            const dx = pos.x - slot.x;
+            const dz = pos.z - slot.z;
+            if ((dx * dx + dz * dz) <= safeRadiusSq) return false; // Inside an expansion
         }
 
         // Check Portal Island
-        if (this.portalIslandData && Math.hypot(pos.x - this.portalIslandData.x, pos.z - this.portalIslandData.z) <= this.portalIslandData.radius) {
-            return false;
+        if (this.portalIslandData) {
+            const dx = pos.x - this.portalIslandData.x;
+            const dz = pos.z - this.portalIslandData.z;
+            if ((dx * dx + dz * dz) <= this.portalIslandData.radius * this.portalIslandData.radius) {
+                return false;
+            }
         }
 
         // Check Portal Stepping Stones
         if (this.portalSteppingStones) {
             for (let stone of this.portalSteppingStones) {
-                if (Math.hypot(pos.x - stone.x, pos.z - stone.z) <= stone.radius + 0.5) {
+                const dx = pos.x - stone.x;
+                const dz = pos.z - stone.z;
+                const sr = stone.radius + 0.5;
+                if ((dx * dx + dz * dz) <= sr * sr) {
                     return false;
                 }
             }

@@ -25,6 +25,16 @@ export class Penitent {
         this.lastSafePos = new THREE.Vector3(0, 5, 0);
         this.isResetting = false;
 
+        // Caching vectors for GC zero allocation
+        this._headPos = new THREE.Vector3();
+        this._camDir = new THREE.Vector3();
+        this._camRight = new THREE.Vector3();
+        this._moveVec = new THREE.Vector3();
+        this._testPosX = new THREE.Vector3();
+        this._testPosZ = new THREE.Vector3();
+        this._shieldPos = new THREE.Vector3();
+        this._particleVel = new THREE.Vector3();
+
         // Physics constants
         this.maxSpeed = 10.0;
         this.maxRunSpeed = 20.0;
@@ -324,17 +334,16 @@ export class Penitent {
         this.staminaBarFill.style.width = `${(this.stamina / this.maxStamina) * 100}%`;
 
         // Project position above player's head
-        const headPos = new THREE.Vector3();
-        headPos.copy(this.group.position);
-        headPos.y += 2.5; // offset above head
+        this._headPos.copy(this.group.position);
+        this._headPos.y += 2.5; // offset above head
 
-        headPos.project(camera);
+        this._headPos.project(camera);
 
-        const x = (headPos.x * .5 + .5) * window.innerWidth;
-        const y = (headPos.y * -.5 + .5) * window.innerHeight;
+        const x = (this._headPos.x * .5 + .5) * window.innerWidth;
+        const y = -(this._headPos.y * .5 - .5) * window.innerHeight;
 
         // If behind camera, hide
-        if (headPos.z > 1) {
+        if (this._headPos.z > 1) {
             this.staminaBarContainer.style.display = 'none';
         } else {
             this.staminaBarContainer.style.left = `${x}px`;
@@ -435,7 +444,7 @@ export class Penitent {
 
             const speed = type === 'slash' ? 12 : 5;
             p.userData = {
-                vel: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed),
+                vel: new THREE.Vector3((Math.random()-0.5)*speed, (Math.random()-0.5)*speed, (Math.random()-0.5)*speed), // Kept this one as it's spawn only
                 life: 1.0,
                 type: type
             };
@@ -564,8 +573,10 @@ export class Penitent {
 
         let isMoving = false;
 
-        const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y = 0; camDir.normalize();
-        const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+        camera.getWorldDirection(this._camDir); this._camDir.y = 0; this._camDir.normalize();
+        // Use a cached constant UP vector to avoid allocating one per frame
+        if (!this._upVector) this._upVector = new THREE.Vector3(0, 1, 0);
+        this._camRight.crossVectors(this._camDir, this._upVector).normalize();
 
         const isResting = this.actionState === 'sit' || this.actionState === 'sleep' || this.actionState === 'inventory' || this.actionState === 'damage';
         const isBuildingGrid = window.hubBuildingState === 'BUILDING_GRID';
@@ -582,12 +593,12 @@ export class Penitent {
                 const jy = window.virtualJoystick.y; // Negative jy means pressing UP
 
                 // Add forward/backward (w/s)
-                inputX -= camDir.x * jy;
-                inputZ -= camDir.z * jy;
+                inputX -= this._camDir.x * jy;
+                inputZ -= this._camDir.z * jy;
 
                 // Add left/right (a/d)
-                inputX += camRight.x * jx;
-                inputZ += camRight.z * jx;
+                inputX += this._camRight.x * jx;
+                inputZ += this._camRight.z * jx;
 
                 analogMag = Math.sqrt(jx*jx + jy*jy);
                 if (analogMag > 1.0) analogMag = 1.0;
@@ -597,10 +608,10 @@ export class Penitent {
 
             if (useKeyboard || (inputX === 0 && inputZ === 0)) {
                 let kbX = 0; let kbZ = 0;
-                if (this.keys.w) { kbX += camDir.x; kbZ += camDir.z; }
-                if (this.keys.s) { kbX -= camDir.x; kbZ -= camDir.z; }
-                if (this.keys.a) { kbX -= camRight.x; kbZ -= camRight.z; }
-                if (this.keys.d) { kbX += camRight.x; kbZ += camRight.z; }
+                if (this.keys.w) { kbX += this._camDir.x; kbZ += this._camDir.z; }
+                if (this.keys.s) { kbX -= this._camDir.x; kbZ -= this._camDir.z; }
+                if (this.keys.a) { kbX -= this._camRight.x; kbZ -= this._camRight.z; }
+                if (this.keys.d) { kbX += this._camRight.x; kbZ += this._camRight.z; }
 
                 if (kbX !== 0 || kbZ !== 0) {
                     inputX += kbX;
@@ -610,10 +621,10 @@ export class Penitent {
             }
         }
 
-        const moveVec = new THREE.Vector3(inputX, 0, inputZ);
+        this._moveVec.set(inputX, 0, inputZ);
 
         let isSprinting = false;
-        if (this.keys.shift && this.stamina > 0 && moveVec.lengthSq() > 0) {
+        if (this.keys.shift && this.stamina > 0 && this._moveVec.lengthSq() > 0) {
             isSprinting = true;
         }
 
@@ -621,29 +632,29 @@ export class Penitent {
         if (this.isDefending) targetSpeed = isSprinting ? this.maxRunSpeed * 0.5 : this.maxSpeed * 0.5;
         if (this.isSwimming) targetSpeed = 5;
 
-        if (moveVec.lengthSq() > 0) {
+        if (this._moveVec.lengthSq() > 0) {
             isMoving = true;
-            moveVec.normalize().multiplyScalar(targetSpeed * analogMag * delta);
+            this._moveVec.normalize().multiplyScalar(targetSpeed * analogMag * delta);
 
             const playerRadius = 0.4;
             const originalX = this.group.position.x;
             const originalZ = this.group.position.z;
 
             // Check X movement
-            let nextPosX = originalX + moveVec.x;
-            const testPosX = new THREE.Vector3(nextPosX, this.group.position.y, originalZ);
+            let nextPosX = originalX + this._moveVec.x;
+            this._testPosX.set(nextPosX, this.group.position.y, originalZ);
             let canMoveX = true;
 
-            if (checkCollisionFunc && checkCollisionFunc(testPosX, playerRadius)) {
+            if (checkCollisionFunc && checkCollisionFunc(this._testPosX, playerRadius)) {
                 canMoveX = false;
             }
 
             // Check Z movement
-            let nextPosZ = originalZ + moveVec.z;
-            const testPosZ = new THREE.Vector3(originalX, this.group.position.y, nextPosZ);
+            let nextPosZ = originalZ + this._moveVec.z;
+            this._testPosZ.set(originalX, this.group.position.y, nextPosZ);
             let canMoveZ = true;
 
-            if (checkCollisionFunc && checkCollisionFunc(testPosZ, playerRadius)) {
+            if (checkCollisionFunc && checkCollisionFunc(this._testPosZ, playerRadius)) {
                 canMoveZ = false;
             }
 
@@ -652,7 +663,7 @@ export class Penitent {
 
             // Rotation
             if (canMoveX || canMoveZ) {
-                const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                const targetAngle = Math.atan2(this._moveVec.x, this._moveVec.z);
                 let diff = targetAngle - this.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
 
@@ -690,7 +701,7 @@ export class Penitent {
 
         if (this.isDefending && !this.wasDefending && this.isGrounded) {
             this.spawnVFX(this.group.position, 'dust', 8);
-            const shieldPos = new THREE.Vector3(); this.slotShield.getWorldPosition(shieldPos); this.spawnVFX(shieldPos, 'slash', 6);
+            this.slotShield.getWorldPosition(this._shieldPos); this.spawnVFX(this._shieldPos, 'slash', 6);
         }
         this.wasDefending = this.isDefending;
 
@@ -731,7 +742,8 @@ export class Penitent {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.userData.life -= delta * (p.userData.type === 'slash' ? 3.0 : 1.5);
-            p.position.add(p.userData.vel.clone().multiplyScalar(delta));
+            this._particleVel.copy(p.userData.vel).multiplyScalar(delta);
+            p.position.add(this._particleVel);
             if (p.userData.type === 'slash') p.scale.setScalar(Math.max(0, p.userData.life));
             else { p.position.y += delta * 1.5; p.scale.setScalar(Math.max(0, p.userData.life * 1.5)); }
             if (p.userData.life <= 0) {

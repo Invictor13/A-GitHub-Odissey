@@ -136,27 +136,27 @@ export class Goblin extends Enemy {
         // Fast chase logic
         let isMoving = false;
         if (targetPos) {
-            const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
-            dir.y = 0;
-            const dist = dir.length();
+            this._dirVec.subVectors(targetPos, this.group.position);
+            this._dirVec.y = 0;
+            const dist = this._dirVec.length();
             if (dist > 1.2) {
-                dir.normalize();
+                this._dirVec.normalize();
 
-                let nextX = this.group.position.x + dir.x * 3.5 * delta;
-                let nextZ = this.group.position.z + dir.z * 3.5 * delta;
+                let nextX = this.group.position.x + this._dirVec.x * this.speed * delta;
+                let nextZ = this.group.position.z + this._dirVec.z * this.speed * delta;
                 const pRad = 0.4;
 
                 if (checkCollisionFunc) {
-                    const testPosX = new THREE.Vector3(nextX, this.group.position.y, this.group.position.z);
-                    if (checkCollisionFunc(testPosX, pRad)) nextX = this.group.position.x;
+                    this._testPosX.set(nextX, this.group.position.y, this.group.position.z);
+                    if (checkCollisionFunc(this._testPosX, pRad)) nextX = this.group.position.x;
 
-                    const testPosZ = new THREE.Vector3(this.group.position.x, this.group.position.y, nextZ);
-                    if (checkCollisionFunc(testPosZ, pRad)) nextZ = this.group.position.z;
+                    this._testPosZ.set(this.group.position.x, this.group.position.y, nextZ);
+                    if (checkCollisionFunc(this._testPosZ, pRad)) nextZ = this.group.position.z;
                 }
 
                 this.group.position.x = nextX;
                 this.group.position.z = nextZ;
-                this.group.rotation.y = Math.atan2(dir.x, dir.z);
+                this.group.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
                 isMoving = true;
             }
 
