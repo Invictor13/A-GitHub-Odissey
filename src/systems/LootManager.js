@@ -78,7 +78,7 @@ function createPickupMesh() {
     const group = new THREE.Group();
     // Default shape is a small cube, will be updated per item
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), MAT_COMMON);
-    mesh.castShadow = true;
+    mesh.castShadow = false;
     group.add(mesh);
     group.mesh = mesh; // reference
 
