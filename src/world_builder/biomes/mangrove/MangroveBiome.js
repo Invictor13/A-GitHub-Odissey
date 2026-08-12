@@ -14,7 +14,7 @@ export class MangroveBiome extends BiomeBase {
         this.matFloor = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x1f2617, ...this.matBase });
         this.matRock = new THREE.MeshStandardMaterial({ color: 0x2e3825, ...this.matBase });
-        this.matWater = new THREE.MeshStandardMaterial({ color: 0x3d5431, transparent: true, opacity: 0.9, roughness: 0.1, flatShading: true, depthWrite: false }); // Muddy green water
+        this.matWater = this.getWaterMaterial(0x3d5431); // Muddy green water
 
         this.planeGeo = new THREE.PlaneGeometry(1, 1); this.planeGeo.rotateX(-Math.PI/2);
         this.rockGeo = new THREE.IcosahedronGeometry(0.5, 0);

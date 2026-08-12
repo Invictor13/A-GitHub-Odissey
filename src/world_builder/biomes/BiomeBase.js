@@ -68,6 +68,34 @@ export class BiomeBase {
 
     // Abstract methods to be implemented by child biomes
     setupMaterials() {}
+
+    getWaterMaterial(baseColorHex) {
+        const mat = new THREE.MeshStandardMaterial({ color: baseColorHex, transparent: true, opacity: 0.85, roughness: 0.1, metalness: 0.1, flatShading: true, depthWrite: false });
+        mat.onBeforeCompile = (shader) => {
+            shader.uniforms.uTime = this.map.waterUniforms ? this.map.waterUniforms.uTime : { value: 0 };
+            shader.uniforms.uPlayerPos = this.map.waterUniforms ? this.map.waterUniforms.uPlayerPos : { value: new THREE.Vector3() };
+            shader.vertexShader = `
+                uniform float uTime;
+                uniform vec3 uPlayerPos;
+                ${shader.vertexShader}
+            `;
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                float wave = sin(worldPosition.x * 2.0 + uTime * 2.0) * 0.05 + cos(worldPosition.z * 2.0 + uTime * 1.5) * 0.05;
+                float dist = distance(worldPosition.xyz, uPlayerPos);
+                float ripple = 0.0;
+                if (dist < 3.0) {
+                    ripple = sin(dist * 10.0 - uTime * 5.0) * 0.1 * (1.0 - dist / 3.0);
+                }
+                transformed.y += wave + ripple;
+                `
+            );
+        };
+        return mat;
+    }
     build3DGeometry(terrainGroup, chunksList) {}
     spawnEnemies(enemiesArray) {}
 

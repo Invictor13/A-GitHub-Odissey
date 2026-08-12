@@ -14,7 +14,7 @@ export class CanyonBiome extends BiomeBase {
         this.matFloor = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x8b4513, ...this.matBase }); // Saddle brown
         this.matRock = new THREE.MeshStandardMaterial({ color: 0xa0522d, ...this.matBase }); // Sienna
-        this.matWater = new THREE.MeshStandardMaterial({ color: 0x008b8b, transparent: true, opacity: 0.8, roughness: 0.1, flatShading: true, depthWrite: false });
+        this.matWater = this.getWaterMaterial(0x008b8b);
 
         this.planeGeo = new THREE.PlaneGeometry(1, 1); this.planeGeo.rotateX(-Math.PI/2);
 

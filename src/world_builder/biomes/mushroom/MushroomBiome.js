@@ -14,7 +14,7 @@ export class MushroomBiome extends BiomeBase {
         this.matFloor = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x1f1025, ...this.matBase });
         this.matRock = new THREE.MeshStandardMaterial({ color: 0x3d2b38, ...this.matBase });
-        this.matWater = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.8, roughness: 0.1, flatShading: true, depthWrite: false }); // Maybe glowing water?
+        this.matWater = this.getWaterMaterial(0x0ea5e9); // Maybe glowing water?
 
         this.planeGeo = new THREE.PlaneGeometry(1, 1); this.planeGeo.rotateX(-Math.PI/2);
         this.rockGeo = new THREE.IcosahedronGeometry(0.5, 0);

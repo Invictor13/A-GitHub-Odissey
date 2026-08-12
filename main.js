@@ -674,6 +674,10 @@ function animate() {
         : new THREE.Vector3(0, 0, 0);
 
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
+        // Real-time lighting update
+        sunLight.position.set(playerPos.x + 30, playerPos.y + 40, playerPos.z + 30);
+        sunLight.target.position.copy(playerPos);
+        sunLight.target.updateMatrixWorld();
         currentEnvironment.update(window.gameState.delta, window.gameState.time, camera, playerPos);
 
     }
