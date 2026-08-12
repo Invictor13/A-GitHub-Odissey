@@ -112,16 +112,16 @@ export class DesertBiome extends BiomeBase {
                 }
 
                 if (floorGeos.length > 0) { const mFloor = new THREE.Mesh(mergeGeometries(floorGeos), this.matFloor); mFloor.receiveShadow = true; chunkGroup.add(mFloor); }
-                if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = true; chunkGroup.add(mDirt); }
+                if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = false; chunkGroup.add(mDirt); }
                 if (waterGeos.length > 0) { const mWater = new THREE.Mesh(mergeGeometries(waterGeos), this.matWater); mWater.renderOrder = 5; chunkGroup.add(mWater); }
 
                 if (cactusMatrices.length > 0) {
                     const iCactus = new THREE.InstancedMesh(this.cactusGeo, this.matCactus, cactusMatrices.length);
-                    cactusMatrices.forEach((m, i) => iCactus.setMatrixAt(i, m)); iCactus.castShadow = true; iCactus.receiveShadow = true; chunkGroup.add(iCactus);
+                    cactusMatrices.forEach((m, i) => iCactus.setMatrixAt(i, m)); iCactus.castShadow = false; iCactus.receiveShadow = true; chunkGroup.add(iCactus);
                 }
                 if (rockMatrices.length > 0) {
                     const iRock = new THREE.InstancedMesh(this.rockGeo, this.matRock, rockMatrices.length);
-                    rockMatrices.forEach((m, i) => iRock.setMatrixAt(i, m)); iRock.castShadow = true; iRock.receiveShadow = true; chunkGroup.add(iRock);
+                    rockMatrices.forEach((m, i) => iRock.setMatrixAt(i, m)); iRock.castShadow = false; iRock.receiveShadow = false; chunkGroup.add(iRock);
                 }
 
                 terrainGroup.add(chunkGroup);

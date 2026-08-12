@@ -181,7 +181,7 @@ export class PlainsBiome extends BiomeBase {
                 }
 
                 if (floorGeos.length > 0) { const mFloor = new THREE.Mesh(mergeGeometries(floorGeos), this.matFloor); mFloor.receiveShadow = true; chunkGroup.add(mFloor); }
-                if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = true; chunkGroup.add(mDirt); }
+                if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = false; chunkGroup.add(mDirt); }
 
                 let iTrunk = null, iRock = null;
                 if (trunkMatrices.length > 0) {
@@ -195,7 +195,7 @@ export class PlainsBiome extends BiomeBase {
                 }
                 if (rockMatrices.length > 0) {
                     iRock = new THREE.InstancedMesh(this.rockGeo, this.matRock.clone(), rockMatrices.length);
-                    rockMatrices.forEach((m, i) => iRock.setMatrixAt(i, m)); iRock.castShadow = true; iRock.receiveShadow = true; chunkGroup.add(iRock);
+                    rockMatrices.forEach((m, i) => iRock.setMatrixAt(i, m)); iRock.castShadow = false; iRock.receiveShadow = false; chunkGroup.add(iRock);
                 }
 
                 let instCanopyMesh = null;

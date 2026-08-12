@@ -294,20 +294,20 @@ export class HubEnvironment {
         const topGeo = new THREE.CylinderGeometry(6.0, 5.5, 0.6, 16);
         const topMesh = new THREE.Mesh(topGeo, grassMat);
         topMesh.position.y = 0.3;
-        topMesh.receiveShadow = true; topMesh.castShadow = true;
+        topMesh.receiveShadow = true; topMesh.castShadow = false;
         portalGroup.add(topMesh);
 
         const dirtGeo = new THREE.CylinderGeometry(5.5, 4.5, 1.5, 16);
         const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
         dirtMesh.position.y = -0.75;
-        dirtMesh.receiveShadow = true; dirtMesh.castShadow = true;
+        dirtMesh.receiveShadow = true; dirtMesh.castShadow = false;
         portalGroup.add(dirtMesh);
 
         const botGeo = new THREE.ConeGeometry(4.5, 8.0, 12);
         const botMesh = new THREE.Mesh(botGeo, islandMat);
         botMesh.position.y = -5.5;
         botMesh.rotation.x = Math.PI;
-        botMesh.receiveShadow = true; botMesh.castShadow = true;
+        botMesh.receiveShadow = true; botMesh.castShadow = false;
         portalGroup.add(botMesh);
 
         // --- 2. Ancient Portal Structure ---
@@ -431,17 +431,17 @@ export class HubEnvironment {
         const radius = this.ISLAND_SIZE / 2.0;
 
         const basePlat = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.4, 32), this.matGrass);
-        basePlat.position.y = 0.2; basePlat.receiveShadow = true; basePlat.castShadow = true;
+        basePlat.position.y = 0.2; basePlat.receiveShadow = true; basePlat.castShadow = false;
         terrainGroup.add(basePlat); this.groundMeshes.push(basePlat);
 
         const baseDirt = new THREE.Mesh(new THREE.CylinderGeometry(radius - 0.1, radius - 1.0, 8.0, 32), this.matDirt);
         baseDirt.position.y = -4.0;
-        baseDirt.receiveShadow = true; baseDirt.castShadow = true;
+        baseDirt.receiveShadow = true; baseDirt.castShadow = false;
         terrainGroup.add(baseDirt);
 
         const baseRock = new THREE.Mesh(new THREE.CylinderGeometry(radius - 1.0, radius * 0.3, 20.0, 9), this.matRock);
         baseRock.position.y = -18.0;
-        baseRock.castShadow = true; baseRock.receiveShadow = true;
+        baseRock.castShadow = false; baseRock.receiveShadow = true;
         terrainGroup.add(baseRock);
 
         for (let i = 0; i < 5; i++) {
@@ -450,7 +450,7 @@ export class HubEnvironment {
             const stheta = Math.random() * 2 * Math.PI;
             stalactite.position.set(sr * Math.cos(stheta), -8.0 - Math.random()*2, sr * Math.sin(stheta));
             stalactite.rotation.x = Math.PI;
-            stalactite.castShadow = true;
+            stalactite.castShadow = false;
             terrainGroup.add(stalactite);
         }
 
@@ -463,7 +463,7 @@ export class HubEnvironment {
                 if (z !== 0) lz = -Math.sign(z) * (i * 1.5 + 2.0);
                 s.position.set(lx + (Math.random()-0.5)*0.5, 0.4, lz + (Math.random()-0.5)*0.5);
                 s.rotation.y = Math.random() * Math.PI;
-                s.castShadow = true; s.receiveShadow = true;
+                s.castShadow = false; s.receiveShadow = true;
                 terrainGroup.add(s); this.groundMeshes.push(s);
             }
         }
@@ -697,7 +697,7 @@ export class HubEnvironment {
 
         finalMesh.traverse(child => {
             if (child.isMesh) {
-                child.castShadow = true;
+                if (type === "mud_tile" || type === "stone_tile" || type === "wood_tile" || type === "granite_tile") { child.castShadow = false; } else { child.castShadow = true; }
                 child.receiveShadow = true;
             }
         });

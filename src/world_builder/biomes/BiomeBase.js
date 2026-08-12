@@ -218,7 +218,7 @@ export class BiomeBase {
 
         const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.8), matWood);
         base.position.y = 0.4;
-        base.castShadow = true;
+        base.castShadow = true; base.receiveShadow = true;
         chestGroup.add(base);
 
         const lock = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.1), matMetal);
