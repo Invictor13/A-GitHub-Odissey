@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
 export class WorldMap {
     constructor(scene) {
@@ -671,16 +672,7 @@ export class WorldMap {
 
     cleanup() {
         if (this.worldGroup) {
-            this.worldGroup.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            });
+            disposeHierarchy(this.worldGroup);
             this.scene.remove(this.worldGroup);
         }
 

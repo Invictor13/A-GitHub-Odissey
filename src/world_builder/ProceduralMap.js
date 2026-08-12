@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ForestBiome } from './biomes/forest/ForestBiome.js';
 import { PlainsBiome } from './biomes/plains/PlainsBiome.js';
+import { disposeHierarchy } from '../core/GraphicsUtils.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
 import { MushroomBiome } from './biomes/mushroom/MushroomBiome.js';
 import { BambooBiome } from './biomes/bamboo/BambooBiome.js';
@@ -359,23 +360,13 @@ export class ProceduralMap {
 
     cleanup() {
         if (this.mapGroup) {
-            this.mapGroup.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            });
+            disposeHierarchy(this.mapGroup);
             this.scene.remove(this.mapGroup);
         }
 
         if (this.weatherParticles) {
+            disposeHierarchy(this.weatherParticles);
             this.scene.remove(this.weatherParticles);
-            this.weatherParticles.geometry.dispose();
-            this.weatherParticles.material.dispose();
             this.weatherParticles = null;
         }
         this.enemyManager.cleanup();
