@@ -70,7 +70,7 @@ export class BiomeBase {
     setupMaterials() {}
 
     getWaterMaterial(baseColorHex) {
-        const mat = new THREE.MeshStandardMaterial({ color: baseColorHex, transparent: true, opacity: 0.85, roughness: 0.1, metalness: 0.1, flatShading: true, depthWrite: false });
+        const mat = new THREE.MeshStandardMaterial({ color: baseColorHex, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.1, flatShading: true, depthWrite: false, side: THREE.DoubleSide });
         mat.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = this.map.waterUniforms ? this.map.waterUniforms.uTime : { value: 0 };
             shader.uniforms.uPlayerPos = this.map.waterUniforms ? this.map.waterUniforms.uPlayerPos : { value: new THREE.Vector3() };
