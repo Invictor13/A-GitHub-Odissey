@@ -125,6 +125,7 @@ const introVideo = document.getElementById('intro-video');
 const menuContainer = document.getElementById('main-menu-container');
 const menuBgVideo = document.getElementById('menu-bg-video');
 const btnPlayNew = document.getElementById('btn-play-new');
+const btnNewGame = document.getElementById('btn-new-game');
 
 function transitionToMainMenu() {
     if (introContainer && introContainer.style.display === 'none') return;
@@ -189,6 +190,39 @@ if (btnPlayNew) {
 
             window.changeGameState('HUB');
         }, 1200);
+    });
+}
+
+// Ação de novo jogo a partir do menu principal
+if (btnNewGame) {
+    btnNewGame.addEventListener('click', () => {
+        if (confirm("Você tem certeza que deseja começar um novo jogo? Todo o seu progresso será perdido.")) {
+            // Limpa dados de save
+            localStorage.removeItem('A_GITHUB_ODYSSEY_SAVE');
+            localStorage.removeItem('GHO_SaveData');
+
+            // Reseta o estado em memória
+            if (window.gameState) {
+                window.gameState.resetToDefaults();
+            }
+
+            if (menuContainer) {
+                menuContainer.style.opacity = '0';
+            }
+            setTimeout(() => {
+                if (menuContainer) {
+                    menuContainer.style.display = 'none';
+                }
+                if (menuBgVideo) {
+                    menuBgVideo.pause();
+                }
+
+                const uiOverlay = document.getElementById('ui-overlay');
+                if (uiOverlay) uiOverlay.style.display = 'flex';
+
+                window.changeGameState('HUB');
+            }, 1200);
+        }
     });
 }
 
