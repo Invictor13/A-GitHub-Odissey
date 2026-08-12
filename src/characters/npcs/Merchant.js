@@ -20,43 +20,40 @@ export class Merchant extends NPCBase {
     }
 
     buildModel() {
-        // Body
-        const bodyGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.4, 8);
+        this.setupMaterials();
 
         // Random mantle color
         const mantleColors = [0x8b4513, 0x556b2f, 0x8b0000];
         const mantleColor = mantleColors[Math.floor(Math.random() * mantleColors.length)];
-        const bodyMat = new THREE.MeshStandardMaterial({ color: mantleColor });
+        this.matShirt = new THREE.MeshStandardMaterial({ color: mantleColor, roughness: 0.9 });
 
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = 0.7;
-
-        // Head
-        const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = 1.6;
+        this.buildHumanoid();
 
         // Hood
-        const hoodGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
-        const hoodMat = new THREE.MeshStandardMaterial({ color: mantleColor });
-        const hood = new THREE.Mesh(hoodGeo, hoodMat);
-        hood.position.set(0, 1.62, -0.05);
+        const hoodGeo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+        const hood = new THREE.Mesh(hoodGeo, this.matShirt);
+        hood.position.set(0, 0.2, -0.1);
+        this.headPivot.add(hood);
 
         // Huge Backpack
-        const packGeo = new THREE.BoxGeometry(0.6, 0.8, 0.4);
+        const packGeo = new THREE.BoxGeometry(1.6, 2.2, 1.2);
         const packMat = new THREE.MeshStandardMaterial({ color: 0x4a3c31 });
         const pack = new THREE.Mesh(packGeo, packMat);
-        pack.position.set(0, 0.8, -0.4);
+        pack.position.set(0, 0, -1.2);
         pack.rotation.x = -0.2;
 
-        this.meshGroup.add(body);
-        this.meshGroup.add(head);
-        this.meshGroup.add(hood);
-        this.meshGroup.add(pack);
+        // Bedroll on backpack
+        const rollGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 8);
+        const rollMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const roll = new THREE.Mesh(rollGeo, rollMat);
+        roll.position.set(0, 1.2, 0);
+        roll.rotation.z = Math.PI / 2;
+        pack.add(roll);
+
+        this.torso.add(pack);
     }
 
-interact(player) {
+    interact(player) {
         if (this.isDead) return;
         super.interact(player);
 

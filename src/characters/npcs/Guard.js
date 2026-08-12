@@ -22,60 +22,43 @@ export class Guard extends NPCBase {
     }
 
     buildModel() {
-        // Body (Armor)
-        const bodyGeo = new THREE.CylinderGeometry(0.3, 0.4, 1.4, 8);
-        const armorMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.8, roughness: 0.3 });
-        const body = new THREE.Mesh(bodyGeo, armorMat);
-        body.position.y = 0.7;
-
-        // Head
-        const headGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = 1.55;
+        this.setupMaterials();
+        this.matShirt = this.matSteel; // Overwrite shirt with steel
+        this.buildHumanoid();
 
         // Helmet (Random style)
         const helmetType = Math.random() > 0.5 ? 'full' : 'open';
         let helmetGeo, helmetMat;
 
         if (helmetType === 'full') {
-            helmetGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 8);
+            helmetGeo = new THREE.CylinderGeometry(0.8, 0.8, 1.4, 8);
             helmetMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.9, roughness: 0.2 });
         } else {
-            helmetGeo = new THREE.BoxGeometry(0.4, 0.15, 0.4);
+            helmetGeo = new THREE.BoxGeometry(1.6, 0.6, 1.6);
             helmetMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.7 });
-            // Add some hair
-            const hairGeo = new THREE.BoxGeometry(0.38, 0.1, 0.38);
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const hair = new THREE.Mesh(hairGeo, hairMat);
-            hair.position.y = 1.65;
-            this.meshGroup.add(hair);
         }
 
         const helmet = new THREE.Mesh(helmetGeo, helmetMat);
-        helmet.position.y = helmetType === 'full' ? 1.6 : 1.75;
+        helmet.position.y = helmetType === 'full' ? 0.3 : 0.6;
+        this.headPivot.add(helmet);
 
         // Weapon (Spear/Halberd)
-        const handleGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.0);
+        const handleGeo = new THREE.CylinderGeometry(0.08, 0.08, 4.0);
         const handleMat = new THREE.MeshStandardMaterial({ color: 0x4a3c31 });
         const handle = new THREE.Mesh(handleGeo, handleMat);
 
-        const bladeGeo = new THREE.ConeGeometry(0.1, 0.4, 4);
+        const bladeGeo = new THREE.ConeGeometry(0.3, 1.2, 4);
         const bladeMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.9 });
         const blade = new THREE.Mesh(bladeGeo, bladeMat);
-        blade.position.y = 1.0;
+        blade.position.y = 2.0;
 
         this.weaponGroup = new THREE.Group();
         this.weaponGroup.add(handle);
         this.weaponGroup.add(blade);
 
-        this.weaponGroup.position.set(0.4, 1.0, 0.2);
-        this.weaponGroup.rotation.x = Math.PI / 8; // Held diagonally
-
-        this.meshGroup.add(body);
-        this.meshGroup.add(head);
-        this.meshGroup.add(helmet);
-        this.meshGroup.add(this.weaponGroup);
+        this.handR.add(this.weaponGroup);
+        this.weaponGroup.position.set(0, -0.3, 0.4);
+        this.weaponGroup.rotation.x = Math.PI / 2.5; // Held diagonally
     }
 
     getNewPatrolTarget() {
