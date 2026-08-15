@@ -173,7 +173,7 @@ export class Penitent {
         this.createPart(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 6), this.matSteel, 0, 0.2, 0, 0, 0, 0, this.lanternPivot);
         this.createPart(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 6), this.matSteel, 0, -0.2, 0, 0, 0, 0, this.lanternPivot);
         this.createPart(new THREE.CylinderGeometry(0.08, 0.08, 0.35, 6), this.matFire, 0, 0, 0, 0, 0, 0, this.lanternPivot);
-        this.lanternLight = new THREE.PointLight(0xffaa00, 2, 12); this.lanternLight.position.set(0, 0, 0); this.lanternPivot.add(this.lanternLight);
+        this.lanternLight = new THREE.PointLight(0xffaa00, 4, 30); this.lanternLight.position.set(0, 0, 0); this.lanternPivot.add(this.lanternLight);
         this.penitente.userData.lanternLight = this.lanternLight;
 
         // CABEÇA
@@ -737,7 +737,7 @@ export class Penitent {
         this.wasGrounded = this.isGrounded; this.prevVelocityY = this.velocityY;
         this.isSwimming = isSwimmingState;
 
-        if (this.lanternLight) this.lanternLight.intensity = 1.2 + Math.random() * 0.8;
+        if (this.lanternLight) this.lanternLight.intensity = 3.0 + Math.random() * 1.5;
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
