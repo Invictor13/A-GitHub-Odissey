@@ -83,9 +83,9 @@ export class BiomeBase {
                 '#include <begin_vertex>',
                 `
                 #include <begin_vertex>
-                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-                float wave = sin(worldPosition.x * 2.0 + uTime * 2.0) * 0.05 + cos(worldPosition.z * 2.0 + uTime * 1.5) * 0.05;
-                float dist = distance(worldPosition.xyz, uPlayerPos);
+                vec4 vWorldPos = modelMatrix * vec4(position, 1.0);
+                float wave = sin(vWorldPos.x * 2.0 + uTime * 2.0) * 0.05 + cos(vWorldPos.z * 2.0 + uTime * 1.5) * 0.05;
+                float dist = distance(vWorldPos.xyz, uPlayerPos);
                 float ripple = 0.0;
                 if (dist < 3.0) {
                     ripple = sin(dist * 10.0 - uTime * 5.0) * 0.1 * (1.0 - dist / 3.0);
