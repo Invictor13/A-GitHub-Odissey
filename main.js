@@ -89,6 +89,20 @@ const lightningLight = new THREE.DirectionalLight(0xe0f2fe, 0);
 lightningLight.position.set(0, 50, 0);
 scene.add(lightningLight);
 
+
+// Screen Shake Variables
+window.screenShake = {
+    intensity: 0,
+    timer: 0,
+    decay: 0
+};
+
+window.triggerScreenShake = function(intensity, duration) {
+    window.screenShake.intensity = intensity;
+    window.screenShake.timer = duration;
+    window.screenShake.decay = intensity / duration;
+};
+
 // Global state
 gameState.load();
 window.gameState = gameState;
@@ -510,6 +524,7 @@ window.changeGameState = function(newState, params) {
 
         if (!penitent) {
             penitent = new Penitent(scene);
+            window.penitent = penitent;
             window.penitentGroup = penitent.group;
             penitent.isGrounded = true;
         } else {
@@ -722,7 +737,38 @@ function animate() {
     }
 
 
+
+    // Apply screen shake
+    let shakeDx = 0, shakeDy = 0, shakeDz = 0;
+    if (window.screenShake.timer > 0) {
+        window.screenShake.timer -= window.gameState.delta;
+        if (window.screenShake.timer <= 0) {
+            window.screenShake.intensity = 0;
+            window.screenShake.timer = 0;
+        } else {
+            window.screenShake.intensity -= window.screenShake.decay * window.gameState.delta;
+            if(window.screenShake.intensity < 0) window.screenShake.intensity = 0;
+
+            shakeDx = (Math.random() - 0.5) * window.screenShake.intensity * 2.0;
+            shakeDy = (Math.random() - 0.5) * window.screenShake.intensity * 2.0;
+            shakeDz = (Math.random() - 0.5) * window.screenShake.intensity * 2.0;
+
+            camera.position.x += shakeDx;
+            camera.position.y += shakeDy;
+            camera.position.z += shakeDz;
+            camera.updateMatrixWorld();
+        }
+    }
+
     renderer.render(scene, camera);
+
+    if (shakeDx !== 0 || shakeDy !== 0 || shakeDz !== 0) {
+        camera.position.x -= shakeDx;
+        camera.position.y -= shakeDy;
+        camera.position.z -= shakeDz;
+        camera.updateMatrixWorld();
+    }
+
 
     if (window.InvisibleUI && typeof penitent !== 'undefined' && penitent !== null) {
         window.InvisibleUI.update(window.gameState, penitent, window.gameState.delta);

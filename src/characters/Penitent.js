@@ -53,7 +53,7 @@ export class Penitent {
         this.comboMax = 2;
         this.comboResetTimer = 0;
         this.currentDamage = 2;
-        this.currentReach = 1.0;
+        this.currentReach = 2.0;
         window.addEventListener('equipment-changed', () => { if (window.gameState) this.refreshEquipment(); });
         setTimeout(() => { if (window.gameState) this.refreshEquipment(); }, 100);
 
@@ -269,6 +269,14 @@ export class Penitent {
         this.slashArcMesh.visible = false;
         this.slashArcGroup.add(this.slashArcMesh);
 
+        // Slash trail para soco (unarmed)
+        const unarmedArcGeo = new THREE.PlaneGeometry(3.0, 1.0);
+        this.slashArcUnarmedMesh = new THREE.Mesh(unarmedArcGeo, this.matSlashArc);
+        this.slashArcUnarmedMesh.rotation.x = -Math.PI / 2;
+        this.slashArcUnarmedMesh.position.z = 1.5;
+        this.slashArcUnarmedMesh.visible = false;
+        this.slashArcGroup.add(this.slashArcUnarmedMesh);
+
         // PERNAS
         this.hipL = new THREE.Group(); this.hipL.position.set(-0.6, 1.6, 0); this.bodyGroup.add(this.hipL);
         this.hipR = new THREE.Group(); this.hipR.position.set(0.6, 1.6, 0); this.bodyGroup.add(this.hipR);
@@ -368,7 +376,7 @@ export class Penitent {
         this.ATTACK_DURATION = weaponData ? (0.4 / (weaponData.comboSpeed || 1.0)) : 0.4;
         this.comboMax = weaponData ? (weaponData.comboMax || 2) : 2;
         this.currentDamage = weaponData ? (weaponData.damage || 2) : 2;
-        this.currentReach = weaponData ? (weaponData.reach || 1.0) : 1.0;
+        this.currentReach = weaponData ? (weaponData.reach || 1.0) : 2.0;
 
         this.updateEquipmentVisuals(this.currentWeaponModel, this.currentShieldType);
     }
@@ -741,7 +749,7 @@ export class Penitent {
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.userData.life -= delta * (p.userData.type === 'slash' ? 3.0 : 1.5);
+            p.userData.life -= delta * (p.userData.type === 'slash' ? 5.0 : 1.5);
             this._particleVel.copy(p.userData.vel).multiplyScalar(delta);
             p.position.add(this._particleVel);
             if (p.userData.type === 'slash') p.scale.setScalar(Math.max(0, p.userData.life));

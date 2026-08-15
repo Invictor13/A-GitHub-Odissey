@@ -168,7 +168,8 @@ export class Lizardman extends Enemy {
             targetPos = targetContext ? targetContext.pos : null;
         }
 
-        super.update(delta, targetPos);
+        super.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+        if (this.hitstopTimer > 0) return;
 
         if (this.attackCooldown > 0) {
             this.attackCooldown -= delta;
@@ -194,7 +195,7 @@ export class Lizardman extends Enemy {
                 this.group.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
                 isMoving = true;
             }
-            if (dist < 2.2 && this.attackCooldown <= 0) {
+            if (dist < 1.3 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') targetContext.takeDamage(this.attackDamage);
                 this.attackCooldown = 1.2;
                 this.rightShoulder.rotation.x = -1.8;

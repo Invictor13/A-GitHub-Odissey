@@ -86,7 +86,8 @@ export class Slime extends Enemy {
         // Handle parameters based on the new signature where we pass a context object or vector
         const playerPos = playerContext?.pos || playerContext;
 
-        super.update(delta, playerPos);
+        super.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+        if (this.hitstopTimer > 0) return;
         this.time += delta;
 
         if (this.attackCooldown > 0) {
@@ -159,7 +160,7 @@ export class Slime extends Enemy {
         }
 
         // Attack logic
-        if (distToPlayer < 2.0 && this.attackCooldown <= 0) {
+        if (distToPlayer < 1.2 && this.attackCooldown <= 0) {
             if (targetContext && typeof targetContext.takeDamage === 'function') {
                 targetContext.takeDamage(this.attackDamage);
             }

@@ -68,20 +68,34 @@ export class CombatAnimations {
                 break;
 
             case 'unarmed':
-                // Punches
-                if (comboStep === 1) { // Right hook
-                    torso.y = Math.sin(progress * Math.PI) * 0.5;
+                // Dynamic Thrust Punches
+                if (comboStep === 1) { // Right thrust
+                    // Anticipation (p1): torso.y = -0.25
+                    // Impact/Thrust (p2): torso.y = 0.4
                     if (progress < 0.35) {
-                        shoulderR.x = -Math.PI * 0.2 * p1; shoulderR.y = -0.5 * p1; shoulderR.z = 0.5 * p1; elbowR.x = -1.2 * p1;
+                        torso.y = -0.25 * p1;
+                        shoulderR.x = -Math.PI * 0.1 * p1; // Arm slightly back/up
+                        shoulderR.y = -0.3 * p1;
+                        elbowR.x = -1.5 * p1; // Bend elbow
                     } else {
-                        shoulderR.x = -Math.PI * 0.2 - (Math.PI * 0.4 * p2); shoulderR.y = -0.5 + (1.0 * p2); shoulderR.z = 0.5 - (0.5 * p2); elbowR.x = -1.2 + (1.0 * p2);
+                        torso.y = -0.25 + (0.65 * p2); // Torso twists forward (up to 0.4)
+                        shoulderR.x = -Math.PI * 0.1 - (Math.PI * 0.4 * p2); // Punch forward
+                        shoulderR.y = -0.3 + (0.5 * p2); // Inward rotation
+                        elbowR.x = -1.5 + (1.4 * p2); // Extend arm
                     }
-                } else if (comboStep === 2) { // Left hook
-                    torso.y = -Math.sin(progress * Math.PI) * 0.5;
+                } else if (comboStep === 2) { // Left thrust
+                    // Anticipation (p1): torso.y = 0.25
+                    // Impact/Thrust (p2): torso.y = -0.4
                     if (progress < 0.35) {
-                        shoulderL.x = -Math.PI * 0.2 * p1; shoulderL.y = 0.5 * p1; shoulderL.z = -0.5 * p1; elbowL.x = -1.2 * p1;
+                        torso.y = 0.25 * p1;
+                        shoulderL.x = -Math.PI * 0.1 * p1;
+                        shoulderL.y = 0.3 * p1;
+                        elbowL.x = -1.5 * p1;
                     } else {
-                        shoulderL.x = -Math.PI * 0.2 - (Math.PI * 0.4 * p2); shoulderL.y = 0.5 - (1.0 * p2); shoulderL.z = -0.5 + (0.5 * p2); elbowL.x = -1.2 + (1.0 * p2);
+                        torso.y = 0.25 - (0.65 * p2); // Torso twists forward (up to -0.4)
+                        shoulderL.x = -Math.PI * 0.1 - (Math.PI * 0.4 * p2); // Punch forward
+                        shoulderL.y = 0.3 - (0.5 * p2); // Inward rotation
+                        elbowL.x = -1.5 + (1.4 * p2); // Extend arm
                     }
                 }
                 break;

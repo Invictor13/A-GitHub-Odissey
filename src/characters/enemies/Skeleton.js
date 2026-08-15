@@ -139,7 +139,8 @@ export class Skeleton extends Enemy {
             targetPos = targetContext ? targetContext.pos : null;
         }
 
-        super.update(delta, targetPos);
+        super.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+        if (this.hitstopTimer > 0) return;
 
         if (this.attackCooldown > 0) {
             this.attackCooldown -= delta;
@@ -172,7 +173,7 @@ export class Skeleton extends Enemy {
                 isMoving = true;
             }
 
-            if (dist < 2.5 && this.attackCooldown <= 0) {
+            if (dist < 1.5 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') {
                     targetContext.takeDamage(this.attackDamage);
                 }

@@ -65,7 +65,7 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
         // Define context object required by enemies
         const playerContext = {
             pos: playerPos,
-            takeDamage: (amount) => {
+            takeDamage: (amount, sourcePos) => {
                 try {
                     if (window.gameState && window.gameState.vitals) {
                         window.gameState.vitals.hp = Math.max(0, window.gameState.vitals.hp - amount);
@@ -114,7 +114,7 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
                             minDist = dist;
                             closest = {
                                 pos: entity.group.position,
-                                takeDamage: (amount) => entity.takeDamage(amount),
+                                takeDamage: (amount, sourcePos) => entity.takeDamage(amount, sourcePos),
                                 isNPC: true,
                                 entity: entity
                             };
@@ -166,16 +166,20 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
                 const dot = this._fwd2D.dot(this._dirToEnemy2D);
 
                 // Cone of about 120 degrees (-0.5 to 1.0 on dot product, or more strict like > 0)
-                if (dot > 0.0) {
-                    enemy.takeDamage(damage);
+                if (dot > 0.707) {
+                    enemy.takeDamage(damage, playerPos);
                     hitEnemies.push(enemy);
-
-                    // Knockback logic can be added here or inside enemy.takeDamage
-                    if (enemy.knockback && enemy.group) {
-                         this._knockDir.set(this._dirToEnemy2D.x, 0, this._dirToEnemy2D.y).normalize();
-                         enemy.knockback.copy(this._knockDir.multiplyScalar(5.0));
-                         enemy.velocityY = 4.0;
+                    if (window.triggerScreenShake) {
+                        window.triggerScreenShake(0.05, 0.08); // amplitude 0.05, duration 0.08s
                     }
+                    if (window.penitent && typeof window.penitent.spawnVFX === 'function') {
+                        // Impact position is somewhere between player and enemy
+                        const impactPos = new THREE.Vector3().lerpVectors(playerPos, enemy.group.position, 0.5);
+                        impactPos.y += 1.0; // Approx chest height
+                        window.penitent.spawnVFX(impactPos, 'slash', 6);
+                    }
+
+
                 }
             }
         }
