@@ -4,6 +4,12 @@ import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
+export const BUILD_SLOTS = [
+    { id: 'forge', name: 'Forja', x: -6, y: 0, z: 2, radius: 2.5 },
+    { id: 'farm', name: 'Fazenda', x: 6, y: 0, z: 2, radius: 2.5 },
+    { id: 'lumberjack', name: 'Casa do Lenhador', x: -5, y: 0, z: -4, radius: 2.0 }
+];
+
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
     LIGHT_RAIN: { name: 'Chuva Leve', icon: 'fa-cloud-rain', color: '#38bdf8' },
@@ -226,6 +232,46 @@ export class HubEnvironment {
         this.centralIsland = this.createIslandMesh(0, 0, true);
         this.hubGroup.add(this.centralIsland);
 
+        // Stylized Stone Pathway
+        this.stonePathwayPositions = [];
+        const pathMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });
+
+        // Define path nodes: Tent -> Campfire -> Stairs
+        const pathNodes = [
+            new THREE.Vector3(0, 0, 3.5), // Near Tent
+            new THREE.Vector3(0, 0, 0),   // Campfire
+            new THREE.Vector3(0, 0, -4.0) // Base of steps to Upper Plateau
+        ];
+
+        for (let i = 0; i < pathNodes.length - 1; i++) {
+            const start = pathNodes[i];
+            const end = pathNodes[i+1];
+            const dist = start.distanceTo(end);
+            const numStones = Math.floor(dist / 1.5); // Stone every 1.5 units
+
+            for (let j = 0; j <= numStones; j++) {
+                const t = j / numStones;
+                const pos = new THREE.Vector3().lerpVectors(start, end, t);
+
+                // Add some organic jitter
+                pos.x += (Math.random() - 0.5) * 0.8;
+                pos.z += (Math.random() - 0.5) * 0.8;
+
+                const stoneSize = 0.6 + Math.random() * 0.4;
+                const stoneGeo = new THREE.CylinderGeometry(stoneSize, stoneSize * 0.8, 0.15, 6);
+                const stone = new THREE.Mesh(stoneGeo, pathMat);
+
+                stone.position.set(pos.x, 0.05, pos.z);
+                stone.rotation.y = Math.random() * Math.PI;
+                stone.rotation.x = (Math.random() - 0.5) * 0.1;
+                stone.rotation.z = (Math.random() - 0.5) * 0.1;
+                stone.receiveShadow = true;
+
+                this.centralIsland.add(stone);
+                this.stonePathwayPositions.push({ x: stone.position.x, z: stone.position.z, radius: stoneSize });
+            }
+        }
+
         // Portal Island
         this.createPortalIsland(0, 0, -35);
 
@@ -245,26 +291,63 @@ export class HubEnvironment {
             new THREE.Color(0x84cc16)
         ];
 
-        const grassCount = 100; // Optimization: drastically reduced to 100
+        const grassCount = 1500; // Increased count for better look, still 1 draw call
         const instancedGrass = new THREE.InstancedMesh(bladeGeo, baseMaterial, grassCount);
         const dummy = new THREE.Object3D();
 
         for (let i = 0; i < grassCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = Math.sqrt(Math.random()) * ((this.ISLAND_SIZE / 2.0) - 1.0);
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
+            const r = Math.sqrt(Math.random()) * ((this.ISLAND_SIZE / 2.0) - 1.0);
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
 
-            if (Math.hypot(x, z) < 4.0) {
-                // To keep count exact without a while loop that might block, we can just place it far away or scale 0
+            let isBlocked = false;
+
+            // 1. Check Campfire clearing
+            if (Math.hypot(x, z) < 4.5) isBlocked = true;
+
+            // 2. Check BUILD_SLOTS
+            if (!isBlocked) {
+                for (let slot of BUILD_SLOTS) {
+                    if (Math.hypot(x - slot.x, z - slot.z) < slot.radius + 0.5) {
+                        isBlocked = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Check Stone Pathway
+            if (!isBlocked && this.stonePathwayPositions) {
+                for (let stone of this.stonePathwayPositions) {
+                    if (Math.hypot(x - stone.x, z - stone.z) < stone.radius + 0.5) {
+                        isBlocked = true;
+                        break;
+                    }
+                }
+            }
+
+            // 4. Check Portal Stairs Area (North, z < -4.0 && z > -10.0 && Math.abs(x) < 3.0)
+            if (!isBlocked && z < -4.0 && z > -10.0 && Math.abs(x) < 3.0) {
+                isBlocked = true;
+            }
+
+            // Determine Y based on plateau
+            let grassY = 0.0;
+            const distToPlat2 = Math.hypot(x, z - (-18));
+            if (distToPlat2 < 10.0) {
+                grassY = 1.0;
+            } else if (distToPlat2 < 12.0) {
+                isBlocked = true; // Don't place on steep slopes
+            }
+
+            if (isBlocked) {
                 dummy.scale.setScalar(0);
                 dummy.updateMatrix();
                 instancedGrass.setMatrixAt(i, dummy.matrix);
                 continue;
             }
 
-            const groundY = 0.4;
-            dummy.position.set(x, groundY, z);
+            dummy.position.set(x, grassY, z);
             dummy.rotation.y = Math.random() * Math.PI * 2;
             dummy.rotation.x = (Math.random() - 0.5) * 0.4;
             dummy.rotation.z = (Math.random() - 0.5) * 0.4;
@@ -429,39 +512,108 @@ export class HubEnvironment {
         const group = new THREE.Group();
         const terrainGroup = new THREE.Group();
         const radius = this.ISLAND_SIZE / 2.0;
+        const groundY = 0.0; // Base level is now Y=0
 
-        const basePlat = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.4, 32), this.matGrass);
-        basePlat.position.y = 0.2; basePlat.receiveShadow = true; basePlat.castShadow = false;
-        terrainGroup.add(basePlat); this.groundMeshes.push(basePlat);
+        // 1. Rocky Fractured Base (Low-Poly Noise)
+        const baseHeight = 20.0;
+        const baseGeo = new THREE.CylinderGeometry(radius - 0.2, radius * 0.1, baseHeight, 32, 12);
+        const pos = baseGeo.attributes.position;
+        const colors = [];
+        const colorTop = new THREE.Color(0x3f2e20); // Earth Brown
+        const colorMid = new THREE.Color(0x334155); // Dark Granite
+        const colorBot = new THREE.Color(0x0f172a); // Very Dark Granite
 
-        const baseDirt = new THREE.Mesh(new THREE.CylinderGeometry(radius - 0.1, radius - 1.0, 8.0, 32), this.matDirt);
-        baseDirt.position.y = -4.0;
-        baseDirt.receiveShadow = true; baseDirt.castShadow = false;
-        terrainGroup.add(baseDirt);
+        for (let i = 0; i < pos.count; i++) {
+            let vx = pos.getX(i);
+            let vy = pos.getY(i);
+            let vz = pos.getZ(i);
 
-        const baseRock = new THREE.Mesh(new THREE.CylinderGeometry(radius - 1.0, radius * 0.3, 20.0, 9), this.matRock);
-        baseRock.position.y = -18.0;
-        baseRock.castShadow = false; baseRock.receiveShadow = true;
-        terrainGroup.add(baseRock);
+            const isTop = vy > (baseHeight / 2) - 0.1;
 
-        for (let i = 0; i < 5; i++) {
-            const stalactite = new THREE.Mesh(new THREE.ConeGeometry(1 + Math.random()*2, 4 + Math.random()*6, 5), this.matDirt);
-            const sr = Math.sqrt(Math.random()) * (radius - 2);
-            const stheta = Math.random() * 2 * Math.PI;
-            stalactite.position.set(sr * Math.cos(stheta), -8.0 - Math.random()*2, sr * Math.sin(stheta));
-            stalactite.rotation.x = Math.PI;
-            stalactite.castShadow = false;
-            terrainGroup.add(stalactite);
+            if (!isTop) {
+                const distToCenter = Math.hypot(vx, vz);
+                if (distToCenter > 0.1) {
+                    const noise = (Math.random() - 0.5) * 2.5;
+                    const depthFactor = ( (baseHeight / 2) - vy ) / baseHeight;
+                    vx += (vx / distToCenter) * noise * depthFactor;
+                    vz += (vz / distToCenter) * noise * depthFactor;
+                }
+                vy += (Math.random() - 0.5) * 1.5;
+
+                pos.setX(i, vx);
+                pos.setY(i, vy);
+                pos.setZ(i, vz);
+            }
+
+            const yNorm = (vy + baseHeight / 2) / baseHeight;
+            let c = new THREE.Color();
+            if (yNorm > 0.7) {
+                c.lerpColors(colorMid, colorTop, (yNorm - 0.7) / 0.3);
+            } else {
+                c.lerpColors(colorBot, colorMid, yNorm / 0.7);
+            }
+            colors.push(c.r, c.g, c.b);
         }
 
-        if (!isCentral) {
+        baseGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        baseGeo.computeVertexNormals();
+
+        const matRockVertexColors = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 0.9,
+            flatShading: true,
+        });
+
+        const baseMesh = new THREE.Mesh(baseGeo, matRockVertexColors);
+        baseMesh.position.y = groundY - 0.2 - baseHeight / 2;
+        baseMesh.receiveShadow = true;
+        baseMesh.castShadow = false;
+        terrainGroup.add(baseMesh);
+
+        // 2. Plateaus
+        if (isCentral) {
+            // Lower/Central Plateau (Y = 0)
+            const platGeo1 = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
+            const plat1 = new THREE.Mesh(platGeo1, this.matGrass);
+            plat1.position.y = groundY - 0.2;
+            plat1.receiveShadow = true;
+            terrainGroup.add(plat1);
+            this.groundMeshes.push(plat1);
+
+            // Upper/North Plateau (Y = 1.0)
+            const upRadius = 10.0;
+            const platGeo2 = new THREE.CylinderGeometry(upRadius, upRadius + 2.0, 1.2, 32);
+            const plat2 = new THREE.Mesh(platGeo2, this.matGrass);
+            plat2.position.set(0, groundY + 0.4, -18); // Top surface at Y=1.0
+            plat2.receiveShadow = true;
+            terrainGroup.add(plat2);
+            this.groundMeshes.push(plat2);
+
+            // Add stone edges to plateaus (Contorno de Rocha)
+            const edgeMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8, flatShading: true });
+
+            // Stone steps connecting lower to upper plateau
+            for (let i = 0; i < 4; i++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.3, 1.2), edgeMat);
+                step.position.set(0, groundY + 0.15 + i * 0.25, -5 - i * 1.2);
+                step.receiveShadow = true;
+                terrainGroup.add(step);
+            }
+        } else {
+            const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
+            const plat = new THREE.Mesh(platGeo, this.matGrass);
+            plat.position.y = groundY - 0.2;
+            plat.receiveShadow = true;
+            terrainGroup.add(plat);
+            this.groundMeshes.push(plat);
+
             const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
             for (let i = 0; i < 9; i++) {
                 const s = new THREE.Mesh(stoneGeo, this.matRock);
                 let lx = 0, lz = 0;
                 if (x !== 0) lx = -Math.sign(x) * (i * 1.5 + 2.0);
                 if (z !== 0) lz = -Math.sign(z) * (i * 1.5 + 2.0);
-                s.position.set(lx + (Math.random()-0.5)*0.5, 0.4, lz + (Math.random()-0.5)*0.5);
+                s.position.set(lx + (Math.random()-0.5)*0.5, groundY, lz + (Math.random()-0.5)*0.5);
                 s.rotation.y = Math.random() * Math.PI;
                 s.castShadow = false; s.receiveShadow = true;
                 terrainGroup.add(s); this.groundMeshes.push(s);
@@ -1415,12 +1567,31 @@ export class HubEnvironment {
         const safeRadius = radius + 1.5;
 
         // Check central island
-        if (Math.hypot(pos.x, pos.z) <= safeRadius) return 0.4;
+        if (Math.hypot(pos.x, pos.z) <= safeRadius) {
+            const distToPlat2 = Math.hypot(pos.x, pos.z - (-18));
+
+            // Ramp for stairs
+            if (pos.z > -9.5 && pos.z < -4.0 && Math.abs(pos.x) < 2.5) {
+                const t = (pos.z - (-4.0)) / (-9.5 - (-4.0));
+                return Math.max(0.0, Math.min(1.0, t * 1.0));
+            }
+
+            // Upper Plateau top surface
+            if (distToPlat2 <= 10.0) return 1.0;
+
+            // Upper Plateau steep slope
+            if (distToPlat2 <= 12.0) {
+                const t = (12.0 - distToPlat2) / 2.0;
+                return Math.max(0.0, Math.min(1.0, t * 1.0));
+            }
+
+            return 0.0;
+        }
 
         // Check active expansions
         for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
             const slot = this.expansionSlots[i];
-            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.4;
+            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.0;
         }
 
         // Check Portal Island
