@@ -25,16 +25,49 @@ export class Enemy {
         this._dirVec = new THREE.Vector3();
         this._testPosX = new THREE.Vector3();
         this._testPosZ = new THREE.Vector3();
+        this.knockbackVelocity = new THREE.Vector3();
+        this.hitstopTimer = 0;
+        this.knockbackTimer = 0;
     }
 
     update(delta, playerContext, getFloorFunc, checkCollisionFunc) {
         if (this.isDead) return;
+
+        if (this.hitstopTimer > 0) {
+            this.hitstopTimer -= delta;
+        }
+
+        if (this.knockbackTimer > 0) {
+            this.knockbackTimer -= delta;
+
+            // Move backwards
+            this._testPosX.copy(this.group.position);
+            this._testPosX.x += this.knockbackVelocity.x * delta;
+            if (!checkCollisionFunc || !checkCollisionFunc(this._testPosX, 0.5)) {
+                this.group.position.x = this._testPosX.x;
+            }
+
+            this._testPosZ.copy(this.group.position);
+            this._testPosZ.z += this.knockbackVelocity.z * delta;
+            if (!checkCollisionFunc || !checkCollisionFunc(this._testPosZ, 0.5)) {
+                this.group.position.z = this._testPosZ.z;
+            }
+        }
+
         this.animTime += delta * 15;
-        // Derived classes should override this for specific movement/animations
+        // Derived classes should override this for specific movement/animations, but MUST call super.update first!
     }
 
-    takeDamage(amount) {
+    takeDamage(amount, sourcePos = null) {
         if (this.isDead) return;
+
+        this.hitstopTimer = 0.05;
+        this.knockbackTimer = 0.15;
+        if (sourcePos && this.group) {
+            this.knockbackVelocity.subVectors(this.group.position, sourcePos);
+            this.knockbackVelocity.y = 0;
+            this.knockbackVelocity.normalize().multiplyScalar(5.0); // knockback speed
+        }
         this.hp -= amount;
 
         if (window.showFloatingText && this.group && this.group.position) {

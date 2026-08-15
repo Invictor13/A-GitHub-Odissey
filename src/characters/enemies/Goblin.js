@@ -127,7 +127,8 @@ export class Goblin extends Enemy {
             targetPos = targetContext ? targetContext.pos : null;
         }
 
-        super.update(delta, targetPos);
+        super.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+        if (this.hitstopTimer > 0) return;
 
         if (this.attackCooldown > 0) {
             this.attackCooldown -= delta;
@@ -160,7 +161,7 @@ export class Goblin extends Enemy {
                 isMoving = true;
             }
 
-            if (dist < 2.0 && this.attackCooldown <= 0) {
+            if (dist < 1.2 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') {
                     targetContext.takeDamage(this.attackDamage);
                 }

@@ -172,7 +172,8 @@ export class Kobold extends Enemy {
             targetPos = targetContext ? targetContext.pos : null;
         }
 
-        super.update(delta, targetPos);
+        super.update(delta, playerContext, getFloorFunc, checkCollisionFunc);
+        if (this.hitstopTimer > 0) return;
 
         if (this.attackCooldown > 0) {
             this.attackCooldown -= delta;
@@ -198,7 +199,7 @@ export class Kobold extends Enemy {
                 this.group.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
                 isMoving = true;
             }
-            if (dist < 2.0 && this.attackCooldown <= 0) {
+            if (dist < 1.2 && this.attackCooldown <= 0) {
                 if (targetContext && typeof targetContext.takeDamage === 'function') targetContext.takeDamage(this.attackDamage);
                 this.attackCooldown = 1.0;
                 this.rightElbow.rotation.x = -1.5;

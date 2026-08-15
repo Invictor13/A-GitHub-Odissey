@@ -151,6 +151,15 @@ export class AnimationController {
                 if (char.slashArcMesh && char.currentWeaponModel !== 'unarmed' && char.currentWeaponModel !== 'spear') {
                     char.slashArcMesh.visible = true;
                 }
+                if (char.slashArcUnarmedMesh && char.currentWeaponModel === 'unarmed') {
+                    char.slashArcUnarmedMesh.visible = true;
+                    // Switch sides based on combo
+                    if (char.comboStep === 1) {
+                        char.slashArcUnarmedMesh.rotation.y = 0.2;
+                    } else {
+                        char.slashArcUnarmedMesh.rotation.y = -0.2;
+                    }
+                }
                 if (!char.hasHit) {
                     char.hasHit = true; const tipPos = new THREE.Vector3();
                     if(char.weaponTip) char.weaponTip.getWorldPosition(tipPos); else char.slotWeapon.getWorldPosition(tipPos);
@@ -168,18 +177,30 @@ export class AnimationController {
                     }
                 }
                 attackImpact = Math.sin(((anim.p2 - 0.5) / 0.5) * Math.PI) * 2.0;
-                char.bodyGroup.position.y -= attackImpact * 0.05; char.torso.rotation.x += attackImpact * 0.15;
+                char.bodyGroup.position.y -= attackImpact * 0.05;
+                char.torso.rotation.x += attackImpact * 0.15;
+                if (char.currentWeaponModel === 'unarmed') {
+                    char.bodyGroup.position.z += attackImpact * 0.15; // Projeta pra frente
+                    char.headPivot.rotation.x += attackImpact * 0.1; // Cabeça inclina levemente
+                }
             }
 
             if (char.attackTimer <= 0) {
                 char.isAttacking = false; char.hasHit = false; char.torso.rotation.y = 0;
                 if (char.slashArcMesh) char.slashArcMesh.visible = false;
+                if (char.slashArcUnarmedMesh) char.slashArcUnarmedMesh.visible = false;
                 char.comboResetTimer = 1.0; // 1 second to continue combo
-            } else if (char.slashArcMesh && char.slashArcMesh.visible) {
+            } else {
                 const t = 1 - (char.attackTimer / char.ATTACK_DURATION);
                 const scale = 0.5 + t * 0.6;
-                char.slashArcMesh.scale.set(scale, scale, scale);
                 char.matSlashArc.opacity = 0.8 * (1.0 - t);
+
+                if (char.slashArcMesh && char.slashArcMesh.visible) {
+                    char.slashArcMesh.scale.set(scale, scale, scale);
+                }
+                if (char.slashArcUnarmedMesh && char.slashArcUnarmedMesh.visible) {
+                    char.slashArcUnarmedMesh.scale.set(scale, scale, scale);
+                }
             }
         } else if (!char.isDefending && !isResting) {
             char.hasHit = false; char.torso.rotation.y += (0 - char.torso.rotation.y) * 10 * delta;
