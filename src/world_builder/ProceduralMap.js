@@ -59,12 +59,48 @@ export class ProceduralMap {
         this.portalInteractable = true;
         this.currentIslandData = null;
 
+        this.fireflies = null;
+        this.setupFireflies();
+
         // Shared uniforms that might be used across biomes
         this.grassUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
         this.waterUniforms = { uTime: { value: 0 }, uPlayerPos: { value: new THREE.Vector3(999,999,999) } };
 
         this.activeBiome = null;
         this.biomeCache = {};
+    }
+
+    setupFireflies() {
+        const particleCount = 200;
+        const geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(particleCount * 3);
+        const phases = new Float32Array(particleCount);
+        const speeds = new Float32Array(particleCount);
+
+        for (let i = 0; i < particleCount; i++) {
+            pos[i*3] = (Math.random() - 0.5) * 60;
+            pos[i*3+1] = Math.random() * 4 + 0.5;
+            pos[i*3+2] = (Math.random() - 0.5) * 60;
+            phases[i] = Math.random() * Math.PI * 2;
+            speeds[i] = 0.5 + Math.random() * 1.5;
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+        geo.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
+
+        const mat = new THREE.PointsMaterial({
+            color: 0xccff00,
+            size: 0.25,
+            transparent: true,
+            opacity: 0.0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        this.fireflies = new THREE.Points(geo, mat);
+        this.fireflies.visible = false;
+        this.scene.add(this.fireflies);
     }
 
     setupWeather() {
@@ -369,6 +405,11 @@ export class ProceduralMap {
             this.scene.remove(this.weatherParticles);
             this.weatherParticles = null;
         }
+        if (this.fireflies) {
+            disposeHierarchy(this.fireflies);
+            this.scene.remove(this.fireflies);
+            this.fireflies = null;
+        }
         this.enemyManager.cleanup();
         this.enemies = [];
         this.totalEnemiesSpawned = 0;
@@ -470,12 +511,48 @@ export class ProceduralMap {
         this.grassUniforms.uTime.value = time;
 
         // Update Weather
-        const sunLight = this.scene.children.find(c => c.type === 'DirectionalLight' && c.color.getHex() === 0xffedd5);
-        if (sunLight && this.weatherType === 'RAIN') {
-            sunLight.intensity = 0.5;
-        } else if (sunLight) {
-            sunLight.intensity = 1.6;
+        const sunLight = this.scene.children.find(c => c.type === 'DirectionalLight' && (c.color.getHex() === 0xffedd5 || c.color.getHex() === 0x818cf8));
+        if (sunLight) {
+            const gameTime = window.gameState && window.gameState.hubState ? window.gameState.hubState.gameTimeHours : 12;
+            const isNight = gameTime < 6.0 || gameTime > 18.0;
+
+            let targetIntensity = 1.6; // Day default
+            if (isNight) targetIntensity = 0.4; // Night minimal moonlight
+            else if (this.weatherType === 'RAIN') targetIntensity = 0.5;
+
+            sunLight.intensity = targetIntensity;
+
+            if (isNight) {
+                sunLight.color.setHex(0x818cf8); // Blueish moon color
+            } else {
+                sunLight.color.setHex(0xffedd5); // Warm sun color
+            }
+
+            // Fireflies Logic
+            if (this.fireflies) {
+                if (isNight) {
+                    this.fireflies.visible = true;
+                    this.fireflies.material.opacity = THREE.MathUtils.lerp(this.fireflies.material.opacity, 0.8, delta);
+                    this.fireflies.position.x = targetPos.x;
+                    this.fireflies.position.z = targetPos.z;
+
+                    const posAttr = this.fireflies.geometry.attributes.position;
+                    const phaseAttr = this.fireflies.geometry.attributes.phase;
+                    const speedAttr = this.fireflies.geometry.attributes.speed;
+                    for(let i=0; i<posAttr.count; i++) {
+                        let y = posAttr.getY(i);
+                        y += Math.sin(time * speedAttr.getX(i) + phaseAttr.getX(i)) * delta * 0.5;
+                        if (y < 0.2) y = 0.2;
+                        posAttr.setY(i, y);
+                    }
+                    posAttr.needsUpdate = true;
+                } else {
+                    this.fireflies.material.opacity = THREE.MathUtils.lerp(this.fireflies.material.opacity, 0.0, delta * 2);
+                    if (this.fireflies.material.opacity < 0.05) this.fireflies.visible = false;
+                }
+            }
         }
+
         if (this.weatherParticles) {
             this.weatherParticles.position.x = targetPos.x;
             this.weatherParticles.position.z = targetPos.z;
