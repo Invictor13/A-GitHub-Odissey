@@ -63,11 +63,39 @@ export class Enemy {
 
         this.hitstopTimer = 0.05;
         this.knockbackTimer = 0.15;
+
         if (sourcePos && this.group) {
-            this.knockbackVelocity.subVectors(this.group.position, sourcePos);
-            this.knockbackVelocity.y = 0;
-            this.knockbackVelocity.normalize().multiplyScalar(5.0); // knockback speed
+            const dir = new THREE.Vector3().subVectors(this.group.position, sourcePos);
+            dir.y = 0;
+            dir.normalize();
+            this.knockbackVelocity.copy(dir).multiplyScalar(5.0); // knockback speed
         }
+
+        // Damage Flash
+        if (this.group) {
+            const originalColors = new Map();
+            this.group.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    originalColors.set(child.uuid, child.material.color ? child.material.color.getHex() : null);
+                    if (child.material.color) {
+                        child.material.color.setHex(0xff2222);
+                    }
+                }
+            });
+            setTimeout(() => {
+                if (this.group) {
+                    this.group.traverse((child) => {
+                        if (child.isMesh && child.material && originalColors.has(child.uuid)) {
+                            const hex = originalColors.get(child.uuid);
+                            if (hex !== null) {
+                                child.material.color.setHex(hex);
+                            }
+                        }
+                    });
+                }
+            }, 100);
+        }
+
         this.hp -= amount;
 
         if (window.showFloatingText && this.group && this.group.position) {

@@ -85,6 +85,67 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
                         if (typeof window.gameState.save === 'function') {
                             window.gameState.save();
                         }
+
+                        // GAME OVER LOOP
+                        if (window.gameState.vitals.hp <= 0 && window.penitent && !window.penitent.isDead) {
+                            window.penitent.isDead = true; // 1. Travar inputs
+
+                            // 2. Fade to black
+                            const fadeDiv = document.createElement('div');
+                            fadeDiv.style.position = 'absolute';
+                            fadeDiv.style.top = '0';
+                            fadeDiv.style.left = '0';
+                            fadeDiv.style.width = '100%';
+                            fadeDiv.style.height = '100%';
+                            fadeDiv.style.backgroundColor = 'black';
+                            fadeDiv.style.opacity = '0';
+                            fadeDiv.style.transition = 'opacity 1.5s ease-in-out';
+                            fadeDiv.style.zIndex = '9999';
+                            fadeDiv.style.pointerEvents = 'none';
+                            document.body.appendChild(fadeDiv);
+
+                            setTimeout(() => { fadeDiv.style.opacity = '1'; }, 50);
+
+                            setTimeout(() => {
+                                // 3. Resetar maestrias temporárias
+                                if (window.gameState && window.gameState.masteries) {
+                                    for (let key in window.gameState.masteries) {
+                                        window.gameState.masteries[key].level = 1;
+                                        window.gameState.masteries[key].xp = 0;
+                                    }
+                                }
+
+                                // 4. Teleportar penitente pra base (Santuário Celeste)
+                                const barracaData = window.gameState && window.gameState.hubState && window.gameState.hubState.structures
+                                    ? window.gameState.hubState.structures.find(s => s.type === 'barraca')
+                                    : null;
+
+                                if (barracaData) {
+                                    window.penitent.group.position.set(barracaData.x, barracaData.y + 0.1, barracaData.z + 3.2);
+                                } else {
+                                    window.penitent.group.position.set(0, 0.2, 3.5);
+                                }
+
+                                // 5. Restaurar HP
+                                window.gameState.vitals.hp = window.gameState.vitals.maxHp || 100;
+                                const bar = document.getElementById('vital-hp');
+                                const txt = document.getElementById('txt-hp');
+                                if (bar) bar.style.width = `100%`;
+                                if (txt) txt.innerText = `100%`;
+
+                                // 6. Atualizar estado para HUB e destravar
+                                if (window.changeGameState) {
+                                    window.changeGameState('HUB');
+                                } else {
+                                    window.GAME_STATE = 'HUB';
+                                }
+                                window.hubBuildingState = 'EXPLORING';
+                                window.penitent.isDead = false;
+
+                                fadeDiv.style.opacity = '0';
+                                setTimeout(() => { document.body.removeChild(fadeDiv); }, 1500);
+                            }, 2000);
+                        }
                     }
 
                     if (window.showFloatingText && playerPos) {
@@ -154,12 +215,16 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
 
         const hitDistSq = hitDist * hitDist;
 
+        // Elevar a origem/centro geométrico da caixa delimitadora do ataque no eixo Y
+        const attackOrigin = new THREE.Vector3(playerPos.x, playerPos.y + 1.0, playerPos.z);
+
         for (const enemy of this.enemies) {
             if (enemy.isDead) continue;
 
             this._ePos2D.set(enemy.group.position.x, enemy.group.position.z);
             this._dirToEnemy2D.subVectors(this._ePos2D, this._pPos2D);
 
+            // Sincronizar a detecção da hitbox do ataque com a meia-altura dos modelos inimigos (plano XZ horizontal ignora Y)
             // Fast culling using lengthSq
             if (this._dirToEnemy2D.lengthSq() < hitDistSq) {
                 this._dirToEnemy2D.normalize();
@@ -167,7 +232,7 @@ update(delta, playerGroup, inventoryUI, showToastFunc, getFloorFunc, checkCollis
 
                 // Cone of about 120 degrees (-0.5 to 1.0 on dot product, or more strict like > 0)
                 if (dot > 0.707) {
-                    enemy.takeDamage(damage, playerPos);
+                    enemy.takeDamage(damage, attackOrigin);
                     hitEnemies.push(enemy);
                     if (window.triggerScreenShake) {
                         window.triggerScreenShake(0.05, 0.08); // amplitude 0.05, duration 0.08s
