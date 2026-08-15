@@ -14,12 +14,12 @@ export class ForestBiome extends BiomeBase {
     }
 
     setupMaterials() {
-        this.matFloor = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true });
-        this.matDirt = new THREE.MeshStandardMaterial({ color: 0x271c19, ...this.matBase });
-        this.matRock = new THREE.MeshStandardMaterial({ color: 0x334155, ...this.matBase });
-        this.matTrunk = new THREE.MeshStandardMaterial({ color: 0x1c1917, ...this.matBase });
+        this.matFloor = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+        this.matDirt = new THREE.MeshLambertMaterial({ color: 0x271c19, flatShading: true });
+        this.matRock = new THREE.MeshLambertMaterial({ color: 0x334155, flatShading: true });
+        this.matTrunk = new THREE.MeshLambertMaterial({ color: 0x1c1917, flatShading: true });
         this.matWater = this.getWaterMaterial(0x0ea5e9);
-        this.matCanopy = new THREE.MeshStandardMaterial({ color: 0x022c22, ...this.matBase, transparent: true, depthWrite: false });
+        this.matCanopy = new THREE.MeshStandardMaterial({ color: 0x022c22, ...this.matBase, transparent: false });
 
         this.matCanopy.onBeforeCompile = (shader) => {
             shader.vertexShader = `
@@ -40,7 +40,7 @@ export class ForestBiome extends BiomeBase {
         };
 
         this.grassUniforms = this.map.grassUniforms; // Bind to map's uniforms
-        this.matGrassShader = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.9, flatShading: true });
+        this.matGrassShader = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, flatShading: true });
         this.matGrassShader.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = this.grassUniforms.uTime; shader.uniforms.uPlayerPos = this.grassUniforms.uPlayerPos;
             shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nuniform float uTime;\nuniform vec3 uPlayerPos;\nvarying vec3 vGrassTint;`);
@@ -78,9 +78,9 @@ export class ForestBiome extends BiomeBase {
         this.highGrassGeo.translate(0, 0.4, 0);
 
         // Props Materials
-        this.matPebble = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, ...this.matBase });
-        this.matStump = new THREE.MeshStandardMaterial({ color: 0x3d2817, ...this.matBase });
-        this.matHighGrass = new THREE.MeshStandardMaterial({ color: 0x314c1e, ...this.matBase });
+        this.matPebble = new THREE.MeshLambertMaterial({ color: 0x4a4a4a, flatShading: true });
+        this.matStump = new THREE.MeshLambertMaterial({ color: 0x3d2817, flatShading: true });
+        this.matHighGrass = new THREE.MeshLambertMaterial({ color: 0x314c1e, flatShading: true });
     }
 
     build3DGeometry(terrainGroup, chunksList) {
@@ -241,19 +241,19 @@ export class ForestBiome extends BiomeBase {
                     }
                 }
 
-                if (floorGeos.length > 0) { const mFloor = new THREE.Mesh(mergeGeometries(floorGeos), this.matFloor); mFloor.receiveShadow = true; chunkGroup.add(mFloor); }
+                if (floorGeos.length > 0) { const mFloor = new THREE.Mesh(mergeGeometries(floorGeos), this.matFloor); mFloor.receiveShadow = true; mFloor.castShadow = false; chunkGroup.add(mFloor); }
                 if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = false; chunkGroup.add(mDirt); }
                 if (waterGeos.length > 0) { const mWater = new THREE.Mesh(mergeGeometries(waterGeos), this.matWater); mWater.renderOrder = 10; mWater.castShadow = false; mWater.receiveShadow = true; chunkGroup.add(mWater); }
 
                 let iTrunk = null, iRock = null;
                 if (trunkMatrices.length > 0) {
                     iTrunk = new THREE.InstancedMesh(this.trunkGeo, this.matTrunk.clone(), trunkMatrices.length);
-                    trunkMatrices.forEach((m, i) => iTrunk.setMatrixAt(i, m)); iTrunk.castShadow = true; iTrunk.receiveShadow = true; chunkGroup.add(iTrunk);
+                    trunkMatrices.forEach((m, i) => iTrunk.setMatrixAt(i, m)); iTrunk.castShadow = true; iTrunk.receiveShadow = false; chunkGroup.add(iTrunk);
                 }
                 if (grassMatrices.length > 0) {
                     const iGrass = new THREE.InstancedMesh(this.grassGeo, this.matGrassShader, grassMatrices.length);
                     grassMatrices.forEach((m, i) => { iGrass.setMatrixAt(i, m.matrix); iGrass.setColorAt(i, m.color); });
-                    chunkGroup.add(iGrass);
+                    iGrass.castShadow = false; iGrass.receiveShadow = false; chunkGroup.add(iGrass);
                 }
                 if (rockMatrices.length > 0) {
                     iRock = new THREE.InstancedMesh(this.rockGeo, this.matRock.clone(), rockMatrices.length);
@@ -263,15 +263,15 @@ export class ForestBiome extends BiomeBase {
                 // Add Props
                 if (pebbleMatrices.length > 0) {
                     const iPebble = new THREE.InstancedMesh(this.pebbleGeo, this.matPebble, pebbleMatrices.length);
-                    pebbleMatrices.forEach((m, i) => iPebble.setMatrixAt(i, m)); chunkGroup.add(iPebble);
+                    pebbleMatrices.forEach((m, i) => iPebble.setMatrixAt(i, m)); iPebble.castShadow = false; iPebble.receiveShadow = false; chunkGroup.add(iPebble);
                 }
                 if (stumpMatrices.length > 0) {
                     const iStump = new THREE.InstancedMesh(this.stumpGeo, this.matStump, stumpMatrices.length);
-                    stumpMatrices.forEach((m, i) => iStump.setMatrixAt(i, m)); iStump.castShadow = true; iStump.receiveShadow = true; chunkGroup.add(iStump);
+                    stumpMatrices.forEach((m, i) => iStump.setMatrixAt(i, m)); iStump.castShadow = true; iStump.receiveShadow = false; chunkGroup.add(iStump);
                 }
                 if (highGrassMatrices.length > 0) {
                     const iHighGrass = new THREE.InstancedMesh(this.highGrassGeo, this.matHighGrass, highGrassMatrices.length);
-                    highGrassMatrices.forEach((m, i) => iHighGrass.setMatrixAt(i, m)); chunkGroup.add(iHighGrass);
+                    highGrassMatrices.forEach((m, i) => iHighGrass.setMatrixAt(i, m)); iHighGrass.castShadow = false; iHighGrass.receiveShadow = false; chunkGroup.add(iHighGrass);
                 }
 
                 let instCanopyMesh = null;
@@ -287,7 +287,7 @@ export class ForestBiome extends BiomeBase {
                         instCanopyMesh.setMatrixAt(i, data.matrix);
                         instCanopyMesh.setColorAt(i, defaultColor);
                     });
-                    instCanopyMesh.castShadow = true;
+                    instCanopyMesh.castShadow = false;
                     instCanopyMesh.receiveShadow = false;
                     chunkGroup.add(instCanopyMesh);
                 }
