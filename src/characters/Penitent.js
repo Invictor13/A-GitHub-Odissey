@@ -24,6 +24,7 @@ export class Penitent {
         this.velocityY = 0;
         this.lastSafePos = new THREE.Vector3(0, 5, 0);
         this.isResetting = false;
+        this.isDead = false;
 
         // Caching vectors for GC zero allocation
         this._headPos = new THREE.Vector3();
@@ -577,7 +578,7 @@ export class Penitent {
     }
 
     update(delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc) {
-        if (this.isResetting) return;
+        if (this.isResetting || this.isDead) return;
 
         let isMoving = false;
 
