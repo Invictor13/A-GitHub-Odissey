@@ -3,6 +3,7 @@ import gameState from '../core/GameState.js';
 import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { HubTerrain } from './hub_terrain.js';
+import { HubResources } from './hub_resources.js';
 import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
 
@@ -62,6 +63,9 @@ export class HubEnvironment {
         // Initialize Voxel Terrain
         this.terrain = new HubTerrain(this.scene);
         this.hubGroup.add(this.terrain.group);
+
+        // Initialize Native Resources (Trees, Rocks)
+        this.resources = new HubResources(this.scene, this.terrain);
 
         this.setupEnvironment();
         this.setupEros();
@@ -633,6 +637,14 @@ export class HubEnvironment {
         return this.terrain.getHeightAt(pos.x, pos.z);
     }
 
+
+    checkMeleeHit(pos, fwd, dmg, dist) {
+        if (this.resources) {
+            // Repass hit to resources to handle tree/rock gathering
+            this.resources.hitNode(pos, dmg);
+        }
+    }
+
     checkCollision(pos, radius) {
         if (!this.terrain) return false;
 
@@ -650,7 +662,10 @@ export class HubEnvironment {
         playerBox.min.set(pos.x - r, pos.y + 0.1, pos.z - r);
         playerBox.max.set(pos.x + r, pos.y + h, pos.z + r);
 
-        const colliders = this.terrain.getColliders();
+        let colliders = this.terrain.getColliders();
+        if (this.resources) {
+            colliders = colliders.concat(this.resources.getColliders());
+        }
         for (let i = 0; i < colliders.length; i++) {
             if (playerBox.intersectsBox(colliders[i])) {
                 return true; // Collision detected

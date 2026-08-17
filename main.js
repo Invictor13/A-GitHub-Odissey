@@ -12,6 +12,14 @@ import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
 
 window.floatingDamageManager = new FloatingDamageManager();
 
+window.gainSkillXP = function(skillName, xpAmount) {
+    if (window.gameState && window.gameState.skills) {
+        if (!window.gameState.skills[skillName]) window.gameState.skills[skillName] = 0;
+        window.gameState.skills[skillName] += xpAmount;
+        // Logic for leveling up could go here
+    }
+};
+
 window.showFloatingText = function(text, pos3d, color) {
     if (window.floatingDamageManager) {
         window.floatingDamageManager.createFloatingText(text, pos3d, color);
@@ -541,6 +549,15 @@ window.changeGameState = function(newState, params) {
         if (penitent.group) {
             camera.position.copy(penitent.group.position).add(new THREE.Vector3(14, 18, 14));
             controls.target.copy(penitent.group.position);
+
+            // Connect attack callbacks for HUB to gather resources
+            if (currentEnvironment && typeof currentEnvironment.checkMeleeHit === 'function') {
+                penitent.setMeleeHitCallback((pos, fwd, dmg, dist) => {
+                    currentEnvironment.checkMeleeHit(pos, fwd, dmg, dist);
+                });
+            } else {
+                penitent.setMeleeHitCallback(null);
+            }
         }
     } else if (GAME_STATE === 'WORLD_MAP') {
         const hubUI = document.getElementById('hub-status-ui');
