@@ -2,13 +2,10 @@ import * as THREE from 'three';
 import gameState from '../core/GameState.js';
 import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
+import { HubTerrain } from './hub_terrain.js';
 import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
-export const BUILD_SLOTS = [
-    { id: 'forge', name: 'Forja', x: -6, y: 0, z: 2, radius: 2.5 },
-    { id: 'farm', name: 'Fazenda', x: 6, y: 0, z: 2, radius: 2.5 },
-    { id: 'lumberjack', name: 'Casa do Lenhador', x: -5, y: 0, z: -4, radius: 2.0 }
-];
+
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -28,11 +25,9 @@ export class HubEnvironment {
         this.skyGroup = new THREE.Group();
         this.scene.add(this.skyGroup);
 
-        this.groundMeshes = [];
         this.interactiveObjects = [];
-        this.placedSkyIslands = [];
 
-        this.ISLAND_SIZE = 60.0;
+
 
         this.isNearEros = false;
         this.isModalOpen = false;
@@ -59,26 +54,22 @@ export class HubEnvironment {
         this.mouseVec = new THREE.Vector2();
         this.gridSnapPos = new THREE.Vector3();
 
-        this.expansionSlots = [
-            { x: this.ISLAND_SIZE, z: 0 },
-            { x: -this.ISLAND_SIZE, z: 0 },
-            { x: 0, z: this.ISLAND_SIZE },
-            { x: 0, z: -this.ISLAND_SIZE }
-        ];
+
 
         this.setupMaterials();
         this.setupLightingAndSky();
+
+        // Initialize Voxel Terrain
+        this.terrain = new HubTerrain(this.scene);
+        this.hubGroup.add(this.terrain.group);
+
         this.setupEnvironment();
         this.setupEros();
-        this.buildInteractiveTentInterior();
-        this.setupGridSystem();
+        this.setupPortal();
+
         this.setupWeatherParticles();
 
-        // Spawn based on gameState
-        this.restoreState();
         this.updateTimeAndWeatherHUD();
-
-        this.bindEvents();
     }
 
     setupMaterials() {
@@ -222,253 +213,62 @@ export class HubEnvironment {
             }
             const angle = (i / 8) * Math.PI * 2;
             const r = 12 + Math.random() * 5;
-            cloud.position.set(Math.cos(angle) * r, -7.5 - Math.random() * 3, Math.sin(angle) * r);
+            cloud.position.set(Math.cos(angle) * r, -2.5 - Math.random() * 3, Math.sin(angle) * r);
             cloud.userData = { speed: Math.random() * 0.8 + 0.2 };
             this.hubGroup.add(cloud);
             this.islandBottomClouds.push(cloud);
         }
-
-        // Central Island
-        this.centralIsland = this.createIslandMesh(0, 0, true);
-        this.hubGroup.add(this.centralIsland);
-
-        // Stylized Stone Pathway
-        this.stonePathwayPositions = [];
-        const pathMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });
-
-        // Define path nodes: Tent -> Campfire -> Stairs
-        const pathNodes = [
-            new THREE.Vector3(0, 0, 3.5), // Near Tent
-            new THREE.Vector3(0, 0, 0),   // Campfire
-            new THREE.Vector3(0, 0, -4.0) // Base of steps to Upper Plateau
-        ];
-
-        for (let i = 0; i < pathNodes.length - 1; i++) {
-            const start = pathNodes[i];
-            const end = pathNodes[i+1];
-            const dist = start.distanceTo(end);
-            const numStones = Math.floor(dist / 1.5); // Stone every 1.5 units
-
-            for (let j = 0; j <= numStones; j++) {
-                const t = j / numStones;
-                const pos = new THREE.Vector3().lerpVectors(start, end, t);
-
-                // Add some organic jitter
-                pos.x += (Math.random() - 0.5) * 0.8;
-                pos.z += (Math.random() - 0.5) * 0.8;
-
-                const stoneSize = 0.6 + Math.random() * 0.4;
-                const stoneGeo = new THREE.CylinderGeometry(stoneSize, stoneSize * 0.8, 0.15, 6);
-                const stone = new THREE.Mesh(stoneGeo, pathMat);
-
-                stone.position.set(pos.x, 0.05, pos.z);
-                stone.rotation.y = Math.random() * Math.PI;
-                stone.rotation.x = (Math.random() - 0.5) * 0.1;
-                stone.rotation.z = (Math.random() - 0.5) * 0.1;
-                stone.receiveShadow = true;
-
-                this.centralIsland.add(stone);
-                this.stonePathwayPositions.push({ x: stone.position.x, z: stone.position.z, radius: stoneSize });
-            }
-        }
-
-        // Portal Island
-        this.createPortalIsland(0, 0, -35);
-
-        // Expansion Group
-        this.expansionGroup = new THREE.Group();
-        this.hubGroup.add(this.expansionGroup);
-
-        // Static Grass Optimization (InstancedMesh)
-        const bladeGeo = new THREE.ConeGeometry(0.12, 0.7, 3);
-        bladeGeo.translate(0, 0.35, 0);
-
-        const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, flatShading: true });
-
-        const colors = [
-            new THREE.Color(0x4ad66d),
-            new THREE.Color(0x10b981),
-            new THREE.Color(0x84cc16)
-        ];
-
-        const grassCount = 1500; // Increased count for better look, still 1 draw call
-        const instancedGrass = new THREE.InstancedMesh(bladeGeo, baseMaterial, grassCount);
-        const dummy = new THREE.Object3D();
-
-        for (let i = 0; i < grassCount; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = Math.sqrt(Math.random()) * ((this.ISLAND_SIZE / 2.0) - 1.0);
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-
-            let isBlocked = false;
-
-            // 1. Check Campfire clearing
-            if (Math.hypot(x, z) < 4.5) isBlocked = true;
-
-            // 2. Check BUILD_SLOTS
-            if (!isBlocked) {
-                for (let slot of BUILD_SLOTS) {
-                    if (Math.hypot(x - slot.x, z - slot.z) < slot.radius + 0.5) {
-                        isBlocked = true;
-                        break;
-                    }
-                }
-            }
-
-            // 3. Check Stone Pathway
-            if (!isBlocked && this.stonePathwayPositions) {
-                for (let stone of this.stonePathwayPositions) {
-                    if (Math.hypot(x - stone.x, z - stone.z) < stone.radius + 0.5) {
-                        isBlocked = true;
-                        break;
-                    }
-                }
-            }
-
-            // 4. Check Portal Stairs Area (North, z < -4.0 && z > -10.0 && Math.abs(x) < 3.0)
-            if (!isBlocked && z < -4.0 && z > -10.0 && Math.abs(x) < 3.0) {
-                isBlocked = true;
-            }
-
-            // Determine Y based on plateau
-            let grassY = 0.0;
-            const distToPlat2 = Math.hypot(x, z - (-18));
-            if (distToPlat2 < 10.0) {
-                grassY = 1.0;
-            } else if (distToPlat2 < 12.0) {
-                isBlocked = true; // Don't place on steep slopes
-            }
-
-            if (isBlocked) {
-                dummy.scale.setScalar(0);
-                dummy.updateMatrix();
-                instancedGrass.setMatrixAt(i, dummy.matrix);
-                continue;
-            }
-
-            dummy.position.set(x, grassY, z);
-            dummy.rotation.y = Math.random() * Math.PI * 2;
-            dummy.rotation.x = (Math.random() - 0.5) * 0.4;
-            dummy.rotation.z = (Math.random() - 0.5) * 0.4;
-            dummy.scale.setScalar(0.7 + Math.random() * 0.6);
-
-            dummy.updateMatrix();
-            instancedGrass.setMatrixAt(i, dummy.matrix);
-
-            instancedGrass.setColorAt(i, colors[Math.floor(Math.random() * colors.length)]);
-        }
-
-        instancedGrass.instanceMatrix.needsUpdate = true;
-        instancedGrass.instanceColor.needsUpdate = true;
-        this.centralIsland.add(instancedGrass);
     }
 
-
-    createPortalIsland(x, y, z) {
+    setupPortal() {
         const portalGroup = new THREE.Group();
+        const x = 0, y = 2.0, z = -8.0;
         portalGroup.position.set(x, y, z);
 
-        // --- 1. Island Base ---
-        const islandMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, flatShading: true });
-        const grassMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8, flatShading: true });
-        const dirtMat = new THREE.MeshStandardMaterial({ color: 0x291d16, roughness: 0.85, flatShading: true });
-
-        const topGeo = new THREE.CylinderGeometry(6.0, 5.5, 0.6, 16);
-        const topMesh = new THREE.Mesh(topGeo, grassMat);
-        topMesh.position.y = 0.3;
-        topMesh.receiveShadow = true; topMesh.castShadow = false;
-        portalGroup.add(topMesh);
-
-        const dirtGeo = new THREE.CylinderGeometry(5.5, 4.5, 1.5, 16);
-        const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
-        dirtMesh.position.y = -0.75;
-        dirtMesh.receiveShadow = true; dirtMesh.castShadow = false;
-        portalGroup.add(dirtMesh);
-
-        const botGeo = new THREE.ConeGeometry(4.5, 8.0, 12);
-        const botMesh = new THREE.Mesh(botGeo, islandMat);
-        botMesh.position.y = -5.5;
-        botMesh.rotation.x = Math.PI;
-        botMesh.receiveShadow = true; botMesh.castShadow = false;
-        portalGroup.add(botMesh);
-
-        // --- 2. Ancient Portal Structure ---
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });
 
         // Base platform for portal
         const platformMesh = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 1.5), stoneMat);
-        platformMesh.position.y = 0.7;
+        platformMesh.position.y = 0.1;
         platformMesh.receiveShadow = true; platformMesh.castShadow = true;
         portalGroup.add(platformMesh);
 
         // Pillars
         const pillarGeo = new THREE.BoxGeometry(0.8, 3.5, 0.8);
         const leftPillar = new THREE.Mesh(pillarGeo, stoneMat);
-        leftPillar.position.set(-1.5, 2.5, 0);
+        leftPillar.position.set(-1.5, 1.9, 0);
         leftPillar.receiveShadow = true; leftPillar.castShadow = true;
         portalGroup.add(leftPillar);
 
         const rightPillar = new THREE.Mesh(pillarGeo, stoneMat);
-        rightPillar.position.set(1.5, 2.5, 0);
+        rightPillar.position.set(1.5, 1.9, 0);
         rightPillar.receiveShadow = true; rightPillar.castShadow = true;
         portalGroup.add(rightPillar);
 
         // Arch (Top)
         const archGeo = new THREE.BoxGeometry(3.8, 0.8, 0.8);
         const arch = new THREE.Mesh(archGeo, stoneMat);
-        arch.position.set(0, 4.5, 0);
+        arch.position.set(0, 3.9, 0);
         arch.receiveShadow = true; arch.castShadow = true;
         portalGroup.add(arch);
 
-        // --- 3. Magic Energy Center ---
+        // Magic Energy Center
         const magicMat = new THREE.MeshStandardMaterial({
             color: 0x0ea5e9, emissive: 0x0ea5e9, emissiveIntensity: 0.8,
             transparent: true, opacity: 0.7, side: THREE.DoubleSide
         });
         const energyGeo = new THREE.PlaneGeometry(2.2, 3.4);
         const energyMesh = new THREE.Mesh(energyGeo, magicMat);
-        energyMesh.position.set(0, 2.5, 0);
+        energyMesh.position.set(0, 1.9, 0);
         portalGroup.add(energyMesh);
 
-        // Light source
         const portalLight = new THREE.PointLight(0x0ea5e9, 2.0, 15);
-        portalLight.position.set(0, 2.5, 0.5);
+        portalLight.position.set(0, 1.9, 0.5);
         portalGroup.add(portalLight);
 
         this.hubGroup.add(portalGroup);
 
-        // --- 4. Stepping Stones Path ---
-        // Add Stepping Stones directly to hubGroup
-        for (let i = 1; i <= 4; i++) {
-            const zPos = -16 - (i * 3.0); // Z from -19 to -28
-            const stoneSize = 1.2 + Math.random() * 0.4;
-            const sGeo = new THREE.CylinderGeometry(stoneSize, stoneSize - 0.2, 0.8, 8);
-            const sMesh = new THREE.Mesh(sGeo, stoneMat);
-
-            // Add a grass patch on top
-            const sGrass = new THREE.Mesh(new THREE.CylinderGeometry(stoneSize, stoneSize, 0.2, 8), grassMat);
-            sGrass.position.y = 0.5;
-            sMesh.add(sGrass);
-
-            // Give it some hover variance
-            sMesh.position.set((Math.random() - 0.5) * 1.5, 0.2 + (Math.random() * 0.3), zPos);
-            sMesh.rotation.y = Math.random() * Math.PI;
-
-            this.hubGroup.add(sMesh);
-
-            // Track stepping stones for walkability
-            if (!this.portalSteppingStones) this.portalSteppingStones = [];
-            this.portalSteppingStones.push({
-                x: sMesh.position.x,
-                y: sMesh.position.y + 0.5, // Walkable height
-                z: sMesh.position.z,
-                radius: stoneSize
-            });
-        }
-
-        // --- 5. Registration ---
-        this.portalIslandData = { x, y: 0.6, z, radius: 6.0 }; // Walkable radius
+        this.portalIslandData = { x, y: y + 0.1, z, radius: 2.0 };
 
         portalGroup.userData.interactable = true;
         portalGroup.userData.name = 'PortalExpedicao';
@@ -508,130 +308,14 @@ export class HubEnvironment {
     }
 
 
-    createIslandMesh(x, z, isCentral = false) {
-        const group = new THREE.Group();
-        const terrainGroup = new THREE.Group();
-        const radius = this.ISLAND_SIZE / 2.0;
-        const groundY = 0.0; // Base level is now Y=0
-
-        // 1. Rocky Fractured Base (Low-Poly Noise)
-        const baseHeight = 20.0;
-        const baseGeo = new THREE.CylinderGeometry(radius - 0.2, radius * 0.1, baseHeight, 32, 12);
-        const pos = baseGeo.attributes.position;
-        const colors = [];
-        const colorTop = new THREE.Color(0x3f2e20); // Earth Brown
-        const colorMid = new THREE.Color(0x334155); // Dark Granite
-        const colorBot = new THREE.Color(0x0f172a); // Very Dark Granite
-
-        for (let i = 0; i < pos.count; i++) {
-            let vx = pos.getX(i);
-            let vy = pos.getY(i);
-            let vz = pos.getZ(i);
-
-            const isTop = vy > (baseHeight / 2) - 0.1;
-
-            if (!isTop) {
-                const distToCenter = Math.hypot(vx, vz);
-                if (distToCenter > 0.1) {
-                    const noise = (Math.random() - 0.5) * 2.5;
-                    const depthFactor = ( (baseHeight / 2) - vy ) / baseHeight;
-                    vx += (vx / distToCenter) * noise * depthFactor;
-                    vz += (vz / distToCenter) * noise * depthFactor;
-                }
-                vy += (Math.random() - 0.5) * 1.5;
-
-                pos.setX(i, vx);
-                pos.setY(i, vy);
-                pos.setZ(i, vz);
-            }
-
-            const yNorm = (vy + baseHeight / 2) / baseHeight;
-            let c = new THREE.Color();
-            if (yNorm > 0.7) {
-                c.lerpColors(colorMid, colorTop, (yNorm - 0.7) / 0.3);
-            } else {
-                c.lerpColors(colorBot, colorMid, yNorm / 0.7);
-            }
-            colors.push(c.r, c.g, c.b);
-        }
-
-        baseGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-        baseGeo.computeVertexNormals();
-
-        const matRockVertexColors = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            roughness: 0.9,
-            flatShading: true,
-        });
-
-        const baseMesh = new THREE.Mesh(baseGeo, matRockVertexColors);
-        baseMesh.position.y = groundY - 0.2 - baseHeight / 2;
-        baseMesh.receiveShadow = true;
-        baseMesh.castShadow = false;
-        terrainGroup.add(baseMesh);
-
-        // 2. Plateaus
-        if (isCentral) {
-            // Lower/Central Plateau (Y = 0)
-            const platGeo1 = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
-            const plat1 = new THREE.Mesh(platGeo1, this.matGrass);
-            plat1.position.y = groundY - 0.2;
-            plat1.receiveShadow = true;
-            terrainGroup.add(plat1);
-            this.groundMeshes.push(plat1);
-
-            // Upper/North Plateau (Y = 1.0)
-            const upRadius = 10.0;
-            const platGeo2 = new THREE.CylinderGeometry(upRadius, upRadius + 2.0, 1.2, 32);
-            const plat2 = new THREE.Mesh(platGeo2, this.matGrass);
-            plat2.position.set(0, groundY + 0.4, -18); // Top surface at Y=1.0
-            plat2.receiveShadow = true;
-            terrainGroup.add(plat2);
-            this.groundMeshes.push(plat2);
-
-            // Add stone edges to plateaus (Contorno de Rocha)
-            const edgeMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8, flatShading: true });
-
-            // Stone steps connecting lower to upper plateau
-            for (let i = 0; i < 4; i++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.3, 1.2), edgeMat);
-                step.position.set(0, groundY + 0.15 + i * 0.25, -5 - i * 1.2);
-                step.receiveShadow = true;
-                terrainGroup.add(step);
-            }
-        } else {
-            const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
-            const plat = new THREE.Mesh(platGeo, this.matGrass);
-            plat.position.y = groundY - 0.2;
-            plat.receiveShadow = true;
-            terrainGroup.add(plat);
-            this.groundMeshes.push(plat);
-
-            const stoneGeo = new THREE.BoxGeometry(1.2, 0.2, 1.2);
-            for (let i = 0; i < 9; i++) {
-                const s = new THREE.Mesh(stoneGeo, this.matRock);
-                let lx = 0, lz = 0;
-                if (x !== 0) lx = -Math.sign(x) * (i * 1.5 + 2.0);
-                if (z !== 0) lz = -Math.sign(z) * (i * 1.5 + 2.0);
-                s.position.set(lx + (Math.random()-0.5)*0.5, groundY, lz + (Math.random()-0.5)*0.5);
-                s.rotation.y = Math.random() * Math.PI;
-                s.castShadow = false; s.receiveShadow = true;
-                terrainGroup.add(s); this.groundMeshes.push(s);
-            }
-        }
-
-        group.add(terrainGroup); group.position.set(x, 0, z);
-        terrainGroup.updateMatrixWorld(true);
-        return group;
-    }
-
     setupEros() {
-        this.eros = new Eros(this.scene, new THREE.Vector3(4.0, 0.4, 4.0));
+        this.eros = new Eros(this.scene, new THREE.Vector3(2.0, 2.0, 0.5));
+        this.eros.group.lookAt(0, 2, 0);
         this.eros.group.scale.setScalar(0.82);
         this.hubGroup.add(this.eros.group);
 
         this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
-        this.erosSpot.position.set(4.0, 10, 4.0); this.erosSpot.castShadow = true;
+        this.erosSpot.position.set(2.0, 10, 0.5); this.erosSpot.castShadow = true;
         this.scene.add(this.erosSpot); this.scene.add(this.erosSpot.target);
 
         this.eros.group.userData.interactable = true;
@@ -654,496 +338,6 @@ export class HubEnvironment {
         });
     }
 
-    buildInteractiveTentInterior() {
-        this.tentInteriorGroup = new THREE.Group();
-        this.tentInteriorGroup.position.set(200, 0, 200);
-
-        const floorGeo = new THREE.CylinderGeometry(5.2, 5.4, 0.3, 24);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x3d230d, roughness: 0.85 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.position.y = -0.15; floor.receiveShadow = true;
-        this.tentInteriorGroup.add(floor);
-
-        const roomGeo = new THREE.CylinderGeometry(5.0, 5.3, 4.2, 24, 1, true);
-        const roomMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.8, side: THREE.BackSide });
-        const roomShell = new THREE.Mesh(roomGeo, roomMat);
-        roomShell.position.y = 2.1;
-        this.tentInteriorGroup.add(roomShell);
-
-        const roofInnerGeo = new THREE.ConeGeometry(5.2, 2.5, 24, 1, true);
-        const roofInner = new THREE.Mesh(roofInnerGeo, roomMat);
-        roofInner.position.y = 5.35;
-        this.tentInteriorGroup.add(roofInner);
-
-        const warmLight1 = new THREE.PointLight(0xff9900, 3.8, 12);
-        warmLight1.position.set(0, 3.2, 0); warmLight1.castShadow = true;
-        this.tentInteriorGroup.add(warmLight1);
-
-        // Exit Rug
-        const rugGeo = new THREE.BoxGeometry(2.2, 0.04, 1.4);
-        const rugMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.7 });
-        const exitRug = new THREE.Mesh(rugGeo, rugMat);
-        exitRug.position.set(0, 0.02, 3.8); exitRug.receiveShadow = true;
-        this.tentInteriorGroup.add(exitRug);
-
-        const rugBorder = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.03, 1.6), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
-        rugBorder.position.set(0, 0.01, 3.8);
-        this.tentInteriorGroup.add(rugBorder);
-
-        // Small Table with Journal & Candle
-        const tableGroup = new THREE.Group();
-        tableGroup.position.set(-3.2, 0, -2.2);
-
-        const smallDesk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.85, 0.9, 12), new THREE.MeshStandardMaterial({ color: 0x4a2e16, roughness: 0.8 }));
-        smallDesk.position.y = 0.45; smallDesk.castShadow = true; tableGroup.add(smallDesk);
-
-        const journalCover = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.5 }));
-        journalCover.position.set(-0.1, 0.94, 0.05); journalCover.rotation.y = 0.25; tableGroup.add(journalCover);
-
-        const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        candle.position.set(0.25, 1.05, -0.1); tableGroup.add(candle);
-
-        const candleFlame = new THREE.PointLight(0xffaa00, 1.2, 3);
-        candleFlame.position.set(0.25, 1.25, -0.1); tableGroup.add(candleFlame);
-
-        this.tentInteriorGroup.add(tableGroup);
-
-        // Sleeping Bag
-        const bedGroup = new THREE.Group();
-        bedGroup.position.set(2.8, 0, -1.0); bedGroup.rotation.y = -Math.PI / 6;
-
-        const matress = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, 2.6), new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.85 }));
-        matress.position.y = 0.075; matress.castShadow = true; bedGroup.add(matress);
-
-        const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.22, 0.6), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 }));
-        pillow.position.set(0, 0.18, -0.9); bedGroup.add(pillow);
-
-        const blanket = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.18, 1.7), new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.8 }));
-        blanket.position.set(0, 0.1, 0.35); bedGroup.add(blanket);
-
-        this.tentInteriorGroup.add(bedGroup);
-
-        // Tactical Map Desk
-        const desk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.18, 1.5), new THREE.MeshStandardMaterial({ color: 0x3d230d, roughness: 0.8 }));
-        desk.position.set(0, 0.9, -2.5); desk.castShadow = true;
-        this.tentInteriorGroup.add(desk);
-
-        const mapMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.2), new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.9, side: THREE.DoubleSide }));
-        mapMesh.rotation.x = -Math.PI / 2; mapMesh.position.set(0, 0.99, -2.5);
-        this.tentInteriorGroup.add(mapMesh);
-
-        this.scene.add(this.tentInteriorGroup);
-
-        // Register Interactions Inside Tent
-        exitRug.userData.interactable = true;
-        exitRug.userData.name = 'TapeteSaida';
-        this.interactiveObjects.push({
-            name: 'TapeteSaida',
-            mesh: exitRug,
-            position: new THREE.Vector3(200, 0, 203.5),
-            radius: 2.0,
-            action: () => this.exitTent(),
-            prompt: 'Sair para o Acampamento (Saída)'
-        });
-
-        tableGroup.userData.interactable = true;
-        tableGroup.userData.name = 'Diario';
-        this.interactiveObjects.push({
-            name: 'Diario',
-            mesh: tableGroup,
-            position: new THREE.Vector3(196.8, 0, 197.8),
-            radius: 2.5,
-            action: () => this.handleJournalInteraction(),
-            prompt: 'Ler e Salvar Progresso no Diário'
-        });
-
-        bedGroup.userData.interactable = true;
-        bedGroup.userData.name = 'SacoDormir';
-        this.interactiveObjects.push({
-            name: 'SacoDormir',
-            mesh: bedGroup,
-            position: new THREE.Vector3(202.8, 0, 199.0),
-            radius: 2.5,
-            action: () => this.sleepInTent(),
-            prompt: 'Dormir por 8 Horas (Avançar Tempo)'
-        });
-
-        desk.userData.interactable = true;
-        desk.userData.name = 'MesaTatica';
-        this.interactiveObjects.push({
-            name: 'MesaTatica',
-            mesh: desk,
-            position: new THREE.Vector3(200, 0, 197.5),
-            radius: 2.5,
-            action: () => window.changeGameState('WORLD_MAP'),
-            prompt: 'Examinar Mapa Tático (Incursão)'
-        });
-    }
-
-    setupGridSystem() {
-        this.gridHelper = new THREE.GridHelper(200, 100, 0xfacc15, 0x475569);
-        this.gridHelper.position.y = 0.12;
-        this.gridHelper.visible = false;
-        this.hubGroup.add(this.gridHelper);
-
-        // Make the grid plane huge so we can navigate the sky to place islands
-        this.gridPlane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial({ visible: false }));
-        this.gridPlane.rotation.x = -Math.PI / 2;
-        this.hubGroup.add(this.gridPlane);
-    }
-
-    setupWeatherParticles() {
-        this.weatherParticleGroup = new THREE.Group();
-        const pCount = 450;
-        const pGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(pCount * 3);
-
-        for (let i = 0; i < pCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 80;
-            positions[i * 3 + 1] = Math.random() * 30;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
-        }
-
-        pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const pMat = new THREE.PointsMaterial({
-            color: 0xffffff, size: 0.25, transparent: true, opacity: 0, depthWrite: false
-        });
-
-        const particles = new THREE.Points(pGeo, pMat);
-        this.weatherParticleGroup.add(particles);
-        this.scene.add(this.weatherParticleGroup);
-
-        this.lightningTimer = 0;
-    }
-
-    triggerIslandExpansion(level, animate = true) {
-        if (level <= this.expansionSlots.length) {
-            const slot = this.expansionSlots[level - 1];
-            const newIsland = this.createIslandMesh(slot.x, slot.z, false);
-
-            if(animate) {
-                newIsland.position.y = -35; newIsland.scale.set(0.1, 0.1, 0.1);
-                this.expansionGroup.add(newIsland);
-
-                let animProgress = 0;
-                const animInterval = setInterval(() => {
-                    animProgress += 0.02;
-                    newIsland.position.y = -35 + (35 * animProgress);
-                    newIsland.scale.setScalar(animProgress);
-                    if (animProgress >= 1.0) {
-                        newIsland.position.y = 0; newIsland.scale.set(1, 1, 1);
-                        clearInterval(animInterval);
-                    }
-                }, 16);
-            } else {
-                newIsland.position.y = 0; newIsland.scale.set(1, 1, 1);
-                this.expansionGroup.add(newIsland);
-            }
-        }
-    }
-
-    instantiatePlacedStructure(type, x, y, z, ry, isNew = true) {
-        const finalMesh = StructureBuilder.create3DObject(type, false);
-        finalMesh.position.set(x, y, z);
-        finalMesh.rotation.y = ry || 0;
-
-        finalMesh.traverse(child => {
-            if (child.isMesh) {
-                if (type === "mud_tile" || type === "stone_tile" || type === "wood_tile" || type === "granite_tile") { child.castShadow = false; } else { child.castShadow = true; }
-                child.receiveShadow = true;
-            }
-        });
-
-        this.hubGroup.add(finalMesh);
-
-        // Bind interactive triggers if needed
-        if (type === 'barraca') {
-            finalMesh.userData.interactable = true;
-            finalMesh.userData.name = 'Barraca';
-            this.interactiveObjects.push({
-                name: 'Barraca',
-                mesh: finalMesh,
-                position: new THREE.Vector3(x, y, z),
-                radius: 3.8,
-                action: () => this.enterTent(),
-                prompt: 'Entrar na Barraca (Acomodações)'
-            });
-        } else if (type === 'fogueira') {
-            finalMesh.userData.interactable = true;
-            finalMesh.userData.name = 'Fogueira';
-            this.interactiveObjects.push({
-                name: 'Fogueira',
-                mesh: finalMesh,
-                position: new THREE.Vector3(x, y, z),
-                radius: 3.2,
-                action: () => window.showToast("🔥 Você se aquece ao lado da fogueira do Santuário.", "fa-fire", "fa-fire"),
-                prompt: 'Aquecer-se na Fogueira'
-            });
-        } else if (type === 'espelho') {
-            finalMesh.userData.interactable = true;
-            finalMesh.userData.name = 'Espelho';
-            this.interactiveObjects.push({
-                name: 'Espelho',
-                mesh: finalMesh,
-                position: new THREE.Vector3(x, y, z),
-                radius: 3.0,
-                action: () => window.showToast("Customização de Aparência (Em Breve)", "text-blue-400", "fa-person"),
-                prompt: 'Alterar Aparência'
-            });
-        }
-
-        if (type === 'furnace' || type === 'workbench' || type === 'anvil') {
-            const interactableGroup = finalMesh; // the returned group from StructureBuilder
-            interactableGroup.userData = {
-                interactable: true,
-                name: type === 'furnace' ? 'Fornalha' : (type === 'workbench' ? 'Bancada de Trabalho' : 'Bigorna')
-            };
-
-            this.interactiveObjects.push({
-                mesh: interactableGroup,
-                position: new THREE.Vector3(x, y, z),
-                radius: 3.0,
-                action: () => {
-                    if (window.inventoryUI) {
-                        if (!window.inventoryUI.isOpen) {
-                            window.inventoryUI.toggle();
-                        }
-                        const tabBtn = document.getElementById('tab-btn-crafting');
-                        if (tabBtn) tabBtn.click();
-                    }
-                },
-                prompt: type === 'furnace' ? 'Abrir Fornalha' : (type === 'workbench' ? 'Abrir Bancada' : 'Usar Bigorna')
-            });
-        }
-
-        // Track sky structures for collision and walkability
-        if (type === 'ilha_satelite' || type === 'ponte_magica') {
-            this.placedSkyIslands.push({ type, x, y, z, ry });
-        }
-
-        if (isNew) {
-            gameState.hubState.structures.push({ type, x, y, z, ry });
-            gameState.save();
-        }
-    }
-
-    startGridPlacement(type) {
-        this.selectedBuildType = type;
-        this.previewRotationY = 0;
-
-        const buildUI = document.getElementById('build-ui');
-        if(buildUI) buildUI.classList.add('hidden');
-
-        this.gridHelper.visible = true;
-        const gridModeUI = document.getElementById('grid-mode-ui');
-        if(gridModeUI) gridModeUI.classList.remove('hidden');
-
-        if(this.previewMesh) {
-            disposeHierarchy(this.previewMesh);
-            this.scene.remove(this.previewMesh);
-            this.previewMesh = null;
-        }
-        this.previewMesh = StructureBuilder.create3DObject(type, true);
-        this.scene.add(this.previewMesh);
-
-        this.canPlaceInGrid = false;
-        setTimeout(() => { this.canPlaceInGrid = true; }, 250);
-
-        window.hubBuildingState = 'BUILDING_GRID';
-
-        if (window.penitentGroup) {
-            this.buildPivot.position.copy(window.penitentGroup.position);
-            this.buildPivot.position.y += 10;
-        }
-    }
-
-    cancelGridPlacement() {
-        window.hubBuildingState = 'EXPLORING';
-        this.gridHelper.visible = false;
-        const gridModeUI = document.getElementById('grid-mode-ui');
-        if(gridModeUI) gridModeUI.classList.add('hidden');
-
-        if(this.previewMesh) {
-            disposeHierarchy(this.previewMesh);
-            this.scene.remove(this.previewMesh);
-            this.previewMesh = null;
-        }
-
-        const hubStatusUI = document.getElementById('hub-status-ui');
-        if(hubStatusUI) {
-            hubStatusUI.classList.remove('opacity-0');
-            hubStatusUI.classList.remove('hidden');
-        }
-    }
-
-    placeDecorStructure(isContinuous = false) {
-        if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh || !this.canPlaceInGrid) return;
-
-        const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
-        const dist = Math.hypot(this.previewMesh.position.x, this.previewMesh.position.z);
-        const MAX_SKY_DISTANCE = 300.0;
-
-        let canPlace = false;
-        if (isSkyStructure) {
-            const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 14.0 : 1.5;
-            const isOutsideIslands = this.checkCollision(this.previewMesh.position, safeDistance);
-            canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
-            if (!canPlace) {
-                if (!isOutsideIslands) {
-                    window.showToast("❌ Espaço insuficiente! As ilhas não podem se sobrepor.", "text-red-400", "fa-circle-xmark");
-                } else {
-                    window.showToast("❌ Escolha um local vazio no céu (abismo) próximo à ilha central!", "text-red-400", "fa-circle-xmark");
-                }
-                return;
-            }
-        } else {
-            const isInsideSafeGround = !this.checkCollision(this.previewMesh.position, 0.5);
-            canPlace = isInsideSafeGround;
-            if (!canPlace) {
-                window.showToast("❌ Escolha um local seguro no solo da ilha!", "text-red-400", "fa-circle-xmark");
-                return;
-            }
-        }
-
-        // Prevent placing duplicate structures at the exact same spot
-        const isDuplicate = gameState.hubState.structures.some(s =>
-            s.type === this.selectedBuildType &&
-            Math.abs(s.x - this.previewMesh.position.x) < 0.1 &&
-            Math.abs(s.z - this.previewMesh.position.z) < 0.1
-        );
-
-        if (isDuplicate) {
-             return;
-        }
-
-        this.instantiatePlacedStructure(
-            this.selectedBuildType,
-            this.previewMesh.position.x,
-            this.previewMesh.position.y,
-            this.previewMesh.position.z,
-            this.previewRotationY,
-            true
-        );
-
-        this.lastBuiltPos.copy(this.previewMesh.position);
-
-        window.showToast("✔ Elemento construído com sucesso!", "text-green-400", "fa-circle-check");
-    }
-
-    handleGridMouseMove(e, camera) {
-        if(window.hubBuildingState !== 'BUILDING_GRID' || !this.previewMesh) return;
-
-        // Support touch coordinates as well
-        let clientX = e.clientX;
-        let clientY = e.clientY;
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        }
-
-        if (this.isDraggingBuild) {
-            this.hasDraggedDuringBuild = true;
-        }
-
-        this.mouseVec.x = (clientX / window.innerWidth) * 2 - 1;
-        this.mouseVec.y = -(clientY / window.innerHeight) * 2 + 1;
-
-        this.raycaster.setFromCamera(this.mouseVec, camera);
-        const intersects = this.raycaster.intersectObject(this.gridPlane);
-
-        if(intersects.length > 0) {
-            const pt = intersects[0].point;
-            const step = 1.5;
-            this.gridSnapPos.x = Math.floor(pt.x / step) * step + step / 2;
-            this.gridSnapPos.z = Math.floor(pt.z / step) * step + step / 2;
-
-            const isSkyStructure = (this.selectedBuildType === 'ilha_satelite' || this.selectedBuildType === 'ponte_magica');
-
-            if (isSkyStructure) {
-                this.gridSnapPos.y = (Math.sin(this.gridSnapPos.x * 0.05) * Math.cos(this.gridSnapPos.z * 0.05) * 8.0) - 5.0;
-            } else {
-                this.gridSnapPos.y = Math.sin(this.gridSnapPos.x * 0.3) * Math.cos(this.gridSnapPos.z * 0.3) * 0.5 + 0.05;
-            }
-
-            const dist = Math.hypot(this.gridSnapPos.x, this.gridSnapPos.z);
-            const MAX_SKY_DISTANCE = 300.0;
-
-            let canPlace = false;
-            if (isSkyStructure) {
-                const safeDistance = (this.selectedBuildType === 'ilha_satelite') ? 14.0 : 1.5;
-                const isOutsideIslands = this.checkCollision(this.gridSnapPos, safeDistance);
-                canPlace = isOutsideIslands && dist < MAX_SKY_DISTANCE;
-            } else {
-                const isInsideSafeGround = !this.checkCollision(this.gridSnapPos, 0.5);
-                canPlace = isInsideSafeGround;
-            }
-
-            if (canPlace) {
-                this.previewMesh.position.copy(this.gridSnapPos);
-                this.previewMesh.rotation.y = this.previewRotationY;
-                this.previewMesh.visible = true;
-
-                // Continuous drag-build for floor tiles
-                if (this.isDraggingBuild && this.isFloorType(this.selectedBuildType)) {
-                    // Check if we moved to a new grid cell to avoid spamming
-                    if (this.lastBuiltPos.x !== this.gridSnapPos.x || this.lastBuiltPos.z !== this.gridSnapPos.z) {
-                        this.placeDecorStructure(true);
-                    }
-                }
-            } else {
-                this.previewMesh.visible = false;
-            }
-        }
-    }
-
-    handleGridMouseWheel(e) {
-        if (window.hubBuildingState === 'BUILDING_GRID' && this.previewMesh) {
-            e.preventDefault();
-            this.previewRotationY += Math.sign(e.deltaY) * (Math.PI / 8);
-            this.previewMesh.rotation.y = this.previewRotationY;
-        }
-    }
-
-    triggerIslandExpansion(level, animate = true) {
-        if (level <= this.expansionSlots.length) {
-            const slot = this.expansionSlots[level - 1];
-            const newIsland = this.createIslandMesh(slot.x, slot.z, false);
-
-            if(animate) {
-                newIsland.position.y = -35; newIsland.scale.set(0.1, 0.1, 0.1);
-                this.expansionGroup.add(newIsland);
-
-                let animProgress = 0;
-                const animInterval = setInterval(() => {
-                    animProgress += 0.02;
-                    newIsland.position.y = -35 + (35 * animProgress);
-                    newIsland.scale.setScalar(animProgress);
-                    if (animProgress >= 1.0) {
-                        newIsland.position.y = 0; newIsland.scale.set(1, 1, 1);
-                        clearInterval(animInterval);
-                    }
-                }, 16);
-            } else {
-                newIsland.position.y = 0; newIsland.scale.set(1, 1, 1);
-                this.expansionGroup.add(newIsland);
-            }
-        }
-    }
-
-    restoreState() {
-        const built = gameState.buildingsBuilt;
-        for(let i = 1; i <= built.island; i++) {
-            this.triggerIslandExpansion(i, false);
-        }
-
-        if (Array.isArray(gameState.hubState.structures)) {
-            gameState.hubState.structures.forEach(st => {
-                if (st && typeof st.x === 'number' && typeof st.z === 'number') {
-                    this.instantiatePlacedStructure(st.type, st.x, st.y, st.z, st.ry, false);
-                }
-            });
-        }
-    }
 
     formatGameTime(hours) {
         const h = Math.floor(hours);
@@ -1152,12 +346,20 @@ export class HubEnvironment {
     }
 
     updateTimeAndWeatherHUD() {
+        if (!gameState.hubState) return;
         const timeStr = this.formatGameTime(gameState.hubState.gameTimeHours);
         const locationSubtitle = document.getElementById('location-subtitle');
         const weatherBadgeIcon = document.getElementById('weather-badge-icon');
         const weatherBadgeText = document.getElementById('weather-badge-text');
 
         if(locationSubtitle) {
+            const WEATHER_TYPES = {
+                SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
+                LIGHT_RAIN: { name: 'Chuva Leve', icon: 'fa-cloud-rain', color: '#38bdf8' },
+                STORM: { name: 'Tempestade', icon: 'fa-bolt', color: '#a855f7' },
+                WINDY: { name: 'Ventania', icon: 'fa-wind', color: '#94a3b8' },
+                SNOW: { name: 'Neve', icon: 'fa-snowflake', color: '#e2e8f0' }
+            };
             const wType = WEATHER_TYPES[gameState.hubState.currentWeatherKey] || WEATHER_TYPES.SUNNY;
             locationSubtitle.textContent = `Dia ${gameState.hubState.dayCount} • ${timeStr} • ${wType.name}`;
 
@@ -1169,95 +371,6 @@ export class HubEnvironment {
                 weatherBadgeText.textContent = wType.name;
             }
         }
-    }
-
-    enterTent() {
-        window.hubBuildingState = 'INSIDE_TENT';
-        const eyelidTop = document.getElementById('eyelid-top');
-        const eyelidBottom = document.getElementById('eyelid-bottom');
-        if(eyelidTop) eyelidTop.style.height = '50%';
-        if(eyelidBottom) eyelidBottom.style.height = '50%';
-
-        setTimeout(() => {
-            if(window.penitentGroup) {
-                window.penitentGroup.position.set(200, 0.2, 202.5);
-                window.penitentGroup.rotation.set(0, Math.PI, 0);
-            }
-
-            const locationTitle = document.getElementById('location-title');
-            const locationIcon = document.getElementById('location-icon');
-            if(locationTitle) locationTitle.textContent = "Interior da Barraca";
-            if(locationIcon) locationIcon.className = "fa-solid fa-person-shelter text-xl";
-
-            if(eyelidTop) eyelidTop.style.height = '0%';
-            if(eyelidBottom) eyelidBottom.style.height = '0%';
-            window.showToast("🏠 Você entrou no aconchego da barraca.", "text-yellow-400", "fa-person-shelter");
-        }, 500);
-    }
-
-    exitTent() {
-        const eyelidTop = document.getElementById('eyelid-top');
-        const eyelidBottom = document.getElementById('eyelid-bottom');
-        if(eyelidTop) eyelidTop.style.height = '50%';
-        if(eyelidBottom) eyelidBottom.style.height = '50%';
-
-        setTimeout(() => {
-            window.hubBuildingState = 'EXPLORING';
-
-            const barracaData = gameState.hubState.structures.find(s => s.type === 'barraca');
-            if (window.penitentGroup) {
-                if (barracaData) {
-                    window.penitentGroup.position.set(barracaData.x, barracaData.y + 0.1, barracaData.z + 3.2);
-                } else {
-                    window.penitentGroup.position.set(0, 0.2, 3.5);
-                }
-                window.penitentGroup.rotation.set(0, 0, 0);
-            }
-
-            const locationTitle = document.getElementById('location-title');
-            const locationIcon = document.getElementById('location-icon');
-            if(locationTitle) locationTitle.textContent = "Santuário Celeste";
-            if(locationIcon) locationIcon.className = "fa-solid fa-cloud text-xl";
-
-            this.updateTimeAndWeatherHUD();
-
-            if(eyelidTop) eyelidTop.style.height = '0%';
-            if(eyelidBottom) eyelidBottom.style.height = '0%';
-            window.showToast("🌿 Você saiu para o acampamento.", "text-green-400", "fa-campground");
-        }, 500);
-    }
-
-    sleepInTent() {
-        const eyelidTop = document.getElementById('eyelid-top');
-        const eyelidBottom = document.getElementById('eyelid-bottom');
-        if(eyelidTop) eyelidTop.style.height = '50%';
-        if(eyelidBottom) eyelidBottom.style.height = '50%';
-
-        setTimeout(() => {
-            gameState.hubState.gameTimeHours = (gameState.hubState.gameTimeHours + 8.0) % 24.0;
-            if (gameState.hubState.gameTimeHours < 8.0) gameState.hubState.dayCount++;
-
-            if (Math.random() < 0.6) {
-                const keys = Object.keys(WEATHER_TYPES);
-                gameState.hubState.currentWeatherKey = keys[Math.floor(Math.random() * keys.length)];
-            }
-
-            gameState.save();
-            this.updateTimeAndWeatherHUD();
-
-            if(eyelidTop) eyelidTop.style.height = '0%';
-            if(eyelidBottom) eyelidBottom.style.height = '0%';
-
-            const timeStr = this.formatGameTime(gameState.hubState.gameTimeHours);
-            window.showToast(`💤 Você dormiu 8 horas. Horário: ${timeStr} (Dia ${gameState.hubState.dayCount})`, "text-blue-300", "fa-moon");
-        }, 700);
-    }
-
-    handleJournalInteraction() {
-        const journalUI = document.getElementById('journal-ui');
-        if(journalUI) journalUI.classList.remove('hidden');
-        gameState.save();
-        window.showToast("💾 Progresso e acampamento salvos com sucesso!", "text-green-400", "fa-floppy-disk");
     }
 
     triggerErosBark(text) {
@@ -1274,86 +387,32 @@ export class HubEnvironment {
         this.barkTimeout = setTimeout(() => { diagBox.style.opacity = '0'; }, 4000);
     }
 
-    isFloorType(type) {
-        return ['mud_tile', 'stone_tile', 'wood_tile', 'granite_tile'].includes(type);
-    }
-
-    bindEvents() {
-        this.mouseMoveHandler = (e) => this.handleGridMouseMove(e, this.camera);
-        this.mouseWheelHandler = (e) => this.handleGridMouseWheel(e);
-
-        // For continuous building of floors
-        this.pointerDownHandler = (e) => {
-            if(window.hubBuildingState === 'BUILDING_GRID') {
-                if (e.target.closest('#grid-mode-ui') || e.target.closest('.interaction-prompt') || e.target.closest('#mobile-controls-container')) return;
-
-                const isTouch = e.pointerType === 'touch';
-
-                if (this.isFloorType(this.selectedBuildType)) {
-                    this.isDraggingBuild = true;
-                    this.placeDecorStructure();
-                } else if (isTouch) {
-                    this.isDraggingBuild = true;
-                    this.hasDraggedDuringBuild = false;
-                    this.handleGridMouseMove(e, this.camera);
-                } else {
-                    this.placeDecorStructure();
-                }
-            }
-        };
-
-        this.pointerUpHandler = (e) => {
-            if(window.hubBuildingState === 'BUILDING_GRID') {
-                if (this.isDraggingBuild && !this.isFloorType(this.selectedBuildType) && e.pointerType === 'touch') {
-                    if (this.hasDraggedDuringBuild) {
-                        const confirmed = confirm("Construir neste local?");
-                        if (confirmed) {
-                            this.placeDecorStructure();
-                        }
-                    } else {
-                        this.placeDecorStructure();
-                    }
-                }
-                this.isDraggingBuild = false;
-                this.hasDraggedDuringBuild = false;
-            }
-        };
-
-        window.addEventListener('pointermove', this.mouseMoveHandler);
-        window.addEventListener('wheel', this.mouseWheelHandler, { passive: false });
-        window.addEventListener('pointerdown', this.pointerDownHandler);
-        window.addEventListener('pointerup', this.pointerUpHandler);
-    }
-
     cleanup() {
         const disposeGroup = (group) => {
             if (!group) return;
-            disposeHierarchy(group);
-            this.scene.remove(group);
+            import('../core/GraphicsUtils.js').then(({ disposeHierarchy }) => {
+                disposeHierarchy(group);
+                this.scene.remove(group);
+            });
         };
 
         disposeGroup(this.hubGroup);
         disposeGroup(this.skyGroup);
-        if(this.tentInteriorGroup) disposeGroup(this.tentInteriorGroup);
         if(this.weatherParticleGroup) disposeGroup(this.weatherParticleGroup);
 
         if (this.erosSpot) {
-            disposeHierarchy(this.erosSpot);
-            this.scene.remove(this.erosSpot);
-            if(this.erosSpot.target) {
-                disposeHierarchy(this.erosSpot.target);
-                this.scene.remove(this.erosSpot.target);
-            }
-            this.erosSpot.dispose();
+            import('../core/GraphicsUtils.js').then(({ disposeHierarchy }) => {
+                disposeHierarchy(this.erosSpot);
+                this.scene.remove(this.erosSpot);
+                if(this.erosSpot.target) {
+                    disposeHierarchy(this.erosSpot.target);
+                    this.scene.remove(this.erosSpot.target);
+                }
+                this.erosSpot.dispose();
+            });
         }
 
-        this.groundMeshes = [];
         this.interactiveObjects = [];
-
-        window.removeEventListener('pointermove', this.mouseMoveHandler);
-        window.removeEventListener('wheel', this.mouseWheelHandler);
-        window.removeEventListener('pointerdown', this.pointerDownHandler);
-        window.removeEventListener('pointerup', this.pointerUpHandler);
     }
 
     updateDayNightLighting(delta) {
@@ -1489,6 +548,7 @@ export class HubEnvironment {
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
         this.animateCampfireAndVegetation(delta, time);
+        if (this.terrain) this.terrain.update(time);
 
         if(window.hubBuildingState !== 'INSIDE_TENT') {
             this.skyClouds.forEach(c => { c.position.x -= c.userData.speed * delta * 2; if(c.position.x < -140) c.position.x = 140; });
@@ -1557,153 +617,33 @@ export class HubEnvironment {
     }
 
     getFloorY(pos) {
-        if (window.hubBuildingState === 'INSIDE_TENT') {
-            return 0; // Flat floor inside tent
-        }
-
-        // Check if on any active island (Central + Expansion slots up to built island count)
-        const built = gameState.buildingsBuilt ? gameState.buildingsBuilt.island : 0;
-        const radius = this.ISLAND_SIZE / 2.0;
-        const safeRadius = radius + 1.5;
-
-        // Check central island
-        if (Math.hypot(pos.x, pos.z) <= safeRadius) {
-            const distToPlat2 = Math.hypot(pos.x, pos.z - (-18));
-
-            // Ramp for stairs
-            if (pos.z > -9.5 && pos.z < -4.0 && Math.abs(pos.x) < 2.5) {
-                const t = (pos.z - (-4.0)) / (-9.5 - (-4.0));
-                return Math.max(0.0, Math.min(1.0, t * 1.0));
-            }
-
-            // Upper Plateau top surface
-            if (distToPlat2 <= 10.0) return 1.0;
-
-            // Upper Plateau steep slope
-            if (distToPlat2 <= 12.0) {
-                const t = (12.0 - distToPlat2) / 2.0;
-                return Math.max(0.0, Math.min(1.0, t * 1.0));
-            }
-
-            return 0.0;
-        }
-
-        // Check active expansions
-        for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
-            const slot = this.expansionSlots[i];
-            if (Math.hypot(pos.x - slot.x, pos.z - slot.z) <= safeRadius) return 0.0;
-        }
-
-        // Check Portal Island
-        if (this.portalIslandData && Math.hypot(pos.x - this.portalIslandData.x, pos.z - this.portalIslandData.z) <= this.portalIslandData.radius) {
-            return this.portalIslandData.y;
-        }
-
-        // Check Portal Stepping Stones
-        if (this.portalSteppingStones) {
-            for (let stone of this.portalSteppingStones) {
-                if (Math.hypot(pos.x - stone.x, pos.z - stone.z) <= stone.radius + 0.5) {
-                    return stone.y;
-                }
-            }
-        }
-
-        // Check dynamically placed sky islands and magic bridges
-        for (let island of this.placedSkyIslands) {
-            if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
-
-            if (island.type === 'ilha_satelite') {
-                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= 14.0) {
-                    return 0.25; // Grass level of satellite island
-                }
-            } else if (island.type === 'ponte_magica') {
-                // Simplified AABB logic: Unrotate player relative to bridge center
-                const ry = island.ry || 0;
-                const dx = pos.x - island.x;
-                const dz = pos.z - island.z;
-                const cosA = Math.cos(-ry);
-                const sinA = Math.sin(-ry);
-                const localX = dx * cosA - dz * sinA;
-                const localZ = dx * sinA + dz * cosA;
-
-                // Magic bridge dimensions approx: width X = 1.4, length Z = 1.5 (span from -0.75 to 0.75 roughly)
-                if (Math.abs(localX) <= 0.7 && Math.abs(localZ) <= 0.9) {
-                    return 0.15; // Plank level
-                }
-            }
-        }
-
-        // If not over any ground, trigger abyss
-        return -50;
+        if (!this.terrain) return 0;
+        return this.terrain.getHeightAt(pos.x, pos.z);
     }
 
     checkCollision(pos, radius) {
-        if (window.hubBuildingState === 'INSIDE_TENT') {
-            const dx = pos.x - 200;
-            const dz = pos.z - 200;
-            const distSq = dx * dx + dz * dz;
-            return distSq > 4.5 * 4.5; // Avoid Math.hypot inside collision loop
+        if (!this.terrain) return false;
+
+        // Prevent falling out of bounds
+        if (Math.abs(pos.x) >= 9.5 || Math.abs(pos.z) >= 9.5) {
+            return true;
         }
 
-        // Use collision radius based on the circular island shape
-        const islandRadius = this.ISLAND_SIZE / 2.0;
-        const safeRadius = islandRadius + 1.5 + (radius || 0);
-        const safeRadiusSq = safeRadius * safeRadius;
+        // Define player bounding box
+        const playerBox = new THREE.Box3();
+        const r = radius || 0.3; // Default player radius
+        const h = 1.8; // Default player height
 
-        // Check if player is on central island (spatial partition via squared distance)
-        if ((pos.x * pos.x + pos.z * pos.z) <= safeRadiusSq) return false;
+        // Add a small epsilon to min Y to ignore the floor directly beneath the player's feet
+        playerBox.min.set(pos.x - r, pos.y + 0.1, pos.z - r);
+        playerBox.max.set(pos.x + r, pos.y + h, pos.z + r);
 
-        const built = gameState.buildingsBuilt ? gameState.buildingsBuilt.island : 0;
-        for (let i = 0; i < built && i < this.expansionSlots.length; i++) {
-            const slot = this.expansionSlots[i];
-            const dx = pos.x - slot.x;
-            const dz = pos.z - slot.z;
-            if ((dx * dx + dz * dz) <= safeRadiusSq) return false; // Inside an expansion
-        }
-
-        // Check Portal Island
-        if (this.portalIslandData) {
-            const dx = pos.x - this.portalIslandData.x;
-            const dz = pos.z - this.portalIslandData.z;
-            if ((dx * dx + dz * dz) <= this.portalIslandData.radius * this.portalIslandData.radius) {
-                return false;
+        const colliders = this.terrain.getColliders();
+        for (let i = 0; i < colliders.length; i++) {
+            if (playerBox.intersectsBox(colliders[i])) {
+                return true; // Collision detected
             }
         }
-
-        // Check Portal Stepping Stones
-        if (this.portalSteppingStones) {
-            for (let stone of this.portalSteppingStones) {
-                const dx = pos.x - stone.x;
-                const dz = pos.z - stone.z;
-                const sr = stone.radius + 0.5;
-                if ((dx * dx + dz * dz) <= sr * sr) {
-                    return false;
-                }
-            }
-        }
-
-        // Check dynamically placed sky structures
-        for (let island of this.placedSkyIslands) {
-            if (!island || typeof island.x !== 'number' || typeof island.z !== 'number') continue;
-
-            if (island.type === 'ilha_satelite') {
-                if (Math.hypot(pos.x - island.x, pos.z - island.z) <= (14.0 + (radius || 0))) return false;
-            } else if (island.type === 'ponte_magica') {
-                const ry = island.ry || 0;
-                const dx = pos.x - island.x;
-                const dz = pos.z - island.z;
-                const cosA = Math.cos(-ry);
-                const sinA = Math.sin(-ry);
-                const localX = dx * cosA - dz * sinA;
-                const localZ = dx * sinA + dz * cosA;
-
-                const checkX = 0.7 + (radius || 0);
-                const checkZ = 0.9 + (radius || 0);
-
-                if (Math.abs(localX) <= checkX && Math.abs(localZ) <= checkZ) return false;
-            }
-        }
-
-        return true; // Outside all islands bounds
+        return false;
     }
 }
