@@ -307,6 +307,16 @@ export class HubEnvironment {
         }
     }
 
+    setupWeatherParticles() {
+        if (!this.weatherGroup) {
+            this.weatherGroup = new THREE.Group();
+            this.scene.add(this.weatherGroup);
+        }
+        if (!this.weatherParticleGroup) {
+            this.weatherParticleGroup = new THREE.Group();
+            this.scene.add(this.weatherParticleGroup);
+        }
+    }
 
     setupEros() {
         this.eros = new Eros(this.scene, new THREE.Vector3(2.0, 2.0, 0.5));
@@ -488,7 +498,9 @@ export class HubEnvironment {
     }
 
     updateWeatherSimulation(delta, time) {
+        if (!this.weatherParticleGroup || !this.weatherParticleGroup.children || this.weatherParticleGroup.children.length === 0) return;
         const pGeo = this.weatherParticleGroup.children[0].geometry;
+        if (!pGeo) return;
         const pos = pGeo.attributes.position.array;
         const pMat = this.weatherParticleGroup.children[0].material;
 
