@@ -673,4 +673,64 @@ export class HubEnvironment {
         }
         return false;
     }
+
+    startGridPlacement(type) {
+        // Definir custos por tipo de estrutura
+        const costs = {
+            'fogueira': { 'wood_ancient': 5 },
+            'barraca': { 'wood_ancient': 10, 'stone': 5 }
+        };
+
+        const cost = costs[type];
+        if (!cost) {
+            console.warn(`[HUB] Custo não definido para ${type}. Tentando construir sem custo.`);
+            this.spawnBuiltStructure(type, { x: 2, y: 1, z: -2 });
+            return;
+        }
+
+        // Verificar recursos no inventoryManager global
+        for (let [itemId, amount] of Object.entries(cost)) {
+            if (!window.inventoryManager || !window.inventoryManager.hasItem(itemId, amount)) {
+                console.warn(`[HUB] Recursos insuficientes para ${type}. Necessário: ${amount} de ${itemId}`);
+                if (window.showFloatingText) {
+                    window.showFloatingText(`Precisa de ${amount} ${itemId}`, new THREE.Vector3(0, 3, 0), '#ef4444');
+                }
+                return;
+            }
+        }
+
+        // Deduzir os itens
+        for (let [itemId, amount] of Object.entries(cost)) {
+            window.inventoryManager.removeItemById(itemId, amount);
+        }
+
+        // Instanciar o modelo 3D low-poly em uma coordenada pré-definida ao lado do Eros (ex: x: 2, y: 1, z: -2)
+        this.spawnBuiltStructure(type, { x: 2, y: 1, z: -2 });
+    }
+
+    spawnBuiltStructure(type, position) {
+        let mesh;
+        if (type === 'fogueira_cylinder' || type === 'barraca_cylinder') {
+            // Placeholder user specified in instructions, keeping just in case
+            const geometry = new THREE.CylinderGeometry(0.5, 0.6, 0.8, 6);
+            const material = new THREE.MeshStandardMaterial({
+                color: type === 'fogueira_cylinder' ? 0xff5500 : 0x884422,
+                roughness: 0.8
+            });
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(position.x, position.y, position.z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+        } else {
+            // Usa o StructureBuilder conforme arquitetura nativa
+            mesh = StructureBuilder.build(type);
+            mesh.position.set(position.x, position.y, position.z);
+        }
+
+        this.hubGroup.add(mesh);
+        console.log(`[HUB] Estrutura ${type} construída com sucesso ao lado do Eros!`);
+        if (window.showFloatingText) {
+            window.showFloatingText(`Construído!`, new THREE.Vector3(position.x, position.y + 1, position.z), '#22c55e');
+        }
+    }
 }
