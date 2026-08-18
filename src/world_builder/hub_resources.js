@@ -61,6 +61,26 @@ export class HubResources {
         this.rockMesh.receiveShadow = true;
 
         this.group.add(this.rockMesh);
+
+        // Particle System
+        const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        this.particleMesh = new THREE.InstancedMesh(pGeo, pMat, 200);
+        this.particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        this.group.add(this.particleMesh);
+
+        this.particles = [];
+        this.nextParticleIdx = 0;
+
+        for(let i=0; i<200; i++) {
+            this.particles.push({ active: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, maxLife: 1, color: new THREE.Color() });
+            this.dummy.scale.set(0,0,0);
+            this.dummy.updateMatrix();
+            this.particleMesh.setMatrixAt(i, this.dummy.matrix);
+            this.particleMesh.setColorAt(i, new THREE.Color(0xffffff));
+        }
+        this.particleMesh.instanceMatrix.needsUpdate = true;
+        if(this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
     }
 
     spawnResources() {
@@ -213,23 +233,26 @@ export class HubResources {
         if (closestNode) {
             closestNode.hp -= damage;
 
-            // Visual feedback (slight scale down temporarily or particles)
-            // For now we just shrink it briefly using a simple timeout, or scale proportionally
-            const shrinkRatio = 0.9 - ((3 - closestNode.hp) * 0.1);
+            // Set wobble
+            closestNode.wobbleTimer = 0.2;
 
             this.dummy.position.copy(closestNode.position);
             this.dummy.rotation.set(0, closestNode.rotY, 0);
 
             if (closestNode.hp > 0) {
                 // Just hit feedback
-                this.dummy.scale.set(closestNode.scale * shrinkRatio, closestNode.scale * shrinkRatio, closestNode.scale * shrinkRatio);
+                this.dummy.scale.set(closestNode.scale * 0.85, closestNode.scale * 0.85, closestNode.scale * 0.85);
                 this.updateNodeMatrix(closestNode, this.dummy.matrix);
 
-                // Small particles or shake effect could be added here
+                // Small particles
+                this.emitParticles(closestNode, 6, 10, position);
             } else {
                 // Destroyed
                 this.dummy.scale.set(0, 0, 0);
                 this.updateNodeMatrix(closestNode, this.dummy.matrix);
+
+                // Big explosion of particles
+                this.emitParticles(closestNode, 20, 30, closestNode.position);
 
                 // Remove collider
                 const colIdx = this.activeColliders.indexOf(closestNode.collider);
@@ -240,6 +263,111 @@ export class HubResources {
                 // Grant resources and XP
                 this.distributeLoot(closestNode);
             }
+        }
+    }
+
+    emitParticles(node, minAmount, maxAmount, origin) {
+        const amount = minAmount + Math.floor(Math.random() * (maxAmount - minAmount));
+        const color = node.type === 'tree' ? (Math.random() > 0.5 ? 0x451a03 : 0x047857) : 0x5a6269;
+        const colObj = new THREE.Color(color);
+
+        for(let i=0; i<amount; i++) {
+            const p = this.particles[this.nextParticleIdx];
+            p.active = true;
+            p.life = 0.5 + Math.random() * 0.5;
+            p.maxLife = p.life;
+            p.pos.copy(origin);
+            p.pos.y += 0.5 + Math.random() * 1.0;
+
+            // Blast outwards
+            p.vel.set((Math.random() - 0.5) * 5, 2 + Math.random() * 3, (Math.random() - 0.5) * 5);
+            p.color.copy(colObj);
+
+            this.nextParticleIdx = (this.nextParticleIdx + 1) % 200;
+        }
+    }
+
+    update(delta) {
+        // Update nodes wobble
+        let matrixNeedsUpdate = false;
+        let treeNeedsUpdate = false;
+        let rockNeedsUpdate = false;
+
+        for (const node of this.nodes) {
+            if (node.hp <= 0) continue;
+
+            if (node.wobbleTimer > 0) {
+                node.wobbleTimer -= delta;
+                let currentScale = node.scale;
+                if (node.wobbleTimer > 0) {
+                    currentScale = node.scale * 0.85;
+                } else {
+                    node.wobbleTimer = 0;
+                }
+
+                this.dummy.position.copy(node.position);
+                this.dummy.rotation.set(0, node.rotY, 0);
+                this.dummy.scale.set(currentScale, currentScale, currentScale);
+                this.dummy.updateMatrix();
+
+                if (node.type === 'tree') {
+                    this.treeTrunkMesh.setMatrixAt(node.index, this.dummy.matrix);
+                    this.treeLeavesMesh.setMatrixAt(node.index, this.dummy.matrix);
+                    treeNeedsUpdate = true;
+                } else {
+                    this.rockMesh.setMatrixAt(node.index, this.dummy.matrix);
+                    rockNeedsUpdate = true;
+                }
+            }
+        }
+
+        if (treeNeedsUpdate) {
+            this.treeTrunkMesh.instanceMatrix.needsUpdate = true;
+            this.treeLeavesMesh.instanceMatrix.needsUpdate = true;
+        }
+        if (rockNeedsUpdate) {
+            this.rockMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        // Update particles
+        let pNeedsUpdate = false;
+        for (let i = 0; i < 200; i++) {
+            const p = this.particles[i];
+            if (p.active) {
+                p.life -= delta;
+                if (p.life <= 0) {
+                    p.active = false;
+                    this.dummy.scale.set(0,0,0);
+                    this.dummy.updateMatrix();
+                    this.particleMesh.setMatrixAt(i, this.dummy.matrix);
+                } else {
+                    p.vel.y -= 9.8 * delta; // gravity
+                    p.pos.addScaledVector(p.vel, delta);
+
+                    // Simple floor collision
+                    if (p.pos.y < 0) {
+                        p.pos.y = 0;
+                        p.vel.y *= -0.3;
+                        p.vel.x *= 0.8;
+                        p.vel.z *= 0.8;
+                    }
+
+                    const s = p.life / p.maxLife; // Shrink over time
+                    this.dummy.position.copy(p.pos);
+                    this.dummy.scale.set(s, s, s);
+                    // Add some rotation
+                    this.dummy.rotation.set(p.life * 10, p.life * 10, p.life * 10);
+                    this.dummy.updateMatrix();
+                    this.particleMesh.setMatrixAt(i, this.dummy.matrix);
+                    this.particleMesh.setColorAt(i, p.color);
+                }
+                pNeedsUpdate = true;
+            }
+        }
+
+        if (pNeedsUpdate) {
+            this.particleMesh.instanceMatrix.needsUpdate = true;
+            if(this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
         }
     }
 
