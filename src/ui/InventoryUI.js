@@ -41,8 +41,10 @@ export class InventoryUI {
         this.isOpen = !this.isOpen;
         if (this.isOpen) {
             this.modal.classList.remove('hidden');
+            this.modal.style.display = 'flex';
         } else {
             this.modal.classList.add('hidden');
+            this.modal.style.display = 'none';
         }
         this.render();
     }
@@ -102,6 +104,8 @@ export class InventoryUI {
                         content.classList.add('opacity-100');
                         if (targetId === 'tab-content-crafting') {
                             this.renderCrafting();
+                        } else if (targetId === 'tab-content-status') {
+                            this.renderStatus();
                         }
                     } else {
                         content.classList.remove('opacity-100');
@@ -110,6 +114,14 @@ export class InventoryUI {
                 });
             });
         });
+
+        // Initialize global reference for skill updates
+        window.inventoryUI = this;
+        window.updateTomeStatusUI = () => {
+            if (this.isOpen) {
+                this.renderStatus();
+            }
+        };
 
         const recipeList = document.getElementById('recipe-list');
         if (recipeList) {
@@ -299,6 +311,58 @@ export class InventoryUI {
                 }
             }
         });
+    }
+
+    renderStatus() {
+        if (!this.isOpen) return;
+
+        const container = document.getElementById('masteries-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        const skillsData = gameState.skills;
+        if (!skillsData) return;
+
+        const skillIcons = {
+            unarmed: 'fa-hand-fist',
+            swords: 'fa-khanda',
+            axes: 'fa-gavel',
+            woodcutting: 'fa-tree',
+            mining: 'fa-pickaxe',
+            fishing: 'fa-fish',
+            magic: 'fa-wand-magic-sparkles'
+        };
+
+        for (const [key, skill] of Object.entries(skillsData)) {
+            const icon = skillIcons[key] || 'fa-star';
+            const progressPercent = Math.min(100, Math.max(0, (skill.xp / skill.next) * 100));
+
+            const skillHtml = `
+                <div class="bg-stone-900/60 border border-amber-900/40 rounded-xl p-4 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-stone-950 rounded flex items-center justify-center border border-amber-700/50 text-amber-500 shadow-inner">
+                                <i class="fa-solid ${icon} text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-amber-200 font-title">${skill.name}</h4>
+                                <span class="text-xs text-amber-400/80 font-mono">Nível ${skill.lvl}/100</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-amber-200/50 font-mono">
+                            ${Math.floor(skill.xp)} / ${skill.next} XP
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-stone-950 rounded-full h-2.5 border border-amber-900/50 overflow-hidden relative">
+                        <div class="bg-gradient-to-r from-amber-700 to-amber-500 h-2.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-500" style="width: ${progressPercent}%"></div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', skillHtml);
+        }
     }
 
     renderCrafting() {
