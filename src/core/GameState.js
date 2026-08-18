@@ -37,6 +37,16 @@ class GameState {
             alchemy: { level: 1, xp: 0 }
         };
 
+        this.skills = {
+            unarmed: { name: 'Combate Desarmado (Soco)', lvl: 1, xp: 0, next: 50 },
+            swords: { name: 'Habilidade com Espadas', lvl: 1, xp: 0, next: 50 },
+            axes: { name: 'Habilidade com Machados', lvl: 1, xp: 0, next: 50 },
+            woodcutting: { name: 'Lenhador', lvl: 1, xp: 0, next: 50 },
+            mining: { name: 'Mineração', lvl: 1, xp: 0, next: 50 },
+            fishing: { name: 'Pesca Astral', lvl: 1, xp: 0, next: 50 },
+            magic: { name: 'Aptidão Mágica', lvl: 1, xp: 0, next: 50 }
+        };
+
         this.buildingsBuilt = {
             island: 0,
             forge: false,
@@ -64,6 +74,7 @@ class GameState {
             backpackState: this.backpackState,
             equipmentState: this.equipmentState,
             masteries: this.masteries,
+            skills: this.skills,
             buildingsBuilt: this.buildingsBuilt,
             completedNodes: this.completedNodes,
             pendingUnlocks: this.pendingUnlocks,
@@ -88,6 +99,7 @@ class GameState {
                 if (parsedData.backpackState) this.backpackState = parsedData.backpackState;
                 if (parsedData.equipmentState) this.equipmentState = parsedData.equipmentState;
                 if (parsedData.masteries) this.masteries = parsedData.masteries;
+                if (parsedData.skills) this.skills = parsedData.skills;
                 if (parsedData.buildingsBuilt) this.buildingsBuilt = parsedData.buildingsBuilt;
                 if (parsedData.completedNodes) this.completedNodes = parsedData.completedNodes;
                 if (parsedData.pendingUnlocks !== undefined) this.pendingUnlocks = parsedData.pendingUnlocks;
@@ -104,4 +116,28 @@ class GameState {
 }
 
 const gameState = new GameState();
+
+window.gainSkillXP = function(skillKey, amount) {
+    if (!window.gameState || !window.gameState.skills) return;
+
+    const skill = window.gameState.skills[skillKey];
+    if (!skill || skill.lvl >= 100) return;
+
+    skill.xp += amount;
+
+    while (skill.xp >= skill.next && skill.lvl < 100) {
+        skill.xp -= skill.next;
+        skill.lvl++;
+        skill.next = Math.floor(skill.next * 1.25);
+
+        if (window.showFloatingText) {
+            window.showFloatingText(`▲ ${skill.name} Nvl. ${skill.lvl}!`, '#ffd700');
+        }
+    }
+
+    if (window.updateTomeStatusUI) {
+        window.updateTomeStatusUI();
+    }
+};
+
 export default gameState;
