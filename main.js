@@ -58,6 +58,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+renderer.domElement.id = 'game-canvas';
+renderer.domElement.classList.add('menu-active');
 document.body.appendChild(renderer.domElement);
 
 window.interactionManager = new InteractionManager(camera, renderer.domElement, () => {
@@ -167,6 +169,7 @@ function transitionToMainMenu() {
     // Fade-out da Intro cinematográfica (agora com o menu preparado por baixo)
     if (introContainer) {
         introContainer.style.opacity = '0';
+        introContainer.style.pointerEvents = 'none';
     }
 
 
@@ -201,6 +204,7 @@ if (btnPlayNew) {
     btnPlayNew.addEventListener('click', () => {
         if (menuContainer) {
             menuContainer.style.opacity = '0';
+            menuContainer.style.pointerEvents = 'none';
         }
         setTimeout(() => {
             if (menuContainer) {
@@ -212,6 +216,9 @@ if (btnPlayNew) {
 
             const uiOverlay = document.getElementById('ui-overlay');
             if (uiOverlay) uiOverlay.style.display = 'flex';
+
+            window.gameState.isGameStarted = true;
+            document.getElementById('game-canvas').classList.remove('menu-active');
 
             window.changeGameState('HUB');
         }, 1200);
@@ -233,6 +240,7 @@ if (btnNewGame) {
 
             if (menuContainer) {
                 menuContainer.style.opacity = '0';
+                menuContainer.style.pointerEvents = 'none';
             }
             setTimeout(() => {
                 if (menuContainer) {
@@ -244,6 +252,9 @@ if (btnNewGame) {
 
                 const uiOverlay = document.getElementById('ui-overlay');
                 if (uiOverlay) uiOverlay.style.display = 'flex';
+
+                window.gameState.isGameStarted = true;
+                document.getElementById('game-canvas').classList.remove('menu-active');
 
                 window.changeGameState('HUB');
             }, 1200);
@@ -289,6 +300,7 @@ try {
 
 // Inventory Toggle Event
 window.addEventListener('keydown', (e) => {
+    if (!window.gameState || !window.gameState.isGameStarted) return;
     if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
         e.preventDefault();
         if (window.inventoryUI) {
@@ -310,10 +322,12 @@ window.addEventListener('keydown', (e) => {
 window.keyStates = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
 window.addEventListener('keydown', (e) => {
+    if (!window.gameState || !window.gameState.isGameStarted) return;
     if (window.keyStates.hasOwnProperty(e.key)) window.keyStates[e.key] = true;
     if (window.keyStates.hasOwnProperty(e.key.toLowerCase())) window.keyStates[e.key.toLowerCase()] = true;
 });
 window.addEventListener('keyup', (e) => {
+    if (!window.gameState || !window.gameState.isGameStarted) return;
     if (window.keyStates.hasOwnProperty(e.key)) window.keyStates[e.key] = false;
     if (window.keyStates.hasOwnProperty(e.key.toLowerCase())) window.keyStates[e.key.toLowerCase()] = false;
 });
