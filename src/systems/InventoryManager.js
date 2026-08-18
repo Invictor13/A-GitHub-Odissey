@@ -56,6 +56,39 @@ export class InventoryManager {
         gameState.save();
         return true;
     }
+
+    hasItem(itemId, amount = 1) {
+        let total = 0;
+        for (let i = 0; i < gameState.backpackState.length; i++) {
+            if (gameState.backpackState[i] && gameState.backpackState[i].itemId === itemId) {
+                total += gameState.backpackState[i].count;
+            }
+        }
+        return total >= amount;
+    }
+
+    removeItemById(itemId, amount = 1) {
+        if (!this.hasItem(itemId, amount)) return false;
+
+        let remaining = amount;
+        for (let i = 0; i < gameState.backpackState.length; i++) {
+            if (remaining <= 0) break;
+
+            const slot = gameState.backpackState[i];
+            if (slot && slot.itemId === itemId) {
+                if (slot.count > remaining) {
+                    slot.count -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= slot.count;
+                    gameState.backpackState[i] = null;
+                }
+            }
+        }
+
+        gameState.save();
+        return true;
+    }
 }
 
 export const inventoryManager = new InventoryManager();

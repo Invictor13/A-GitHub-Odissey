@@ -9,7 +9,10 @@ import { MobileControls } from './src/ui/MobileControls.js';
 import { InteractionManager } from './src/systems/InteractionManager.js';
 import gameState from './src/core/GameState.js';
 import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
+import { inventoryManager } from './src/systems/InventoryManager.js';
 
+window.inventoryManager = inventoryManager;
+window.currentEnvironment = currentEnvironment;
 window.floatingDamageManager = new FloatingDamageManager();
 
 window.gainSkillXP = function(skillName, xpAmount) {
@@ -502,6 +505,7 @@ if (btnConfirmExpedition) {
 }
 
 currentEnvironment = new HubEnvironment(scene);
+window.currentEnvironment = currentEnvironment;
 
 const survivalSystem = new SurvivalSystem();
 window.mobileControls = new MobileControls();
@@ -523,6 +527,7 @@ window.changeGameState = function(newState, params) {
 
     if (GAME_STATE === 'HUB') {
         currentEnvironment = new HubEnvironment(scene, camera);
+window.currentEnvironment = currentEnvironment;
 
         const hubUI = document.getElementById('hub-status-ui');
         if(hubUI) {
@@ -567,6 +572,7 @@ window.changeGameState = function(newState, params) {
         }
 
         currentEnvironment = new WorldMap(scene);
+window.currentEnvironment = currentEnvironment;
 
         if (penitent && penitent.group) penitent.group.visible = false;
 
@@ -582,6 +588,7 @@ window.changeGameState = function(newState, params) {
         }
 
         currentEnvironment = new ProceduralMap(scene);
+window.currentEnvironment = currentEnvironment;
         currentEnvironment.generateGrid(100, params?.islandData);
         const biome = params?.biome || 'campos_pastos';
         currentEnvironment.build3DGeometry(biome);
