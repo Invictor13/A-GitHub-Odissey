@@ -8,6 +8,7 @@ class GameState {
     }
 
     resetToDefaults() {
+        this.isGameStarted = false;
         this.resources = { gold: 0, wood: 50, ore: 30, straw: 20 };
         this.vitals = { hp: 100, maxHp: 100, food: 100, water: 100 };
 
@@ -135,8 +136,12 @@ window.gainSkillXP = function(skillKey, amount) {
         }
     }
 
-    if (window.updateTomeStatusUI) {
-        window.updateTomeStatusUI();
+    if (window.updateTomeStatusUI && typeof window.updateTomeStatusUI === 'function') {
+        try {
+            window.updateTomeStatusUI();
+        } catch (e) {
+            console.warn("Failed to update TomeStatusUI:", e);
+        }
     }
 };
 

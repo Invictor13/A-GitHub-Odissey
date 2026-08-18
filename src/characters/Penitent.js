@@ -537,6 +537,7 @@ export class Penitent {
         document.addEventListener('keyup', (e) => { const k = (e.key || '').toLowerCase(); if (this.keys.hasOwnProperty(k)) this.keys[k] = false; });
 
         document.addEventListener('mousedown', (e) => {
+            if (!window.gameState || !window.gameState.isGameStarted) return;
             if (window.hubBuildingState === 'BUILDING_GRID') return;
             if (this.isSwimming || this.actionState === 'inventory' || this.actionState === 'damage') return;
 
