@@ -566,6 +566,34 @@ export class HubEnvironment {
         this.animateCampfireAndVegetation(delta, time);
         if (this.terrain) this.terrain.update(time);
 
+
+        if (this.resources) {
+            this.resources.update(delta);
+        }
+
+        if (this.expandingSegments && this.expandingSegments.length > 0) {
+            for (let i = this.expandingSegments.length - 1; i >= 0; i--) {
+                const seg = this.expandingSegments[i];
+                if (seg.group.position.y < seg.targetY) {
+                    seg.group.position.y += delta * 5.0; // Subida suave
+                    if (seg.group.position.y >= seg.targetY) {
+                        seg.group.position.y = seg.targetY;
+
+                        // Add collisions once stationary
+                        if (!seg.collidersAdded && this.terrain) {
+                            seg.group.children.forEach(mesh => {
+                                const box = new THREE.Box3().setFromObject(mesh);
+                                this.terrain.colliders.push(box);
+                            });
+                            seg.collidersAdded = true;
+                        }
+
+                        this.expandingSegments.splice(i, 1);
+                    }
+                }
+            }
+        }
+
         if(window.hubBuildingState !== 'INSIDE_TENT') {
             this.skyClouds.forEach(c => { c.position.x -= c.userData.speed * delta * 2; if(c.position.x < -140) c.position.x = 140; });
             this.islandBottomClouds.forEach(c => { c.position.x -= c.userData.speed * delta * 1.5; if(c.position.x < -80) c.position.x = 80; });
@@ -674,24 +702,18 @@ export class HubEnvironment {
         return false;
     }
 
-    startGridPlacement(type) {
-        // Definir custos por tipo de estrutura
-        const costs = {
-            'fogueira': { 'wood_ancient': 5 },
-            'barraca': { 'wood_ancient': 10, 'stone': 5 }
-        };
-
-        const cost = costs[type];
-        if (!cost) {
-            console.warn(`[HUB] Custo não definido para ${type}. Tentando construir sem custo.`);
-            this.spawnBuiltStructure(type, { x: 2, y: 1, z: -2 });
+    expandIslandSegment(direction) {
+        if (direction !== 'south') {
+            console.warn(`[HUB] Direção de expansão ${direction} não suportada ainda.`);
             return;
         }
+
+        const cost = { 'wood_ancient': 10, 'stone': 10 };
 
         // Verificar recursos no inventoryManager global
         for (let [itemId, amount] of Object.entries(cost)) {
             if (!window.inventoryManager || !window.inventoryManager.hasItem(itemId, amount)) {
-                console.warn(`[HUB] Recursos insuficientes para ${type}. Necessário: ${amount} de ${itemId}`);
+                console.warn(`[HUB] Recursos insuficientes para expansão. Necessário: ${amount} de ${itemId}`);
                 if (window.showFloatingText) {
                     window.showFloatingText(`Precisa de ${amount} ${itemId}`, new THREE.Vector3(0, 3, 0), '#ef4444');
                 }
@@ -704,33 +726,53 @@ export class HubEnvironment {
             window.inventoryManager.removeItemById(itemId, amount);
         }
 
-        // Instanciar o modelo 3D low-poly em uma coordenada pré-definida ao lado do Eros (ex: x: 2, y: 1, z: -2)
-        this.spawnBuiltStructure(type, { x: 2, y: 1, z: -2 });
-    }
+        // Instancia uma nova malha voxel 6x6 na borda sul (coordenadas +Z)
+        // com a mesma paleta do HubTerrain (topo verde #3b7a3a e laterais escuras #4a3b32)
+        const topMaterial = new THREE.MeshLambertMaterial({ color: 0x3b7a3a });
+        const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x4a3b32 });
+        const materials = [sideMaterial, sideMaterial, topMaterial, sideMaterial, sideMaterial, sideMaterial];
 
-    spawnBuiltStructure(type, position) {
-        let mesh;
-        if (type === 'fogueira_cylinder' || type === 'barraca_cylinder') {
-            // Placeholder user specified in instructions, keeping just in case
-            const geometry = new THREE.CylinderGeometry(0.5, 0.6, 0.8, 6);
-            const material = new THREE.MeshStandardMaterial({
-                color: type === 'fogueira_cylinder' ? 0xff5500 : 0x884422,
-                roughness: 0.8
-            });
-            mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(position.x, position.y, position.z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-        } else {
-            // Usa o StructureBuilder conforme arquitetura nativa
-            mesh = StructureBuilder.build(type);
-            mesh.position.set(position.x, position.y, position.z);
+        const blockSize = 1;
+        const width = 6;
+        const depth = 6;
+
+        const segmentGroup = new THREE.Group();
+
+        for (let x = -3; x < 3; x++) {
+            for (let z = 0; z < depth; z++) {
+                const height = 2; // Platô base height
+                const geo = new THREE.BoxGeometry(blockSize, height, blockSize);
+                const mesh = new THREE.Mesh(geo, materials);
+                // Position relative to segment group
+                mesh.position.set(x + 0.5, height / 2, z + 0.5);
+                mesh.receiveShadow = true;
+                mesh.castShadow = false; // Optimize terrain shadows
+                segmentGroup.add(mesh);
+            }
         }
 
-        this.hubGroup.add(mesh);
-        console.log(`[HUB] Estrutura ${type} construída com sucesso ao lado do Eros!`);
+        // Position at the south edge (+Z) of the main island
+        segmentGroup.position.set(0, -10, 10);
+        this.hubGroup.add(segmentGroup);
+
+        // Add to expanding segments array for animation
+        if (!this.expandingSegments) {
+            this.expandingSegments = [];
+        }
+
+        this.expandingSegments.push({
+            group: segmentGroup,
+            targetY: 0,
+            collidersAdded: false
+        });
+
+        console.log(`[HUB] Expansão do segmento sul iniciada com sucesso!`);
         if (window.showFloatingText) {
-            window.showFloatingText(`Construído!`, new THREE.Vector3(position.x, position.y + 1, position.z), '#22c55e');
+            window.showFloatingText(`Expansão Iniciada!`, new THREE.Vector3(0, 4, 10), '#22c55e');
         }
+
+        // Close build UI
+        const btnCloseBuild = document.getElementById('btn-close-build');
+        if (btnCloseBuild) btnCloseBuild.click();
     }
 }

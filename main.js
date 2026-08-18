@@ -359,6 +359,16 @@ if (btnCloseBuild) {
     });
 }
 
+const btnExpandSouth = document.getElementById('btn-expand-south');
+if (btnExpandSouth) {
+    btnExpandSouth.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentEnvironment && currentEnvironment.expandIslandSegment) {
+            currentEnvironment.expandIslandSegment('south');
+        }
+    });
+}
+
 const btnCloseJournal = document.getElementById('btn-close-journal');
 if (btnCloseJournal) {
     btnCloseJournal.addEventListener('click', () => {
@@ -411,70 +421,6 @@ document.addEventListener('touchstart', (e) => {
 });
 
 // Tab Switching in Eros Menu
-const tabInteriorsBtn = document.getElementById('tab-btn-interiors');
-const tabExteriorsBtn = document.getElementById('tab-btn-exteriors');
-const tabNatureBtn = document.getElementById('tab-btn-nature');
-const tabFloorsBtn = document.getElementById('tab-btn-floors');
-const tabIslandsBtn = document.getElementById('tab-btn-islands');
-
-const contentInteriors = document.getElementById('tab-content-interiors');
-const contentExteriors = document.getElementById('tab-content-exteriors');
-const contentNature = document.getElementById('tab-content-nature');
-const contentFloors = document.getElementById('tab-content-floors');
-const contentIslands = document.getElementById('tab-content-islands');
-
-function switchTab(activeBtn, showContent) {
-    [tabInteriorsBtn, tabExteriorsBtn, tabNatureBtn, tabFloorsBtn, tabIslandsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-    [contentInteriors, contentExteriors, contentNature, contentFloors, contentIslands].forEach(c => { if(c) c.classList.add('hidden'); });
-
-    if(activeBtn) activeBtn.classList.add('active');
-    if(showContent) showContent.classList.remove('hidden');
-}
-
-if(tabInteriorsBtn) tabInteriorsBtn.addEventListener('click', () => switchTab(tabInteriorsBtn, contentInteriors));
-if(tabExteriorsBtn) tabExteriorsBtn.addEventListener('click', () => switchTab(tabExteriorsBtn, contentExteriors));
-if(tabNatureBtn) tabNatureBtn.addEventListener('click', () => switchTab(tabNatureBtn, contentNature));
-if(tabFloorsBtn) tabFloorsBtn.addEventListener('click', () => switchTab(tabFloorsBtn, contentFloors));
-if(tabIslandsBtn) tabIslandsBtn.addEventListener('click', () => switchTab(tabIslandsBtn, contentIslands));
-
-// Card Click Event Bindings
-const bindCard = (id, type) => {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if(currentEnvironment) currentEnvironment.startGridPlacement(type);
-    });
-};
-
-bindCard('card-build-tent', 'barraca');
-bindCard('card-build-mirror', 'espelho');
-bindCard('card-build-campfire', 'fogueira');
-bindCard('card-build-fence', 'fence');
-bindCard('card-build-bench', 'bench');
-bindCard('card-build-lantern', 'lantern');
-bindCard('card-build-target', 'target');
-bindCard('card-build-chest', 'chest');
-bindCard('card-build-furnace', 'furnace');
-bindCard('card-build-workbench', 'workbench');
-bindCard('card-build-anvil', 'anvil');
-bindCard('card-build-tree', 'tree');
-bindCard('card-build-pot', 'pot');
-bindCard('card-build-mud-tile', 'mud_tile');
-bindCard('card-build-stone-tile', 'stone_tile');
-bindCard('card-build-wood-tile', 'wood_tile');
-bindCard('card-build-granite-tile', 'granite_tile');
-bindCard('card-build-satellite-island', 'ilha_satelite');
-bindCard('card-build-magic-bridge', 'ponte_magica');
-
-const cardEmbark = document.getElementById('card-embark');
-if(cardEmbark) {
-    cardEmbark.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (btnCloseBuild) btnCloseBuild.click();
-        window.changeGameState('WORLD_MAP');
-    });
-}
-
 window.hubBuildingState = 'EXPLORING';
 
 // Initialize Background Scene for Menu
