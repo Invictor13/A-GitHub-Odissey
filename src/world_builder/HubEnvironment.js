@@ -621,6 +621,7 @@ export class HubEnvironment {
                     };
                     const prompt = document.getElementById('interaction-prompt');
                     if(prompt) {
+                        document.getElementById('prompt-key').textContent = 'E';
                         prompt.style.opacity = '1';
                         document.getElementById('prompt-text').textContent = 'Falar com Eros (Construir)';
                     }
@@ -651,6 +652,11 @@ export class HubEnvironment {
         if (found) {
             window.currentNearbyObject = found;
             if(prompt) {
+                if (found.actionKey) {
+                     document.getElementById('prompt-key').textContent = found.actionKey.toUpperCase();
+                } else {
+                     document.getElementById('prompt-key').textContent = 'E';
+                }
                 document.getElementById('prompt-text').textContent = found.prompt;
                 prompt.style.opacity = '1';
             }
