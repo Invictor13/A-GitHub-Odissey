@@ -189,6 +189,71 @@ export class HubResources {
             }
         }
 
+        // Spawn Herbs
+        let herbCount = 0;
+        for (let i = 0; i < 15; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 5 + Math.random() * 20;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+
+            // Check boundaries and avoid center spawn area
+            if (Math.abs(x) < 28 && Math.abs(z) < 28 && (Math.abs(x) > 5 || Math.abs(z) > 5)) {
+                let posY = 0;
+                if (terrainRef && typeof terrainRef.getHeightAt === 'function') {
+                    posY = terrainRef.getHeightAt(x, z);
+                } else if (terrainRef && terrainRef.position) {
+                    posY = terrainRef.position.y;
+                }
+
+                // Herb Geometry
+                const herbGeo = new THREE.CylinderGeometry(0, 0.1, 0.4, 4);
+                const herbMat = new THREE.MeshLambertMaterial({ color: 0x22c55e }); // Green
+                const herbMesh = new THREE.Mesh(herbGeo, herbMat);
+                herbMesh.position.set(x, posY + 0.2, z);
+                herbMesh.castShadow = false;
+
+                // Create a container group so it can act like a node
+                const herbGroup = new THREE.Group();
+                herbGroup.add(herbMesh);
+                this.hubGroup.add(herbGroup);
+
+                // Create a basic collider
+                const collider = new THREE.Box3();
+                collider.setFromCenterAndSize(new THREE.Vector3(x, posY + 0.2, z), new THREE.Vector3(0.5, 0.5, 0.5));
+                this.activeColliders.push(collider);
+
+                const node = {
+                    type: 'herb',
+                    harvestType: 'gather',
+                    index: herbCount,
+                    position: new THREE.Vector3(x, posY, z),
+                    hp: 1,
+                    maxHp: 1,
+                    scale: 1,
+                    rotY: Math.random() * Math.PI * 2,
+                    collider: collider,
+                    wobbleTimer: 0,
+                    mesh: herbGroup
+                };
+
+                this.nodes.push(node);
+                this.items.push({
+                     position: node.position.clone(),
+                     radius: 2.5,
+                     node: node,
+                     prompt: 'Coletar Erva [R]',
+                     actionKey: 'r',
+                     action: () => {
+                         if (window.penitent && typeof window.penitent.startHarvesting === 'function') {
+                             window.penitent.startHarvesting(node);
+                         }
+                     }
+                });
+                herbCount++;
+            }
+        }
+
         // Hide unused instances
         this.dummy.scale.set(0, 0, 0);
         this.dummy.updateMatrix();
@@ -419,6 +484,7 @@ export class HubResources {
 
         // Add to inventory UI rendering if possible
         if (window.inventoryUI && typeof window.inventoryUI.renderGrid === 'function') {
+
             window.inventoryUI.renderGrid();
         }
 
