@@ -200,10 +200,10 @@ export class HubResources {
             // Check boundaries and avoid center spawn area
             if (Math.abs(x) < 28 && Math.abs(z) < 28 && (Math.abs(x) > 5 || Math.abs(z) > 5)) {
                 let posY = 0;
-                if (terrainRef && typeof terrainRef.getHeightAt === 'function') {
-                    posY = terrainRef.getHeightAt(x, z);
-                } else if (terrainRef && terrainRef.position) {
-                    posY = terrainRef.position.y;
+                if (this.terrain && typeof this.terrain.getHeightAt === 'function') {
+                    posY = this.terrain.getHeightAt(x, z);
+                } else if (this.terrain && this.terrain.position) {
+                    posY = this.terrain.position.y;
                 }
 
                 // Herb Geometry
@@ -216,7 +216,7 @@ export class HubResources {
                 // Create a container group so it can act like a node
                 const herbGroup = new THREE.Group();
                 herbGroup.add(herbMesh);
-                this.hubGroup.add(herbGroup);
+                this.group.add(herbGroup);
 
                 // Create a basic collider
                 const collider = new THREE.Box3();
@@ -238,6 +238,7 @@ export class HubResources {
                 };
 
                 this.nodes.push(node);
+                if(!this.items) this.items = [];
                 this.items.push({
                      position: node.position.clone(),
                      radius: 2.5,
