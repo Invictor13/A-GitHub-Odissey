@@ -17,28 +17,39 @@ export class HubTerrain {
     }
 
     initHeightMap() {
-        for (let x = -10; x < 10; x++) {
+        // Expand by ~35%. Original was -10 to 10 (20x20). New is -14 to 14 (28x28).
+        const radiusSq = 13.5 * 13.5;
+        for (let x = -14; x < 14; x++) {
             this.heightMap[x] = [];
-            for (let z = -10; z < 10; z++) {
-                // Area norte do Portal (X entre -2 e 2, Z entre -9 e -7): Altura Y = 2
-                if (x >= -2 && x <= 2 && z >= -9 && z <= -7) {
+            for (let z = -14; z < 14; z++) {
+                // Determine if this cell is inside the rounded island (organic shape)
+                const distSq = x * x + z * z;
+
+                if (distSq > radiusSq) {
+                    // Out of bounds
+                    continue;
+                }
+
+                // Area norte do Portal (X entre -2 e 2, Z entre -12 e -7): Altura Y = 2
+                if (x >= -2 && x <= 2 && z >= -12 && z <= -7) {
                     this.heightMap[x][z] = 2;
                 }
-                // Canal fluvial (Z entre 2 e 3 e |X| < 6): Altura Y = 0
-                else if (z >= 2 && z <= 3 && Math.abs(x) < 6) {
+                // Canal fluvial orgânico
+                else if ((z >= 3 && z <= 5 && Math.abs(x) < 8) || (z >= 2 && z <= 4 && Math.abs(x) < 10)) {
                     this.heightMap[x][z] = 0;
                 }
-                // Centro da ilha (X entre -3 e 3, Z entre -3 e 3): Altura Y = 2
-                else if (x >= -3 && x <= 3 && z >= -3 && z <= 3) {
+                // Centro da ilha: Altura Y = 2
+                else if (Math.abs(x) <= 4 && Math.abs(z) <= 4) {
                     this.heightMap[x][z] = 2;
                 }
-                // Bordas elevadas (|X| > 7 ou |Z| > 7): Altura Y = 3
-                else if (Math.abs(x) > 7 || Math.abs(z) > 7) {
+                // Bordas elevadas orgânicas (distSq próximo ao raio ou ruído)
+                else if (distSq > 10 * 10 && Math.random() > 0.4) {
                     this.heightMap[x][z] = 3;
                 }
                 // Platô base
                 else {
-                    this.heightMap[x][z] = 2;
+                    // Vary between 1 and 2 for some organic terrain steps
+                    this.heightMap[x][z] = Math.random() > 0.8 ? 1 : 2;
                 }
             }
         }
@@ -49,19 +60,21 @@ export class HubTerrain {
         const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x4a3b32 });
         const materials = [sideMaterial, sideMaterial, topMaterial, sideMaterial, sideMaterial, sideMaterial];
 
-        for (let x = -10; x < 10; x++) {
-            for (let z = -10; z < 10; z++) {
-                const height = this.heightMap[x][z];
-                if (height > 0) {
-                    const geo = new THREE.BoxGeometry(this.blockSize, height, this.blockSize);
-                    const mesh = new THREE.Mesh(geo, materials);
-                    mesh.position.set(x + 0.5, height / 2, z + 0.5);
-                    mesh.receiveShadow = true;
-                    mesh.castShadow = false; // Optimize terrain shadows
-                    this.group.add(mesh);
+        for (let x = -14; x < 14; x++) {
+            for (let z = -14; z < 14; z++) {
+                if (this.heightMap[x] && this.heightMap[x][z] !== undefined) {
+                    const height = this.heightMap[x][z];
+                    if (height > 0) {
+                        const geo = new THREE.BoxGeometry(this.blockSize, height, this.blockSize);
+                        const mesh = new THREE.Mesh(geo, materials);
+                        mesh.position.set(x + 0.5, height / 2, z + 0.5);
+                        mesh.receiveShadow = true;
+                        mesh.castShadow = false; // Optimize terrain shadows
+                        this.group.add(mesh);
 
-                    const box = new THREE.Box3().setFromObject(mesh);
-                    this.colliders.push(box);
+                        const box = new THREE.Box3().setFromObject(mesh);
+                        this.colliders.push(box);
+                    }
                 }
             }
         }
@@ -79,9 +92,9 @@ export class HubTerrain {
             side: THREE.DoubleSide
         });
 
-        for (let x = -10; x < 10; x++) {
-            for (let z = -10; z < 10; z++) {
-                if (this.heightMap[x][z] === 0) {
+        for (let x = -14; x < 14; x++) {
+            for (let z = -14; z < 14; z++) {
+                if (this.heightMap[x] && this.heightMap[x][z] === 0) {
                     const water = new THREE.Mesh(waterGeo, waterMat);
                     water.rotation.x = -Math.PI / 2;
                     water.position.set(x + 0.5, 0.45, z + 0.5);
@@ -103,7 +116,7 @@ export class HubTerrain {
         const gridX = Math.floor(x);
         const gridZ = Math.floor(z);
 
-        if (gridX >= -10 && gridX < 10 && gridZ >= -10 && gridZ < 10) {
+        if (gridX >= -14 && gridX < 14 && gridZ >= -14 && gridZ < 14) {
             if(this.heightMap[gridX] && typeof this.heightMap[gridX][gridZ] !== 'undefined') {
                  return this.heightMap[gridX][gridZ];
             }
