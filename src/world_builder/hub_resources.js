@@ -13,56 +13,27 @@ export class HubResources {
         this.colliders = [];
         this.activeColliders = [];
 
-        this.treeMesh = null;
-        this.rockMesh = null;
-
         this.dummy = new THREE.Object3D();
 
-        this.buildInstancedMeshes();
+        // Standard Geometry and Materials
+        this.trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 6);
+        this.trunkGeo.translate(0, 1, 0);
+        this.leavesGeo = new THREE.ConeGeometry(1.2, 3, 7);
+        this.leavesGeo.translate(0, 2.5, 0);
+
+        this.trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2e18, flatShading: true });
+        this.leavesMat = new THREE.MeshLambertMaterial({ color: 0x1e4d2b, flatShading: true });
+
+        this.rockGeo = new THREE.DodecahedronGeometry(0.8, 0);
+        this.rockGeo.scale(1, 0.8, 1);
+        this.rockGeo.translate(0, 0.5, 0);
+        this.rockMat = new THREE.MeshLambertMaterial({ color: 0x5a6269, flatShading: true });
+
+        this.buildParticleSystem();
         this.spawnResources();
     }
 
-    buildInstancedMeshes() {
-        const MAX_TREES = 8;
-        const MAX_ROCKS = 6;
-
-        // Tree geometries
-        const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 6);
-        trunkGeo.translate(0, 1, 0); // Origin at bottom
-
-        const leavesGeo = new THREE.ConeGeometry(1.2, 3, 7);
-        leavesGeo.translate(0, 2.5, 0); // Above trunk
-
-        // Merge tree geometry using an Object3D to hold them conceptually, but InstancedMesh needs a single geometry, or we use two InstancedMeshes and keep them synced.
-        // For simplicity and to have different materials without BufferGeometryUtils, we use two InstancedMeshes for the tree.
-        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2e18, flatShading: true });
-        const leavesMat = new THREE.MeshLambertMaterial({ color: 0x1e4d2b, flatShading: true });
-
-        this.treeTrunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, MAX_TREES);
-        this.treeTrunkMesh.castShadow = true;
-        this.treeTrunkMesh.receiveShadow = true;
-
-        this.treeLeavesMesh = new THREE.InstancedMesh(leavesGeo, leavesMat, MAX_TREES);
-        this.treeLeavesMesh.castShadow = true;
-        this.treeLeavesMesh.receiveShadow = true;
-
-        this.group.add(this.treeTrunkMesh);
-        this.group.add(this.treeLeavesMesh);
-
-        // Rock geometry
-        const rockGeo = new THREE.DodecahedronGeometry(0.8, 0);
-        // Slightly flatten the rock
-        rockGeo.scale(1, 0.8, 1);
-        rockGeo.translate(0, 0.5, 0);
-
-        const rockMat = new THREE.MeshLambertMaterial({ color: 0x5a6269, flatShading: true });
-        this.rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, MAX_ROCKS);
-        this.rockMesh.castShadow = true;
-        this.rockMesh.receiveShadow = true;
-
-        this.group.add(this.rockMesh);
-
-        // Particle System
+    buildParticleSystem() {
         const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
         this.particleMesh = new THREE.InstancedMesh(pGeo, pMat, 200);
@@ -72,15 +43,15 @@ export class HubResources {
         this.particles = [];
         this.nextParticleIdx = 0;
 
-        for(let i=0; i<200; i++) {
+        for (let i = 0; i < 200; i++) {
             this.particles.push({ active: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, maxLife: 1, color: new THREE.Color() });
-            this.dummy.scale.set(0,0,0);
+            this.dummy.scale.set(0, 0, 0);
             this.dummy.updateMatrix();
             this.particleMesh.setMatrixAt(i, this.dummy.matrix);
             this.particleMesh.setColorAt(i, new THREE.Color(0xffffff));
         }
         this.particleMesh.instanceMatrix.needsUpdate = true;
-        if(this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
+        if (this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
     }
 
     spawnResources() {
@@ -127,13 +98,20 @@ export class HubResources {
                     // Add tree
                     const rotY = Math.random() * Math.PI * 2;
                     const scale = 0.8 + Math.random() * 0.4;
-                    this.dummy.position.copy(pos);
-                    this.dummy.rotation.set(0, rotY, 0);
-                    this.dummy.scale.set(scale, scale, scale);
-                    this.dummy.updateMatrix();
 
-                    this.treeTrunkMesh.setMatrixAt(treeCount, this.dummy.matrix);
-                    this.treeLeavesMesh.setMatrixAt(treeCount, this.dummy.matrix);
+                    const treeGroup = new THREE.Group();
+                    const trunkMesh = new THREE.Mesh(this.trunkGeo, this.trunkMat);
+                    trunkMesh.castShadow = true; trunkMesh.receiveShadow = true;
+                    treeGroup.add(trunkMesh);
+
+                    const leavesMesh = new THREE.Mesh(this.leavesGeo, this.leavesMat);
+                    leavesMesh.castShadow = true; leavesMesh.receiveShadow = true;
+                    treeGroup.add(leavesMesh);
+
+                    treeGroup.position.copy(pos);
+                    treeGroup.rotation.set(0, rotY, 0);
+                    treeGroup.scale.set(scale, scale, scale);
+                    this.group.add(treeGroup);
 
                     const node = {
                         type: 'tree',
@@ -142,7 +120,8 @@ export class HubResources {
                         hp: 3,
                         maxHp: 3,
                         scale: scale,
-                        rotY: rotY
+                        rotY: rotY,
+                        mesh: treeGroup
                     };
                     this.nodes.push(node);
 
@@ -159,12 +138,14 @@ export class HubResources {
                     // Add rock
                     const rotY = Math.random() * Math.PI * 2;
                     const scale = 0.7 + Math.random() * 0.6;
-                    this.dummy.position.copy(pos);
-                    this.dummy.rotation.set(0, rotY, 0);
-                    this.dummy.scale.set(scale, scale, scale);
-                    this.dummy.updateMatrix();
 
-                    this.rockMesh.setMatrixAt(rockCount, this.dummy.matrix);
+                    const rockMesh = new THREE.Mesh(this.rockGeo, this.rockMat);
+                    rockMesh.castShadow = true; rockMesh.receiveShadow = true;
+
+                    rockMesh.position.copy(pos);
+                    rockMesh.rotation.set(0, rotY, 0);
+                    rockMesh.scale.set(scale, scale, scale);
+                    this.group.add(rockMesh);
 
                     const node = {
                         type: 'rock',
@@ -173,7 +154,8 @@ export class HubResources {
                         hp: 3,
                         maxHp: 3,
                         scale: scale,
-                        rotY: rotY
+                        rotY: rotY,
+                        mesh: rockMesh
                     };
                     this.nodes.push(node);
 
@@ -255,20 +237,6 @@ export class HubResources {
             }
         }
 
-        // Hide unused instances
-        this.dummy.scale.set(0, 0, 0);
-        this.dummy.updateMatrix();
-        for (let i = treeCount; i < this.treeTrunkMesh.count; i++) {
-            this.treeTrunkMesh.setMatrixAt(i, this.dummy.matrix);
-            this.treeLeavesMesh.setMatrixAt(i, this.dummy.matrix);
-        }
-        for (let i = rockCount; i < this.rockMesh.count; i++) {
-            this.rockMesh.setMatrixAt(i, this.dummy.matrix);
-        }
-
-        this.treeTrunkMesh.instanceMatrix.needsUpdate = true;
-        this.treeLeavesMesh.instanceMatrix.needsUpdate = true;
-        this.rockMesh.instanceMatrix.needsUpdate = true;
     }
 
     getColliders() {
@@ -307,28 +275,65 @@ export class HubResources {
 
             if (closestNode.hp > 0) {
                 // Just hit feedback
-                this.dummy.scale.set(closestNode.scale * 0.85, closestNode.scale * 0.85, closestNode.scale * 0.85);
-                this.updateNodeMatrix(closestNode, this.dummy.matrix);
+                closestNode.mesh.scale.setScalar(closestNode.scale * 0.85);
 
                 // Small particles
                 this.emitParticles(closestNode, 6, 10, position);
             } else {
                 // Destroyed
-                this.dummy.scale.set(0, 0, 0);
-                this.updateNodeMatrix(closestNode, this.dummy.matrix);
 
-                // Big explosion of particles
+                // Big explosion of particles (dust/leaves)
                 this.emitParticles(closestNode, 20, 30, closestNode.position);
 
-                // Remove collider
-                const colIdx = this.activeColliders.indexOf(closestNode.collider);
-                if (colIdx > -1) {
-                    this.activeColliders.splice(colIdx, 1);
-                }
+                // Full removal
+                this.destroyNode(closestNode);
 
                 // Grant resources and XP
                 this.distributeLoot(closestNode);
             }
+        }
+    }
+
+    destroyNode(node) {
+        if (node.mesh) {
+            // Remove from scene/group
+            if (node.mesh.parent) {
+                node.mesh.parent.remove(node.mesh);
+            }
+
+            // Dispose geometry and materials
+            node.mesh.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => mat.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Remove collider
+        const colIdx = this.activeColliders.indexOf(node.collider);
+        if (colIdx > -1) {
+            this.activeColliders.splice(colIdx, 1);
+        }
+
+        // Remove from nodes array
+        const nodeIdx = this.nodes.indexOf(node);
+        if (nodeIdx > -1) {
+            this.nodes.splice(nodeIdx, 1);
+        }
+
+        // Remove from global interactive items if it's an herb/interactable
+        if (this.items) {
+             const itemIdx = this.items.findIndex(item => item.node === node);
+             if (itemIdx > -1) {
+                 this.items.splice(itemIdx, 1);
+             }
         }
     }
 
@@ -355,10 +360,6 @@ export class HubResources {
 
     update(delta) {
         // Update nodes wobble
-        let matrixNeedsUpdate = false;
-        let treeNeedsUpdate = false;
-        let rockNeedsUpdate = false;
-
         for (const node of this.nodes) {
             if (node.hp <= 0) continue;
 
@@ -370,29 +371,10 @@ export class HubResources {
                 } else {
                     node.wobbleTimer = 0;
                 }
-
-                this.dummy.position.copy(node.position);
-                this.dummy.rotation.set(0, node.rotY, 0);
-                this.dummy.scale.set(currentScale, currentScale, currentScale);
-                this.dummy.updateMatrix();
-
-                if (node.type === 'tree') {
-                    this.treeTrunkMesh.setMatrixAt(node.index, this.dummy.matrix);
-                    this.treeLeavesMesh.setMatrixAt(node.index, this.dummy.matrix);
-                    treeNeedsUpdate = true;
-                } else {
-                    this.rockMesh.setMatrixAt(node.index, this.dummy.matrix);
-                    rockNeedsUpdate = true;
+                if (node.mesh) {
+                    node.mesh.scale.setScalar(currentScale);
                 }
             }
-        }
-
-        if (treeNeedsUpdate) {
-            this.treeTrunkMesh.instanceMatrix.needsUpdate = true;
-            this.treeLeavesMesh.instanceMatrix.needsUpdate = true;
-        }
-        if (rockNeedsUpdate) {
-            this.rockMesh.instanceMatrix.needsUpdate = true;
         }
 
         // Update particles
@@ -434,18 +416,6 @@ export class HubResources {
         if (pNeedsUpdate) {
             this.particleMesh.instanceMatrix.needsUpdate = true;
             if(this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
-        }
-    }
-
-    updateNodeMatrix(node, matrix) {
-        if (node.type === 'tree') {
-            this.treeTrunkMesh.setMatrixAt(node.index, matrix);
-            this.treeLeavesMesh.setMatrixAt(node.index, matrix);
-            this.treeTrunkMesh.instanceMatrix.needsUpdate = true;
-            this.treeLeavesMesh.instanceMatrix.needsUpdate = true;
-        } else if (node.type === 'rock') {
-            this.rockMesh.setMatrixAt(node.index, matrix);
-            this.rockMesh.instanceMatrix.needsUpdate = true;
         }
     }
 

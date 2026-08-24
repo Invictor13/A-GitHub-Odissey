@@ -109,7 +109,7 @@ export class HubEnvironment {
         this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 0.7);
         this.skyGroup.add(this.hemiLight);
 
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+        this.ambientLight = new THREE.AmbientLight(0xfff3e0, 0.45); // Warmer and brighter ambient light
         this.skyGroup.add(this.ambientLight);
 
         // Sun Directional Light
@@ -124,6 +124,7 @@ export class HubEnvironment {
         this.sunLight.shadow.camera.left = -d; this.sunLight.shadow.camera.right = d;
         this.sunLight.shadow.camera.top = d; this.sunLight.shadow.camera.bottom = -d;
         this.sunLight.shadow.bias = -0.0003;
+        this.sunLight.shadow.radius = 2; // Soft shadows
         this.skyGroup.add(this.sunLight);
 
         // Moon Light
@@ -190,6 +191,9 @@ export class HubEnvironment {
     }
 
     setupEnvironment() {
+        // Procedural Grass and Flowers
+        this.setupVegetation();
+
         // Volumetric Clouds (sky clouds)
         this.skyClouds = [];
         const matCloud = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1.0, flatShading: true });
@@ -222,6 +226,61 @@ export class HubEnvironment {
             this.hubGroup.add(cloud);
             this.islandBottomClouds.push(cloud);
         }
+    }
+
+    setupVegetation() {
+        const grassMat = new THREE.MeshLambertMaterial({ color: 0x22c55e, flatShading: true });
+        const flowerMats = [
+            new THREE.MeshLambertMaterial({ color: 0xffa500, flatShading: true }), // Orange
+            new THREE.MeshLambertMaterial({ color: 0xef4444, flatShading: true }), // Red
+            new THREE.MeshLambertMaterial({ color: 0xa855f7, flatShading: true })  // Purple
+        ];
+
+        const grassGeo = new THREE.ConeGeometry(0.1, 0.4, 3);
+        grassGeo.translate(0, 0.2, 0);
+
+        const flowerGeo = new THREE.DodecahedronGeometry(0.15, 0);
+        flowerGeo.translate(0, 0.2, 0);
+
+        this.vegetationGroup = new THREE.Group();
+
+        // Scatter 150 grass tufts and 30 flowers
+        for (let i = 0; i < 180; i++) {
+            const x = -13 + Math.random() * 26;
+            const z = -13 + Math.random() * 26;
+
+            // Only spawn on valid terrain
+            if (this.terrain) {
+                const y = this.terrain.getHeightAt(x, z);
+                if (y > 0 && y < 3) {
+                    const isFlower = i > 150;
+                    let mesh;
+                    if (isFlower) {
+                        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 3), grassMat);
+                        stem.position.y = 0.1;
+                        const bloom = new THREE.Mesh(flowerGeo, flowerMats[Math.floor(Math.random() * flowerMats.length)]);
+                        bloom.position.y = 0.2;
+                        mesh = new THREE.Group();
+                        mesh.add(stem);
+                        mesh.add(bloom);
+                    } else {
+                        mesh = new THREE.Group();
+                        for (let g = 0; g < 3; g++) {
+                            const blade = new THREE.Mesh(grassGeo, grassMat);
+                            blade.rotation.x = (Math.random() - 0.5) * 0.5;
+                            blade.rotation.z = (Math.random() - 0.5) * 0.5;
+                            blade.rotation.y = Math.random() * Math.PI;
+                            blade.scale.setScalar(0.5 + Math.random() * 0.8);
+                            mesh.add(blade);
+                        }
+                    }
+                    mesh.position.set(x, y, z);
+                    this.vegetationGroup.add(mesh);
+                }
+            }
+        }
+
+        this.hubGroup.add(this.vegetationGroup);
     }
 
     setupPortal() {
@@ -682,8 +741,8 @@ export class HubEnvironment {
     checkCollision(pos, radius) {
         if (!this.terrain) return false;
 
-        // Prevent falling out of bounds
-        if (Math.abs(pos.x) >= 9.5 || Math.abs(pos.z) >= 9.5) {
+        // Prevent falling out of bounds (expanded hub limits)
+        if (Math.abs(pos.x) >= 13.5 || Math.abs(pos.z) >= 13.5) {
             return true;
         }
 
