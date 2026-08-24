@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>O Mercador - Biome Showcase</title>
+    <!-- Tailwind CSS for modern glassmorphism UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #091c12; font-family: 'Inter', system-ui, sans-serif; user-select: none; }
+        
+        .glass-panel {
+            background: rgba(18, 22, 28, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .biome-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .biome-btn.active {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            color: #111827;
+            border-color: #fef08a;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+            font-weight: 700;
+        }
+
+        /* Custom Scrollbar for Inventory */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.5); border-radius: 3px; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-100">
+
+    <!-- TOP BIOME SELECTOR BAR -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-2 max-w-full px-4">
+        <div class="glass-panel p-2 rounded-2xl flex items-center gap-2">
+            <span class="text-xs uppercase font-bold text-amber-400 px-3 hidden sm:inline tracking-wider">🌍 Bioma:</span>
+            <button onclick="switchBiome('jungle')" id="btn-biome-jungle" class="biome-btn active px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>🌴</span> <span>Selva & Rota</span>
+            </button>
+            <button onclick="switchBiome('desert')" id="btn-biome-desert" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>🏜️</span> <span>Deserto</span>
+            </button>
+            <button onclick="switchBiome('tundra')" id="btn-biome-tundra" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>❄️</span> <span>Tundra</span>
+            </button>
+            <button onclick="switchBiome('volcano')" id="btn-biome-volcano" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>🌋</span> <span>Vulcão</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CROSSHAIR -->
+    <div id="crosshair" class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-amber-400/60 rounded-full z-10"></div>
+
+    <!-- LEFT INFO & GEAR SLOTS HUD -->
+    <div id="gear-panel" class="glass-panel absolute top-20 left-4 p-4 rounded-2xl w-64 z-10 hidden md:block">
+        <div class="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3">
+            <h3 id="biome-title" class="font-bold text-amber-400 text-sm uppercase tracking-wide">Selva & Rota</h3>
+            <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">v2.5</span>
+        </div>
+        <p id="biome-desc" class="text-xs text-slate-300 leading-relaxed mb-4">
+            Mestre caixeiro-viajante tradicional com chapéu de abas largas, alforje de couro e cajado com gema rúnica.
+        </p>
+
+        <div class="space-y-2">
+            <button onclick="toggleHead()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>👒 Chapéu / Capuz</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+            <button onclick="toggleBackpack()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>🎒 Alforje de Carga</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+            <button onclick="toggleWeapon()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>🦯 Cajado / Ferramenta</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- INVENTORY MODAL -->
+    <div id="inventory-menu" class="glass-panel absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 rounded-3xl w-96 max-w-[90vw] hidden z-30">
+        <div class="flex justify-between items-center border-b border-amber-500/30 pb-3 mb-4">
+            <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+                <span>📜</span> <span>Inventário de Mercadorias</span>
+            </h2>
+            <button onclick="toggleInventoryUI()" class="text-slate-400 hover:text-amber-400 text-lg font-bold">&times;</button>
+        </div>
+        <div id="inventory-grid" class="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto custom-scroll pr-1">
+            <!-- Dynamic inventory items populated by JS -->
+        </div>
+    </div>
+
+    <!-- BOTTOM CONTROLS OVERLAY -->
+    <div id="ui-overlay" class="glass-panel absolute bottom-4 left-1/2 -translate-x-1/2 p-3 sm:p-4 rounded-2xl z-10 w-[92vw] max-w-2xl text-center">
+        <div class="text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">O Mercador — Guia de Comandos</div>
+        <p class="text-xs text-slate-300 leading-normal flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">WASD</kbd> Mover</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Espaço</kbd> Pular</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Shift</kbd> Correr</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Click Esq</kbd> Atacar/Cajado</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Click Dir</kbd> Defender/Mochila</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">I</kbd> Inventário</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">F</kbd> Dano</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Z/X/C/V</kbd> Sentar/Dormir/Comer/Beber</span>
+        </p>
+    </div>
+
+    <!-- THREE.JS MAIN APPLICATION -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        function createBumpTexture(type, size = 256) {
+            const canvas = document.createElement('canvas'); 
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d'); 
+            const imgData = ctx.createImageData(size, size);
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                let val = 128;
+                if (type === 'leather') val += (Math.random() * 60) - 30;
+                else if (type === 'fur') val += (Math.sin(Math.floor((i / 4) / size) * 0.8) * 45) + (Math.random() * 30) - 15;
+                else if (type === 'cloth') val += (Math.sin((i / 4) % size) * 15) + (Math.cos(Math.floor((i / 4) / size)) * 15);
+                else if (type === 'sand') val += (Math.sin(((i / 4) % size) * 0.1) * 20) + (Math.random() * 20);
+                else if (type === 'scales') val += (Math.sin(((i / 4) % size) * 0.2) * Math.cos(Math.floor((i / 4) / size) * 0.2) * 50);
+                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = val; 
+                imgData.data[i+3] = 255; 
+            }
+            ctx.putImageData(imgData, 0, 0); 
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; 
+            tex.wrapT = THREE.RepeatWrapping; 
+            return tex;
+        }
+
+        const texLeather = createBumpTexture('leather');
+        const texCloth = createBumpTexture('cloth');
+        const texFur = createBumpTexture('fur');
+        const texSand = createBumpTexture('sand');
+        const texScales = createBumpTexture('scales');
+
+        const scene = new THREE.Scene(); 
+        scene.background = new THREE.Color('#091c12'); 
+        scene.fog = new THREE.FogExp2('#091c12', 0.025);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000); 
+        camera.position.set(0, 6, 16);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement); 
+        controls.enableDamping = true; 
+        controls.dampingFactor = 0.05; 
+        controls.target.set(0, 3, 0); 
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+        // Lighting Setup
+        const hemiLight = new THREE.HemisphereLight(0xffeedd, 0x334455, 0.7); 
+        hemiLight.position.set(0, 20, 0); 
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.3); 
+        dirLight.position.set(12, 18, 10); 
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048; 
+        dirLight.shadow.mapSize.height = 2048;
+        const d = 15; 
+        dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d; 
+        dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d; 
+        scene.add(dirLight);
+
+        // Ground Platform
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x223d24, roughness: 0.9, bumpMap: texCloth, bumpScale: 0.04 });
+        const ground = new THREE.Mesh(new THREE.CylinderGeometry(20, 18, 1.5, 32), groundMat); 
+        ground.position.y = -0.75; 
+        ground.receiveShadow = true; 
+        scene.add(ground);
+
+        const baseParams = { flatShading: true, roughness: 0.8, metalness: 0.1 };
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xe8b898, ...baseParams });
+        const skinDarkMat = new THREE.MeshStandardMaterial({ color: 0xc49070, ...baseParams });
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, ...baseParams, bumpMap: texFur, bumpScale: 0.05 }); 
+        const beardMat = new THREE.MeshStandardMaterial({ color: 0x2b170c, ...baseParams, bumpMap: texFur, bumpScale: 0.06 });
+        const clothMerchantMat = new THREE.MeshStandardMaterial({ color: 0x1f3a52, ...baseParams, bumpMap: texCloth, bumpScale: 0.05 });
+        const leatherDarkMat = new THREE.MeshStandardMaterial({ color: 0x382218, ...baseParams, bumpMap: texLeather, bumpScale: 0.08 });
+        const matGold = new THREE.MeshStandardMaterial({ color: 0xe6b800, metalness: 0.85, roughness: 0.25, flatShading: true });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.8 });
+
+        const matEyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, ...baseParams });
+        const matEyeIris = new THREE.MeshStandardMaterial({ color: 0x3b6e8c, ...baseParams });
+        const matEyePupil = new THREE.MeshStandardMaterial({ color: 0x111111, ...baseParams });
+        const matEyeShine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const matMouth = new THREE.MeshStandardMaterial({ color: 0x3a1912, ...baseParams });
+
+        function createPart(geo, mat, x, y, z, rx=0, ry=0, rz=0, parent=null) {
+            const mesh = new THREE.Mesh(geo, mat); 
+            mesh.position.set(x, y, z); 
+            mesh.rotation.set(rx, ry, rz);
+            mesh.castShadow = true; 
+            mesh.receiveShadow = true; 
+            if (parent) parent.add(mesh); 
+            return mesh;
+        }
+
+        const merchant = new THREE.Group(); 
+        scene.add(merchant);
+        const bodyGroup = new THREE.Group(); 
+        merchant.add(bodyGroup);
+
+        // Merchant Torso
+        const torso = createPart(new THREE.CylinderGeometry(0.75, 0.82, 1.5, 10), clothMerchantMat, 0, 2.3, 0, 0, 0, 0, bodyGroup);
+        torso.scale.set(1.2, 1, 0.95);
+
+        // Merchant Belt with Pouch & Coins
+        const belt = createPart(new THREE.CylinderGeometry(0.88, 0.88, 0.22, 12), leatherDarkMat, 0, -0.6, 0, 0, 0, 0, torso);
+        createPart(new THREE.BoxGeometry(0.4, 0.3, 0.15), matGold, 0, 0, 0.86, 0, 0, 0, belt);
+        createPart(new THREE.BoxGeometry(0.35, 0.35, 0.25), leatherDarkMat, -0.65, -0.1, 0.5, 0, 0, 0.3, belt);
+        createPart(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 10), matGold, 0.65, -0.15, 0.5, 0.4, 0, 0, belt);
+
+        // Slots for Modular Customization
+        const slotHead = new THREE.Group();
+        const slotBackpack = new THREE.Group(); torso.add(slotBackpack);
+        const slotWeapon = new THREE.Group();
+
+        // HEAD & FACIAL STRUCTURE
+        const headPivot = new THREE.Group(); 
+        headPivot.position.set(0, 3.2, 0); 
+        bodyGroup.add(headPivot);
+
+        const head = createPart(new THREE.IcosahedronGeometry(0.85, 2), skinMat, 0, 0.45, 0, 0, 0, 0, headPivot);
+        head.scale.set(1.1, 1.15, 1.1);
+        headPivot.add(slotHead);
+
+        // Nose (Round friendly merchant nose)
+        createPart(new THREE.SphereGeometry(0.22, 10, 10), skinDarkMat, 0, 0.4, 0.92, 0, 0, 0, headPivot);
+
+        // Ears
+        createPart(new THREE.SphereGeometry(0.18, 8, 8), skinMat, -0.92, 0.45, 0, 0, 0, 0, headPivot).scale.set(0.6, 1, 1);
+        createPart(new THREE.SphereGeometry(0.18, 8, 8), skinMat, 0.92, 0.45, 0, 0, 0, 0, headPivot).scale.set(0.6, 1, 1);
+
+        // Eyes & Eyebrows
+        const eyeL = new THREE.Group(); eyeL.position.set(-0.32, 0.52, 0.84); headPivot.add(eyeL);
+        const eyeR = new THREE.Group(); eyeR.position.set(0.32, 0.52, 0.84); headPivot.add(eyeR);
+
+        function buildEye(parent) {
+            createPart(new THREE.BoxGeometry(0.26, 0.32, 0.1), matEyeWhite, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.18, 0.22, 0.12), matEyeIris, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.1, 0.14, 0.14), matEyePupil, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.04, 0.04, 0.16), matEyeShine, 0.03, 0.05, 0, 0, 0, 0, parent); 
+        }
+        buildEye(eyeL); buildEye(eyeR);
+
+        const browL = createPart(new THREE.BoxGeometry(0.32, 0.1, 0.2), beardMat, -0.32, 0.72, 0.9, 0.05, 0, -0.15, headPivot);
+        const browR = createPart(new THREE.BoxGeometry(0.32, 0.1, 0.2), beardMat, 0.32, 0.72, 0.9, 0.05, 0, 0.15, headPivot);
+
+        const mouth = createPart(new THREE.BoxGeometry(0.24, 0.05, 0.1), matMouth, 0, 0.18, 0.88, 0, 0, 0, headPivot);
+
+        // --- CONTOURED MUSTACHE & BEARD (FIXED: NO FLOATING CONE/TRIANGLE) ---
+        const beardGroup = new THREE.Group();
+        headPivot.add(beardGroup);
+
+        // Friendly curved mustache halves
+        createPart(new THREE.BoxGeometry(0.38, 0.16, 0.18), beardMat, -0.22, 0.28, 0.94, 0.1, 0, -0.25, beardGroup);
+        createPart(new THREE.BoxGeometry(0.38, 0.16, 0.18), beardMat, 0.22, 0.28, 0.94, 0.1, 0, 0.25, beardGroup);
+
+        // Smooth chin beard hugging jawline tightly
+        const chinBeard = createPart(new THREE.SphereGeometry(0.48, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), beardMat, 0, 0.1, 0.45, 0.4, 0, 0, beardGroup);
+        chinBeard.scale.set(1.1, 0.8, 1.0);
+
+        // Sideburns
+        createPart(new THREE.BoxGeometry(0.18, 0.5, 0.3), beardMat, -0.88, 0.35, 0.2, 0, 0, 0, beardGroup);
+        createPart(new THREE.BoxGeometry(0.18, 0.5, 0.3), beardMat, 0.88, 0.35, 0.2, 0, 0, 0, beardGroup);
+
+
+        // 1. JUNGLE / ROAD GEAR (Classic Traveller Merchant)
+        const gearJungle = { head: new THREE.Group(), pack: new THREE.Group(), weapon: new THREE.Group() };
+        
+        // Traveler Wide-Brim Hat with Gold Feather
+        const hatBase = createPart(new THREE.CylinderGeometry(1.45, 1.45, 0.1, 16), clothMerchantMat, 0, 0.8, -0.05, -0.1, 0, 0, gearJungle.head);
+        createPart(new THREE.CylinderGeometry(0.85, 0.95, 0.65, 16), clothMerchantMat, 0, 1.15, -0.05, -0.1, 0, 0, gearJungle.head);
+        createPart(new THREE.CylinderGeometry(0.87, 0.87, 0.12, 16), matGold, 0, 0.92, -0.05, -0.1, 0, 0, gearJungle.head);
+        createPart(new THREE.ConeGeometry(0.15, 0.9, 5), matGold, -0.7, 1.35, 0.2, 0.4, 0, -0.5, gearJungle.head);
+
+        // Merchant Wooden Pack with Rolled Blanket & Elixirs
+        createPart(new THREE.BoxGeometry(1.3, 1.5, 0.85), woodMat, 0, 0.1, -0.85, 0, 0, 0, gearJungle.pack);
+        createPart(new THREE.CylinderGeometry(0.3, 0.3, 1.3, 12), new THREE.MeshStandardMaterial({ color: 0x9c3823, roughness: 0.9 }), 0, 1.0, -0.85, 0, 0, Math.PI/2, gearJungle.pack);
+        createPart(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2 }), -0.4, 0.2, -1.3, 0, 0, 0, gearJungle.pack);
+        createPart(new THREE.CylinderGeometry(0.15, 0.15, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0xff0088, roughness: 0.2 }), 0.4, 0.2, -1.3, 0, 0, 0, gearJungle.pack);
+
+        // Merchant Walking Staff with Emerald Crystal
+        createPart(new THREE.CylinderGeometry(0.06, 0.05, 2.2, 8), woodMat, 0, 0.3, 0, 0, 0, 0, gearJungle.weapon);
+        createPart(new THREE.IcosahedronGeometry(0.28, 1), new THREE.MeshStandardMaterial({ color: 0x22ff77, roughness: 0.1, emissive: 0x00aa44, emissiveIntensity: 0.6 }), 0, 1.3, 0, 0, 0, 0, gearJungle.weapon);
+
+
+        // 2. DESERT GEAR (Caravan Master Silk Turban & Scimitar)
+        const gearDesert = { head: new THREE.Group(), pack: new THREE.Group(), weapon: new THREE.Group() };
+
+        const turbanMat = new THREE.MeshStandardMaterial({ color: 0xdfb368, roughness: 0.6, bumpMap: texCloth });
+        const silkRedMat = new THREE.MeshStandardMaterial({ color: 0xa82222, roughness: 0.5 });
+        const rubyMat = new THREE.MeshStandardMaterial({ color: 0xff1133, roughness: 0.1, metalness: 0.2 });
+
+        // Turban dome cap covering top/back of head cleanly above brow line
+        const turbanCap = createPart(new THREE.SphereGeometry(0.96, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.46), turbanMat, 0, 0.68, -0.1, -0.1, 0, 0, gearDesert.head);
+        turbanCap.scale.set(1.02, 1.0, 1.05);
+
+        // Layered turban cloth wrapping rings positioned neatly above eyebrows
+        createPart(new THREE.TorusGeometry(0.88, 0.15, 12, 20), turbanMat, 0, 0.72, -0.02, -0.08, 0, 0, gearDesert.head);
+        createPart(new THREE.TorusGeometry(0.84, 0.14, 12, 20), silkRedMat, 0, 0.88, -0.04, -0.12, 0, 0, gearDesert.head);
+        createPart(new THREE.TorusGeometry(0.76, 0.12, 12, 20), turbanMat, 0, 1.02, -0.06, -0.05, 0, 0, gearDesert.head);
+
+        // Golden Brooch & Ruby Gemstone perched gracefully on forehead wrap
+        createPart(new THREE.OctahedronGeometry(0.18, 0), matGold, 0, 0.82, 0.88, 0, 0, 0, gearDesert.head);
+        createPart(new THREE.OctahedronGeometry(0.10, 0), rubyMat, 0, 0.82, 0.95, 0, 0, 0, gearDesert.head);
+
+        // Flowing Side Veil Scarf & Back Neck Drape (Sides & Back only, face stays completely open)
+        createPart(new THREE.BoxGeometry(0.18, 0.85, 0.45), turbanMat, -0.92, 0.25, -0.05, 0, 0, 0.1, gearDesert.head);
+        createPart(new THREE.BoxGeometry(0.18, 0.85, 0.45), turbanMat, 0.92, 0.25, -0.05, 0, 0, -0.1, gearDesert.head);
+        createPart(new THREE.TorusGeometry(0.88, 0.14, 8, 18), turbanMat, 0, -0.05, -0.1, -0.1, 0, 0, gearDesert.head);
+
+        // Spice Packs & Scimitar
+        createPart(new THREE.CylinderGeometry(0.5, 0.5, 1.4, 10), new THREE.MeshStandardMaterial({ color: 0x8c5e32, roughness: 0.9 }), -0.3, 0.1, -0.85, 0, 0, 0.2, gearDesert.pack);
+        createPart(new THREE.CylinderGeometry(0.45, 0.45, 1.3, 10), new THREE.MeshStandardMaterial({ color: 0xc28f38, roughness: 0.9 }), 0.3, 0.1, -0.85, 0, 0, -0.2, gearDesert.pack);
+
+        // Curved Scimitar Blade
+        createPart(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 8), matGold, 0, -0.2, 0, 0, 0, 0, gearDesert.weapon);
+        createPart(new THREE.BoxGeometry(0.4, 0.08, 0.15), matGold, 0, 0.1, 0, 0, 0, 0, gearDesert.weapon);
+        const blade = createPart(new THREE.BoxGeometry(0.12, 1.4, 0.04), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.2 }), 0, 0.8, 0, 0, 0, 0, gearDesert.weapon);
+        blade.rotation.z = -0.15;
+
+
+        // 3. REWORKED TUNDRA GEAR (Nordic Trapper Ushanka Hat & Frost Staff)
+        const gearTundra = { head: new THREE.Group(), pack: new THREE.Group(), weapon: new THREE.Group() };
+
+        const ushankaMat = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.8, bumpMap: texCloth });
+        const furTrimMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.9, bumpMap: texFur, bumpScale: 0.12 });
+        const iceGemsMat = new THREE.MeshStandardMaterial({ color: 0x33ccff, roughness: 0.1, emissive: 0x0088cc, emissiveIntensity: 0.7 });
+
+        // Ushanka Cap Dome
+        createPart(new THREE.CylinderGeometry(0.92, 0.98, 0.65, 16), ushankaMat, 0, 0.85, -0.05, 0, 0, 0, gearTundra.head);
+        createPart(new THREE.SphereGeometry(0.92, 16, 12, 0, Math.PI*2, 0, Math.PI*0.48), ushankaMat, 0, 1.05, -0.05, 0, 0, 0, gearTundra.head);
+
+        // Front Folded Fur Brim with Frost Emblem
+        createPart(new THREE.CylinderGeometry(0.96, 0.96, 0.35, 16, 1, false, -Math.PI*0.35, Math.PI*0.7), furTrimMat, 0, 0.78, 0.02, -0.1, 0, 0, gearTundra.head);
+        createPart(new THREE.OctahedronGeometry(0.15, 0), iceGemsMat, 0, 0.9, 0.96, 0, 0, 0, gearTundra.head);
+
+        // Cheek Ear Flaps (Hanging down neatly)
+        createPart(new THREE.BoxGeometry(0.2, 0.7, 0.55), furTrimMat, -0.92, 0.45, 0.05, 0, 0, -0.15, gearTundra.head);
+        createPart(new THREE.BoxGeometry(0.2, 0.7, 0.55), furTrimMat, 0.92, 0.45, 0.05, 0, 0, 0.15, gearTundra.head);
+
+        // Back Neck Fur Collar
+        createPart(new THREE.TorusGeometry(0.88, 0.22, 10, 16), furTrimMat, 0, -0.05, -0.05, 0, 0, 0, gearTundra.head);
+
+        // Forehead Brass Snow Goggles
+        createPart(new THREE.CylinderGeometry(0.95, 0.95, 0.1, 16), leatherDarkMat, 0, 0.65, 0, 0, 0, 0, gearTundra.head);
+        createPart(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 12), matGold, -0.3, 0.68, 0.88, 1.5, 0, 0, gearTundra.head);
+        createPart(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 12), matGold, 0.3, 0.68, 0.88, 1.5, 0, 0, gearTundra.head);
+        createPart(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 12), iceGemsMat, -0.3, 0.68, 0.89, 1.5, 0, 0, gearTundra.head);
+        createPart(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 12), iceGemsMat, 0.3, 0.68, 0.89, 1.5, 0, 0, gearTundra.head);
+
+        // Tundra Fur Pack & Ice Staff
+        createPart(new THREE.BoxGeometry(1.35, 1.55, 0.9), ushankaMat, 0, 0.1, -0.88, 0, 0, 0, gearTundra.pack);
+        createPart(new THREE.BoxGeometry(1.4, 0.4, 0.95), furTrimMat, 0, 0.8, -0.88, 0, 0, 0, gearTundra.pack);
+
+        createPart(new THREE.CylinderGeometry(0.06, 0.05, 2.3, 8), woodMat, 0, 0.3, 0, 0, 0, 0, gearTundra.weapon);
+        createPart(new THREE.OctahedronGeometry(0.35, 1), iceGemsMat, 0, 1.35, 0, 0, 0, 0, gearTundra.weapon);
+
+
+        // 4. REWORKED VOLCANIC GEAR (Open-Face Fireproof Cowl & Ore Assayer Goggles - NO WARRIOR MASK)
+        const gearVolcano = { head: new THREE.Group(), pack: new THREE.Group(), weapon: new THREE.Group() };
+
+        const volcanicLeatherMat = new THREE.MeshStandardMaterial({ color: 0x241815, roughness: 0.8, bumpMap: texLeather });
+        const magmaGlowMat = new THREE.MeshStandardMaterial({ color: 0xff3300, emissive: 0xff4400, emissiveIntensity: 1.2, roughness: 0.2 });
+        const brassGogglesMat = new THREE.MeshStandardMaterial({ color: 0xcc8833, metalness: 0.85, roughness: 0.3 });
+        const magmaLensMat = new THREE.MeshStandardMaterial({ color: 0xff5500, roughness: 0.1, emissive: 0xaa2200, emissiveIntensity: 0.8 });
+
+        // Open-Face Cowl / Hood (Back and Top covered, face 100% visible)
+        createPart(new THREE.SphereGeometry(0.92, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.48), volcanicLeatherMat, 0, 0.68, -0.05, -0.2, 0, 0, gearVolcano.head);
+        
+        // Draped Neck Collar with Magma Piping
+        createPart(new THREE.TorusGeometry(0.88, 0.18, 10, 16), volcanicLeatherMat, 0, -0.08, 0.05, 0.2, 0, 0, gearVolcano.head);
+        createPart(new THREE.TorusGeometry(0.9, 0.04, 8, 16), magmaGlowMat, 0, -0.03, 0.05, 0.2, 0, 0, gearVolcano.head);
+
+        // Ore Assayer Goggles - Positioned directly over the eyes (Y = 0.52)
+        createPart(new THREE.CylinderGeometry(0.92, 0.92, 0.1, 16), volcanicLeatherMat, 0, 0.52, 0, 0, 0, 0, gearVolcano.head);
+        createPart(new THREE.CylinderGeometry(0.22, 0.22, 0.15, 12), brassGogglesMat, -0.32, 0.52, 0.86, 1.5, 0, 0, gearVolcano.head);
+        createPart(new THREE.CylinderGeometry(0.22, 0.22, 0.15, 12), brassGogglesMat, 0.32, 0.52, 0.86, 1.5, 0, 0, gearVolcano.head);
+        createPart(new THREE.CylinderGeometry(0.17, 0.17, 0.17, 12), magmaLensMat, -0.32, 0.52, 0.88, 1.5, 0, 0, gearVolcano.head);
+        createPart(new THREE.CylinderGeometry(0.17, 0.17, 0.17, 12), magmaLensMat, 0.32, 0.52, 0.88, 1.5, 0, 0, gearVolcano.head);
+
+        // Volcano Pack & Forged Hammer
+        const obsidMat = new THREE.MeshStandardMaterial({ color: 0x141418, roughness: 0.3, metalness: 0.8, bumpMap: texScales, bumpScale: 0.05 });
+        createPart(new THREE.BoxGeometry(1.35, 1.55, 0.9), obsidMat, 0, 0.1, -0.88, 0, 0, 0, gearVolcano.pack);
+        createPart(new THREE.CylinderGeometry(0.42, 0.35, 0.7, 8), obsidMat, 0, 0.95, -0.88, 0, 0, 0, gearVolcano.pack);
+        createPart(new THREE.CylinderGeometry(0.36, 0.3, 0.1, 8), magmaGlowMat, 0, 1.28, -0.88, 0, 0, 0, gearVolcano.pack);
+
+        createPart(new THREE.CylinderGeometry(0.06, 0.06, 2.1, 6), obsidMat, 0, 0.2, 0, 0, 0, 0, gearVolcano.weapon);
+        createPart(new THREE.BoxGeometry(0.8, 0.45, 0.45), obsidMat, 0, 1.25, 0, 0, 0, 0, gearVolcano.weapon);
+        createPart(new THREE.BoxGeometry(0.82, 0.25, 0.47), magmaGlowMat, 0, 1.25, 0, 0, 0, 0, gearVolcano.weapon);
+
+
+        // --- ARMS AND LEGS ---
+        const shoulderL = new THREE.Group(); shoulderL.position.set(-1.3, 2.9, 0); bodyGroup.add(shoulderL);
+        const shoulderR = new THREE.Group(); shoulderR.position.set(1.3, 2.9, 0); bodyGroup.add(shoulderR);
+        const elbowL = new THREE.Group(); elbowL.position.set(0, -0.65, 0); shoulderL.add(elbowL);
+        const elbowR = new THREE.Group(); elbowR.position.set(0, -0.65, 0); shoulderR.add(elbowR);
+
+        createPart(new THREE.SphereGeometry(0.42, 10, 10), clothMerchantMat, 0, 0.1, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.SphereGeometry(0.42, 10, 10), clothMerchantMat, 0, 0.1, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.26, 0.24, 0.75, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.CylinderGeometry(0.26, 0.24, 0.75, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.25, 0.22, 0.65, 8), leatherDarkMat, 0, -0.3, 0, 0, 0, 0, elbowL);
+        createPart(new THREE.CylinderGeometry(0.25, 0.22, 0.65, 8), leatherDarkMat, 0, -0.3, 0, 0, 0, 0, elbowR);
+
+        const handL = createPart(new THREE.IcosahedronGeometry(0.28, 1), skinMat, 0, -0.7, 0, 0, 0, 0, elbowL);
+        const handR = createPart(new THREE.IcosahedronGeometry(0.28, 1), skinMat, 0, -0.7, 0, 0, 0, 0, elbowR);
+
+        handR.add(slotWeapon);
+
+        // Legs
+        const hipL = new THREE.Group(); hipL.position.set(-0.55, 1.5, 0); bodyGroup.add(hipL);
+        const hipR = new THREE.Group(); hipR.position.set(0.55, 1.5, 0); bodyGroup.add(hipR);
+        const kneeL = new THREE.Group(); kneeL.position.set(0, -0.65, 0); hipL.add(kneeL);
+        const kneeR = new THREE.Group(); kneeR.position.set(0, -0.65, 0); hipR.add(kneeR);
+
+        createPart(new THREE.CylinderGeometry(0.32, 0.28, 0.75, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, hipL);
+        createPart(new THREE.CylinderGeometry(0.32, 0.28, 0.75, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, hipR);
+        createPart(new THREE.CylinderGeometry(0.28, 0.24, 0.65, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, kneeL);
+        createPart(new THREE.CylinderGeometry(0.28, 0.24, 0.65, 8), clothMerchantMat, 0, -0.3, 0, 0, 0, 0, kneeR);
+        createPart(new THREE.BoxGeometry(0.55, 0.38, 0.75), leatherDarkMat, 0, -0.65, 0.12, 0, 0, 0, kneeL);
+        createPart(new THREE.BoxGeometry(0.55, 0.38, 0.75), leatherDarkMat, 0, -0.65, 0.12, 0, 0, 0, kneeR);
+
+
+        const biomesData = {
+            jungle: {
+                title: "Selva & Rota Comercial",
+                desc: "Explorador e caixeiro-viajante tradicional carregando relíquias, elixires e quinquilharias exóticas.",
+                bg: '#091c12', fog: '#091c12',
+                groundColor: 0x223d24, groundTex: texCloth,
+                gear: gearJungle,
+                items: [
+                    { icon: '🌿', name: 'Planta Rara' }, { icon: '📜', name: 'Mapa Antigo' },
+                    { icon: '🍄', name: 'Cogumelo Brilhante' }, { icon: '🏺', name: 'Vaso de Latão' },
+                    { icon: '🗿', name: 'Totem de Pedra' }, { icon: '🦋', name: 'Casulo Raro' }
+                ]
+            },
+            desert: {
+                title: "Oásis das Dunas",
+                desc: "Mestre das caravanas do deserto, negociante de mirra, tecidos finos e relíquias douradas.",
+                bg: '#2b1d0c', fog: '#2b1d0c',
+                groundColor: 0xd4a359, groundTex: texSand,
+                gear: gearDesert,
+                items: [
+                    { icon: '💎', name: 'Gema do Sol' }, { icon: '📿', name: 'Colar de Ouro' },
+                    { icon: '🏺', name: 'Urna de Especiarias' }, { icon: '📜', name: 'Pergaminho Raro' },
+                    { icon: '🗡️', name: 'Adaga Ornamentada' }, { icon: '🧪', name: 'Elixir de Mirra' }
+                ]
+            },
+            tundra: {
+                title: "Picos Congelados",
+                desc: "Resistente mercador das estepes geladas, vestindo chapéu Ushanka de pele com óculos árticos.",
+                bg: '#0f1a24', fog: '#0f1a24',
+                groundColor: 0xa0b4c8, groundTex: texFur,
+                gear: gearTundra,
+                items: [
+                    { icon: '❄️', name: 'Gelo Eterno' }, { icon: '🐺', name: 'Pele de Lobo' },
+                    { icon: '🪵', name: 'Madeira Rúnica' }, { icon: '🧪', name: 'Tônico Anti-Congelante' },
+                    { icon: '🧊', name: 'Cristal Azul' }, { icon: '🍖', name: 'Carne Seca' }
+                ]
+            },
+            volcano: {
+                title: "Abismo Vulcânico",
+                desc: "Avaliador de minérios vulcânicos e gemas de magma com capuz térmico aberto e óculos de lupa.",
+                bg: '#200a0a', fog: '#200a0a',
+                groundColor: 0x331111, groundTex: texScales,
+                gear: gearVolcano,
+                items: [
+                    { icon: '🔥', name: 'Núcleo de Magma' }, { icon: '⬛', name: 'Lingote de Obsidiana' },
+                    { icon: '💎', name: 'Rubi Flamejante' }, { icon: '⚔️', name: 'Lâmina Forjada' },
+                    { icon: '🧪', name: 'Poção Anti-Fogo' }, { icon: '📜', name: 'Receita Forjada' }
+                ]
+            }
+        };
+
+        let currentBiome = 'jungle';
+        let showHead = true, showBackpack = true, showWeapon = true;
+
+        function updateGearDisplay() {
+            const data = biomesData[currentBiome];
+            slotHead.clear(); if (showHead) slotHead.add(data.gear.head);
+            slotBackpack.clear(); if (showBackpack) slotBackpack.add(data.gear.pack);
+            slotWeapon.clear(); if (showWeapon) slotWeapon.add(data.gear.weapon);
+        }
+
+        window.switchBiome = (key) => {
+            if (!biomesData[key]) return;
+            currentBiome = key;
+            const data = biomesData[key];
+
+            scene.background.set(data.bg);
+            scene.fog.color.set(data.fog);
+            groundMat.color.setHex(data.groundColor);
+            groundMat.bumpMap = data.groundTex;
+            groundMat.needsUpdate = true;
+
+            document.getElementById('biome-title').innerText = data.title;
+            document.getElementById('biome-desc').innerText = data.desc;
+
+            // Highlight button
+            document.querySelectorAll('.biome-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-biome-${key}`)?.classList.add('active');
+
+            // Inventory items update
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = data.items.map(item => `
+                <div class="bg-slate-800/60 border border-amber-500/20 p-2.5 rounded-2xl flex flex-col items-center justify-center text-center hover:border-amber-400 hover:bg-slate-700/80 transition cursor-pointer">
+                    <span class="text-2xl mb-1">${item.icon}</span>
+                    <span class="text-[11px] font-semibold text-amber-200 line-clamp-1">${item.name}</span>
+                </div>
+            `).join('');
+
+            updateGearDisplay();
+        };
+
+        window.toggleHead = () => { showHead = !showHead; updateGearDisplay(); };
+        window.toggleBackpack = () => { showBackpack = !showBackpack; updateGearDisplay(); };
+        window.toggleWeapon = () => { showWeapon = !showWeapon; updateGearDisplay(); };
+        window.toggleInventoryUI = () => {
+            const inv = document.getElementById('inventory-menu');
+            inv.classList.toggle('hidden');
+        };
+
+        switchBiome('jungle');
+
+        // Atmospheric Ambient Particles
+        const particles = [];
+        const particleGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const particleMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.6 });
+
+        for (let i = 0; i < 40; i++) {
+            const p = new THREE.Mesh(particleGeo, particleMat);
+            p.position.set((Math.random() - 0.5) * 20, Math.random() * 8, (Math.random() - 0.5) * 20);
+            p.userData = { speedY: Math.random() * 0.02 + 0.005, rotSpeed: Math.random() * 0.02 };
+            scene.add(p);
+            particles.push(p);
+        }
+
+        const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+        let velocityY = 0; let isGrounded = true; let animTime = 0; 
+        let isAttacking = false; let attackTimer = 0; const ATTACK_DURATION = 0.45;
+        let isDefending = false;
+        let actionState = 'none'; // sit, sleep, eat, drink, damage, none
+
+        document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = true;
+            if (k === 'h') {
+                const ui = document.getElementById('ui-overlay'); 
+                const panel = document.getElementById('gear-panel');
+                ui.classList.toggle('hidden');
+                panel.classList.toggle('hidden');
+            }
+            if (k === 'i') toggleInventoryUI();
+            
+            if (k === 'z') actionState = actionState === 'sit' ? 'none' : 'sit';
+            if (k === 'x') actionState = actionState === 'sleep' ? 'none' : 'sleep';
+            if (k === 'c' && actionState === 'none') { actionState = 'eat'; setTimeout(() => actionState = 'none', 2500); }
+            if (k === 'v' && actionState === 'none') { actionState = 'drink'; setTimeout(() => actionState = 'none', 2500); }
+            if (k === 'f' && actionState === 'none') { actionState = 'damage'; setTimeout(() => actionState = 'none', 600); }
+
+            if (e.code === 'Space' || k === ' ') {
+                e.preventDefault(); 
+                if (isGrounded && actionState === 'none') { velocityY = 18; isGrounded = false; }
+            }
+        });
+        document.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = false; });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && !isAttacking && actionState === 'none') { isAttacking = true; attackTimer = ATTACK_DURATION; }
+            if (e.button === 2 && actionState === 'none') { isDefending = true; }
+        });
+        document.addEventListener('mouseup', (e) => { if (e.button === 2) isDefending = false; });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+
+        function updateAnimations(delta, isMoving, moveSpeed) {
+            animTime += delta;
+            
+            headPivot.rotation.set(0, 0, 0); 
+            torso.rotation.set(0, 0, 0); 
+            bodyGroup.position.set(0, 0, 0);
+
+            // Action Animations
+            if (actionState === 'damage') {
+                bodyGroup.rotation.x = -0.3;
+                headPivot.rotation.x = -0.35;
+                shoulderL.rotation.set(-0.6, 0, 1.0);
+                shoulderR.rotation.set(-0.6, 0, -1.0);
+                bodyGroup.position.x += (Math.random() - 0.5) * 0.1;
+            } else if (actionState === 'sit') {
+                bodyGroup.position.y = -1.0;
+                hipL.rotation.set(-1.4, 0.2, 0); hipR.rotation.set(-1.4, -0.2, 0);
+                kneeL.rotation.set(0.2, 0, 0); kneeR.rotation.set(0.2, 0, 0);
+                shoulderL.rotation.set(0.3, 0, -0.2); shoulderR.rotation.set(0.3, 0, 0.2);
+                torso.rotation.x = 0.1; headPivot.rotation.x = 0.15;
+            } else if (actionState === 'sleep') {
+                bodyGroup.position.y = 0.75;
+                bodyGroup.rotation.x = -Math.PI / 2;
+                shoulderL.rotation.set(-0.2, 0, -1.0); shoulderR.rotation.set(-0.2, 0, 1.0);
+            } else {
+                // Locomotion & Idle
+                if (!isGrounded) {
+                    shoulderL.rotation.set(-1.5, 0, -0.4); shoulderR.rotation.set(-1.5, 0, 0.4);
+                    hipL.rotation.set(-0.4, 0, 0); hipR.rotation.set(0.3, 0, 0);
+                } else if (!isMoving) {
+                    bodyGroup.position.y = Math.sin(animTime * 2.5) * 0.04;
+                    if (!isAttacking && !isDefending) {
+                        shoulderL.rotation.set(0.1, 0, -0.15); 
+                        shoulderR.rotation.set(0.1, 0, 0.15); 
+                        elbowR.rotation.set(-0.2, 0, 0);
+                    }
+                    hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0);
+                    kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+                } else {
+                    const speedMult = keys.shift ? 16 : 10;
+                    const moveSin = Math.sin(animTime * speedMult);
+                    bodyGroup.position.y = Math.abs(moveSin) * (keys.shift ? 0.25 : 0.15);
+                    
+                    if (!isAttacking && !isDefending) {
+                        shoulderL.rotation.set(-moveSin * 0.8, 0, -0.15);
+                        shoulderR.rotation.set(moveSin * 0.8, 0, 0.15);
+                    }
+                    hipL.rotation.set(moveSin * 0.8, 0, 0);
+                    hipR.rotation.set(-moveSin * 0.8, 0, 0);
+                    kneeL.rotation.set(moveSin > 0 ? moveSin * 0.6 : 0, 0, 0);
+                    kneeR.rotation.set(moveSin < 0 ? -moveSin * 0.6 : 0, 0, 0);
+                }
+
+                // Defend & Attack Actions
+                if (isDefending) {
+                    shoulderL.rotation.set(-0.8, 0.4, -0.5);
+                    torso.rotation.y = -0.4;
+                    headPivot.rotation.y = 0.4;
+                }
+
+                if (isAttacking) {
+                    attackTimer -= delta;
+                    const progress = 1 - (attackTimer / ATTACK_DURATION);
+                    torso.rotation.y = Math.sin(progress * Math.PI) * 0.6;
+                    shoulderR.rotation.set(-Math.PI * 0.7 * progress, 0.4 * progress, 0);
+                    if (attackTimer <= 0) isAttacking = false;
+                }
+            }
+
+            // Facial Blink & Expression
+            if (actionState === 'eat') {
+                mouth.scale.y = 1.0 + Math.abs(Math.sin(animTime * 12)) * 1.5;
+                shoulderL.rotation.set(-1.1, 0.5, -0.2);
+            } else if (actionState === 'drink') {
+                mouth.scale.y = 1.8;
+                headPivot.rotation.x = -0.3;
+                shoulderL.rotation.set(-1.3, 0.5, -0.2);
+            } else {
+                mouth.scale.y = 1.0;
+            }
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            let isMoving = false;
+
+            const camDir = new THREE.Vector3(); 
+            camera.getWorldDirection(camDir); 
+            camDir.y = 0; 
+            camDir.normalize();
+            
+            const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+            const speed = keys.shift ? 11 : 6;
+
+            let moveX = 0, moveZ = 0;
+            if (actionState === 'none' && !isAttacking) {
+                if (keys.w) { moveX += camDir.x; moveZ += camDir.z; }
+                if (keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
+                if (keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
+                if (keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+            }
+
+            const moveVec = new THREE.Vector3(moveX, 0, moveZ);
+            if (moveVec.lengthSq() > 0) {
+                isMoving = true;
+                moveVec.normalize().multiplyScalar(speed * delta);
+                
+                const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                let diff = targetAngle - merchant.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                merchant.rotation.y += diff * 12 * delta;
+                
+                merchant.position.add(moveVec);
+            }
+
+            // Gravity & Vertical Movement
+            merchant.position.y += velocityY * delta;
+            velocityY -= 50 * delta;
+            if (merchant.position.y <= 0) {
+                merchant.position.y = 0;
+                velocityY = 0;
+                isGrounded = true;
+            }
+
+            // Update Ambient Particles
+            particles.forEach(p => {
+                p.position.y -= p.userData.speedY;
+                p.rotation.y += p.userData.rotSpeed;
+                if (p.position.y < 0) p.position.y = 8;
+            });
+
+            // Camera Tracking
+            const targetCamPos = merchant.position.clone().add(new THREE.Vector3(0, 6, 14));
+            camera.position.lerp(targetCamPos, 4 * delta);
+            controls.target.lerp(merchant.position.clone().add(new THREE.Vector3(0, 3, 0)), 8 * delta);
+
+            updateAnimations(delta, isMoving, speed);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+        });
+
+        animate();
+    </script>
+</body>
+</html>

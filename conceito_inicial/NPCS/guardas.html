@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Os Guardas do Reino - Heroic Guard Showcase</title>
+    <!-- Tailwind CSS for modern UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0c141c; font-family: 'Inter', system-ui, sans-serif; user-select: none; }
+        
+        .glass-panel {
+            background: rgba(15, 20, 28, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7);
+        }
+
+        .biome-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .biome-btn.active {
+            background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+            color: #0f172a;
+            border-color: #fef08a;
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.6);
+            font-weight: 700;
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.5); border-radius: 3px; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-100">
+
+    <!-- TOP BIOME SELECTOR BAR -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-2 max-w-full px-4">
+        <div class="glass-panel p-2 rounded-2xl flex items-center gap-2">
+            <span class="text-xs uppercase font-bold text-amber-400 px-3 hidden sm:inline tracking-wider">🛡️ Posto de Guarda:</span>
+            <button onclick="switchBiome('jungle')" id="btn-biome-jungle" class="biome-btn active px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>🌲</span> <span>Sentinela da Selva</span>
+            </button>
+            <button onclick="switchBiome('desert')" id="btn-biome-desert" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>☀️</span> <span>Guarda do Sol</span>
+            </button>
+            <button onclick="switchBiome('tundra')" id="btn-biome-tundra" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>❄️</span> <span>Cavaleiro Glacial</span>
+            </button>
+            <button onclick="switchBiome('volcano')" id="btn-biome-volcano" class="biome-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-amber-200 flex items-center gap-2 border border-slate-700">
+                <span>🔥</span> <span>Guarda Vulcânico</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CROSSHAIR -->
+    <div id="crosshair" class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-amber-400/70 rounded-full z-10"></div>
+
+    <!-- LEFT INFO & GEAR SLOTS HUD -->
+    <div id="gear-panel" class="glass-panel absolute top-20 left-4 p-4 rounded-2xl w-64 z-10 hidden md:block">
+        <div class="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3">
+            <h3 id="biome-title" class="font-bold text-amber-400 text-sm uppercase tracking-wide">Sentinela da Selva</h3>
+            <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">v2.0</span>
+        </div>
+        <p id="biome-desc" class="text-xs text-slate-300 leading-relaxed mb-4">
+            Guarda de elite do Reino com armadura de placas heroica, feição atlética imponente e equipamento especializado.
+        </p>
+
+        <div class="space-y-2">
+            <button onclick="toggleHelm()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>🪖 Capacete / Elmo</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+            <button onclick="toggleShield()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>🛡️ Escudo do Posto</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+            <button onclick="toggleWeapon()" class="w-full py-2 px-3 bg-slate-800/80 hover:bg-amber-500 hover:text-slate-950 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between">
+                <span>⚔️ Arma do Guarda</span>
+                <span class="text-slate-400 text-[10px]">Alternar</span>
+            </button>
+            <button onclick="triggerSalute()" class="w-full py-2 px-3 bg-amber-500/20 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-xs font-semibold rounded-xl border border-amber-500/40 transition flex items-center justify-between mt-1">
+                <span>🫡 Continência Real</span>
+                <span class="text-amber-400 text-[10px] font-mono">[E]</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- INVENTORY / GUARD LOG MODAL -->
+    <div id="inventory-menu" class="glass-panel absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 rounded-3xl w-96 max-w-[90vw] hidden z-30">
+        <div class="flex justify-between items-center border-b border-amber-500/30 pb-3 mb-4">
+            <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+                <span>📜</span> <span>Diário de Patrulha Real</span>
+            </h2>
+            <button onclick="toggleInventoryUI()" class="text-slate-400 hover:text-amber-400 text-lg font-bold">&times;</button>
+        </div>
+        <div id="inventory-grid" class="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto custom-scroll pr-1">
+            <!-- Dynamic guard items -->
+        </div>
+    </div>
+
+    <!-- BOTTOM CONTROLS OVERLAY -->
+    <div id="ui-overlay" class="glass-panel absolute bottom-4 left-1/2 -translate-x-1/2 p-3 sm:p-4 rounded-2xl z-10 w-[92vw] max-w-2xl text-center">
+        <div class="text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">Guarda do Reino — Comandos da Patrulha</div>
+        <p class="text-xs text-slate-300 leading-normal flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">WASD</kbd> Mover</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Espaço</kbd> Pular</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Shift</kbd> Correr</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Click Esq</kbd> Golpear</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">Click Dir</kbd> Defender</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">E</kbd> Continência</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">F</kbd> Dano</span>
+            <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-amber-300 font-mono">I</kbd> Diário</span>
+        </p>
+    </div>
+
+    <!-- THREE.JS APPLICATION CODE -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        function createBumpTexture(type, size = 256) {
+            const canvas = document.createElement('canvas'); 
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d'); 
+            const imgData = ctx.createImageData(size, size);
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                let val = 128;
+                if (type === 'leather') val += (Math.random() * 60) - 30;
+                else if (type === 'steel') val += (Math.random() * 20) - 10;
+                else if (type === 'mail') val += (Math.sin(((i/4)%size)*0.8) * Math.cos(Math.floor((i/4)/size)*0.8) * 45);
+                else if (type === 'fur') val += (Math.sin(Math.floor((i / 4) / size) * 0.8) * 45) + (Math.random() * 30) - 15;
+                else if (type === 'cloth') val += (Math.sin((i / 4) % size) * 15) + (Math.cos(Math.floor((i / 4) / size)) * 15);
+                else if (type === 'sand') val += (Math.sin(((i / 4) % size) * 0.1) * 20) + (Math.random() * 20);
+                else if (type === 'obsidian') val += (Math.sin(((i / 4) % size) * 0.2) * Math.cos(Math.floor((i / 4) / size) * 0.2) * 50);
+                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = val; 
+                imgData.data[i+3] = 255; 
+            }
+            ctx.putImageData(imgData, 0, 0); 
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; 
+            tex.wrapT = THREE.RepeatWrapping; 
+            return tex;
+        }
+
+        const texLeather = createBumpTexture('leather');
+        const texSteel = createBumpTexture('steel');
+        const texMail = createBumpTexture('mail');
+        const texCloth = createBumpTexture('cloth');
+        const texFur = createBumpTexture('fur');
+        const texSand = createBumpTexture('sand');
+        const texObsidian = createBumpTexture('obsidian');
+
+        const scene = new THREE.Scene(); 
+        scene.background = new THREE.Color('#0c141c'); 
+        scene.fog = new THREE.FogExp2('#0c141c', 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000); 
+        camera.position.set(0, 6.5, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement); 
+        controls.enableDamping = true; 
+        controls.dampingFactor = 0.05; 
+        controls.target.set(0, 3.4, 0); 
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+        // Lighting
+        const hemiLight = new THREE.HemisphereLight(0xffeedd, 0x223344, 0.85); 
+        hemiLight.position.set(0, 20, 0); 
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.5); 
+        dirLight.position.set(12, 20, 10); 
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048; 
+        dirLight.shadow.mapSize.height = 2048;
+        const d = 15; 
+        dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d; 
+        dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d; 
+        scene.add(dirLight);
+
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x1f3823, roughness: 0.9, bumpMap: texCloth, bumpScale: 0.04 });
+        const ground = new THREE.Mesh(new THREE.CylinderGeometry(20, 18, 1.5, 32), groundMat); 
+        ground.position.y = -0.75; 
+        ground.receiveShadow = true; 
+        scene.add(ground);
+
+        const baseParams = { flatShading: true, roughness: 0.7, metalness: 0.1 };
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xdd9c74, ...baseParams, roughness: 0.6 });
+        const hairDarkMat = new THREE.MeshStandardMaterial({ color: 0x1a120c, roughness: 0.8 });
+        const chainmailMat = new THREE.MeshStandardMaterial({ color: 0x88929a, metalness: 0.7, roughness: 0.4, bumpMap: texMail, bumpScale: 0.08 });
+        const steelPlateMat = new THREE.MeshStandardMaterial({ color: 0xabb2b9, metalness: 0.88, roughness: 0.22, bumpMap: texSteel, bumpScale: 0.03 });
+        const leatherDarkMat = new THREE.MeshStandardMaterial({ color: 0x241711, roughness: 0.8, bumpMap: texLeather, bumpScale: 0.08 });
+        const matGold = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.2, flatShading: true });
+        const matRoyalBlue = new THREE.MeshStandardMaterial({ color: 0x18345c, roughness: 0.6, bumpMap: texCloth, bumpScale: 0.05 });
+
+        const matEyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const matEyeIris = new THREE.MeshStandardMaterial({ color: 0x2266aa });
+        const matEyePupil = new THREE.MeshStandardMaterial({ color: 0x050505 });
+        const matMouth = new THREE.MeshStandardMaterial({ color: 0x2b130e });
+
+        function createPart(geo, mat, x, y, z, rx=0, ry=0, rz=0, parent=null) {
+            const mesh = new THREE.Mesh(geo, mat); 
+            mesh.position.set(x, y, z); 
+            mesh.rotation.set(rx, ry, rz);
+            mesh.castShadow = true; 
+            mesh.receiveShadow = true; 
+            if (parent) parent.add(mesh); 
+            return mesh;
+        }
+
+        const guard = new THREE.Group(); 
+        scene.add(guard);
+        const bodyGroup = new THREE.Group(); 
+        guard.add(bodyGroup);
+
+        // Broad Heroic Cuirass
+        const torso = createPart(new THREE.CylinderGeometry(0.85, 0.9, 1.7, 10), steelPlateMat, 0, 2.55, 0, 0, 0, 0, bodyGroup);
+        torso.scale.set(1.22, 1, 0.95);
+
+        // Breastplate Gold Trim & Center Ridge
+        createPart(new THREE.BoxGeometry(0.08, 1.6, 0.98), matGold, 0, 0, 0, 0, 0, 0, torso);
+        createPart(new THREE.CylinderGeometry(0.86, 0.88, 0.8, 10), matRoyalBlue, 0, -0.4, 0, 0, 0, 0, torso);
+
+        // Guard Belt & Tassets (Hip Guards)
+        const belt = createPart(new THREE.CylinderGeometry(0.92, 0.92, 0.25, 12), leatherDarkMat, 0, -0.7, 0, 0, 0, 0, torso);
+        createPart(new THREE.BoxGeometry(0.4, 0.3, 0.18), matGold, 0, 0, 0.9, 0, 0, 0, belt);
+
+        // Armor Tassets
+        createPart(new THREE.BoxGeometry(0.5, 0.65, 0.1), steelPlateMat, -0.55, -1.05, 0, 0, 0, 0.15, torso);
+        createPart(new THREE.BoxGeometry(0.5, 0.65, 0.1), steelPlateMat, 0.55, -1.05, 0, 0, 0, -0.15, torso);
+
+        // Customization Slots
+        const slotHelm = new THREE.Group();
+        const slotShield = new THREE.Group();
+        const slotWeapon = new THREE.Group();
+
+        // HEAD & CHISELED FACE (Heroic Knight Visage - NO Mario Mustache / Nose Ball)
+        const headPivot = new THREE.Group(); 
+        headPivot.position.set(0, 3.5, 0); 
+        bodyGroup.add(headPivot);
+
+        // Chainmail Coif Hood under helm
+        createPart(new THREE.CylinderGeometry(0.8, 0.85, 0.7, 12), chainmailMat, 0, 0.1, -0.05, 0, 0, 0, headPivot);
+
+        // Chiseled Jaw & Chin Base
+        const head = createPart(new THREE.BoxGeometry(0.92, 1.05, 0.95), skinMat, 0, 0.45, 0, 0, 0, 0, headPivot);
+        // Defined Jawline angles
+        createPart(new THREE.BoxGeometry(0.88, 0.45, 0.7), skinMat, 0, 0.12, 0.15, 0.2, 0, 0, headPivot); // Chiseled Chin/Jaw
+        createPart(new THREE.BoxGeometry(0.35, 0.25, 0.3), skinMat, 0, 0.08, 0.48, 0, 0, 0, headPivot);  // Strong Square Chin
+
+        headPivot.add(slotHelm);
+
+        // Heroic Chiseled Nose Bridge (Sleek & Angled, NOT a Mario Sphere!)
+        const nose = createPart(new THREE.BoxGeometry(0.18, 0.38, 0.28), skinMat, 0, 0.42, 0.52, -0.22, 0, 0, headPivot);
+
+        // Warrior Ears
+        createPart(new THREE.BoxGeometry(0.1, 0.28, 0.2), skinMat, -0.5, 0.45, 0, 0, -0.2, 0, headPivot);
+        createPart(new THREE.BoxGeometry(0.1, 0.28, 0.2), skinMat, 0.5, 0.45, 0, 0, 0.2, 0, headPivot);
+
+        // Sharp Intense Warrior Eyes
+        const eyeL = new THREE.Group(); eyeL.position.set(-0.25, 0.5, 0.46); headPivot.add(eyeL);
+        const eyeR = new THREE.Group(); eyeR.position.set(0.25, 0.5, 0.46); headPivot.add(eyeR);
+
+        function buildEye(parent) {
+            createPart(new THREE.BoxGeometry(0.2, 0.18, 0.08), matEyeWhite, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.12, 0.14, 0.1), matEyeIris, 0, 0, 0, 0, 0, 0, parent); 
+            createPart(new THREE.BoxGeometry(0.06, 0.08, 0.12), matEyePupil, 0, 0, 0, 0, 0, 0, parent); 
+        }
+        buildEye(eyeL); buildEye(eyeR);
+
+        // Stern Angled Eyebrows
+        createPart(new THREE.BoxGeometry(0.28, 0.08, 0.12), hairDarkMat, -0.25, 0.62, 0.48, 0.1, 0, -0.2, headPivot);
+        createPart(new THREE.BoxGeometry(0.28, 0.08, 0.12), hairDarkMat, 0.25, 0.62, 0.48, 0.1, 0, 0.2, headPivot);
+
+        // Firm Clean Mouth (Stern Knight Expression)
+        createPart(new THREE.BoxGeometry(0.26, 0.05, 0.08), matMouth, 0, 0.22, 0.5, 0, 0, 0, headPivot);
+
+        // ==========================================
+        // 1. JUNGLE / ROUTE GUARD GEAR
+        // ==========================================
+        const gearJungle = { helm: new THREE.Group(), shield: new THREE.Group(), weapon: new THREE.Group() };
+
+        // Morion Sentinel Helmet with Golden Comb & Feather
+        createPart(new THREE.CylinderGeometry(0.88, 0.94, 0.65, 16), steelPlateMat, 0, 0.75, -0.05, 0, 0, 0, gearJungle.helm);
+        createPart(new THREE.SphereGeometry(0.9, 16, 12, 0, Math.PI*2, 0, Math.PI*0.48), steelPlateMat, 0, 0.95, -0.05, 0, 0, 0, gearJungle.helm);
+        const brim = createPart(new THREE.TorusGeometry(0.98, 0.1, 8, 20), steelPlateMat, 0, 0.52, -0.05, 0.2, 0, 0, gearJungle.helm);
+        brim.scale.set(1.0, 0.3, 1.25);
+        createPart(new THREE.BoxGeometry(0.1, 0.6, 1.4), matGold, 0, 1.2, -0.05, -0.1, 0, 0, gearJungle.helm);
+        createPart(new THREE.ConeGeometry(0.12, 0.8, 5), new THREE.MeshStandardMaterial({ color: 0x22aa44 }), -0.0, 1.4, -0.6, -0.4, 0, 0, gearJungle.helm);
+
+        // Royal Halberd / Polearm
+        createPart(new THREE.CylinderGeometry(0.045, 0.045, 3.4, 8), leatherDarkMat, 0, 0.4, 0, 0, 0, 0, gearJungle.weapon);
+        createPart(new THREE.BoxGeometry(0.12, 0.9, 0.04), steelPlateMat, 0, 1.9, 0, 0, 0, 0, gearJungle.weapon); // Spear Tip
+        createPart(new THREE.BoxGeometry(0.42, 0.45, 0.04), steelPlateMat, 0.22, 1.6, 0, 0, 0, 0.2, gearJungle.weapon); // Axe Blade
+
+        // Guard Heater Shield
+        createPart(new THREE.BoxGeometry(0.9, 1.4, 0.1), steelPlateMat, 0, 0, 0, 0, 0, 0, gearJungle.shield);
+        createPart(new THREE.BoxGeometry(0.8, 1.3, 0.12), matRoyalBlue, 0, 0, 0, 0, 0, 0, gearJungle.shield);
+        createPart(new THREE.OctahedronGeometry(0.22, 0), matGold, 0, 0, 0.08, 0, 0, 0, gearJungle.shield);
+
+        // ==========================================
+        // 2. DESERT SUN GUARD GEAR
+        // ==========================================
+        const gearDesert = { helm: new THREE.Group(), shield: new THREE.Group(), weapon: new THREE.Group() };
+
+        const matBrass = new THREE.MeshStandardMaterial({ color: 0xd49b35, metalness: 0.82, roughness: 0.28 });
+        const matDesertYellow = new THREE.MeshStandardMaterial({ color: 0xe0a838, roughness: 0.6, bumpMap: texCloth });
+
+        // Spired Mamluk Helmet with Yellow Wrap & Mail Neck Guard
+        createPart(new THREE.CylinderGeometry(0.88, 0.92, 0.5, 16), matBrass, 0, 0.72, -0.05, 0, 0, 0, gearDesert.helm);
+        createPart(new THREE.ConeGeometry(0.9, 0.9, 16), matBrass, 0, 1.15, -0.05, 0, 0, 0, gearDesert.helm);
+        createPart(new THREE.SphereGeometry(0.1, 8, 8), matGold, 0, 1.62, -0.05, 0, 0, 0, gearDesert.helm);
+        createPart(new THREE.TorusGeometry(0.9, 0.14, 10, 20), matDesertYellow, 0, 0.65, -0.02, -0.08, 0, 0, gearDesert.helm);
+        createPart(new THREE.CylinderGeometry(0.92, 1.02, 0.45, 16, 1, true, -Math.PI*0.7, Math.PI*1.4), chainmailMat, 0, 0.35, -0.05, 0, 0, 0, gearDesert.helm);
+
+        // Curved Desert Scimitar
+        createPart(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 8), matBrass, 0, 0.2, 0, 0, 0, 0, gearDesert.weapon);
+        createPart(new THREE.BoxGeometry(0.18, 1.2, 0.04), steelPlateMat, 0.08, 1.2, 0, 0, 0, -0.15, gearDesert.weapon);
+
+        // Golden Sun Round Shield
+        createPart(new THREE.CylinderGeometry(0.75, 0.75, 0.1, 20), matBrass, 0, 0, 0, Math.PI/2, 0, 0, gearDesert.shield);
+        createPart(new THREE.SphereGeometry(0.28, 12, 12, 0, Math.PI*2, 0, Math.PI/2), matGold, 0, 0, 0.06, Math.PI/2, 0, 0, gearDesert.shield);
+
+        // ==========================================
+        // 3. TUNDRA GLACIER KNIGHT GEAR
+        // ==========================================
+        const gearTundra = { helm: new THREE.Group(), shield: new THREE.Group(), weapon: new THREE.Group() };
+
+        const matIceGlow = new THREE.MeshStandardMaterial({ color: 0x44d7ff, emissive: 0x0088cc, emissiveIntensity: 0.8, roughness: 0.2 });
+        const matFurTrim = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9, bumpMap: texFur, bumpScale: 0.1 });
+
+        // Frost Great Helmet with Fur Collar
+        createPart(new THREE.CylinderGeometry(0.92, 0.95, 1.0, 16), steelPlateMat, 0, 0.72, -0.02, 0, 0, 0, gearTundra.helm);
+        createPart(new THREE.SphereGeometry(0.92, 16, 10, 0, Math.PI*2, 0, Math.PI*0.48), steelPlateMat, 0, 1.2, -0.02, 0, 0, 0, gearTundra.helm);
+        createPart(new THREE.BoxGeometry(0.68, 0.12, 0.2), matIceGlow, 0, 0.72, 0.85, 0, 0, 0, gearTundra.helm);
+        createPart(new THREE.TorusGeometry(0.92, 0.22, 10, 16), matFurTrim, 0, 0.15, -0.02, 0, 0, 0, gearTundra.helm);
+
+        // Heavy Glacier Battleaxe
+        createPart(new THREE.CylinderGeometry(0.055, 0.055, 2.5, 8), leatherDarkMat, 0, 0.3, 0, 0, 0, 0, gearTundra.weapon);
+        createPart(new THREE.BoxGeometry(0.65, 0.65, 0.06), steelPlateMat, 0.3, 1.3, 0, 0, 0, 0.2, gearTundra.weapon);
+        createPart(new THREE.BoxGeometry(0.55, 0.55, 0.08), matIceGlow, 0.3, 1.3, 0, 0, 0, 0.2, gearTundra.weapon);
+
+        // Frost Kite Shield
+        createPart(new THREE.CylinderGeometry(0.65, 0.2, 1.6, 12), steelPlateMat, 0, -0.1, 0, 0, 0, 0, gearTundra.shield);
+        createPart(new THREE.OctahedronGeometry(0.3, 0), matIceGlow, 0, 0.2, 0.1, 0, 0, 0, gearTundra.shield);
+
+        // ==========================================
+        // 4. VOLCANIC MAGMA GUARD GEAR
+        // ==========================================
+        const gearVolcano = { helm: new THREE.Group(), shield: new THREE.Group(), weapon: new THREE.Group() };
+
+        const matObsidian = new THREE.MeshStandardMaterial({ color: 0x141418, metalness: 0.85, roughness: 0.25, bumpMap: texObsidian, bumpScale: 0.06 });
+        const matMagmaGlow = new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff3300, emissiveIntensity: 1.2, roughness: 0.2 });
+
+        // Obsidian Horned Barbute
+        createPart(new THREE.CylinderGeometry(0.92, 0.95, 0.95, 16), matObsidian, 0, 0.72, -0.02, 0, 0, 0, gearVolcano.helm);
+        createPart(new THREE.SphereGeometry(0.92, 16, 12, 0, Math.PI*2, 0, Math.PI*0.48), matObsidian, 0, 1.18, -0.02, 0, 0, 0, gearVolcano.helm);
+        createPart(new THREE.BoxGeometry(0.65, 0.12, 0.2), matMagmaGlow, 0, 0.7, 0.85, 0, 0, 0, gearVolcano.helm);
+        createPart(new THREE.BoxGeometry(0.12, 0.45, 0.2), matMagmaGlow, 0, 0.52, 0.85, 0, 0, 0, gearVolcano.helm);
+        createPart(new THREE.ConeGeometry(0.18, 0.7, 6), matObsidian, -0.85, 1.2, 0.1, 0.3, 0, -0.6, gearVolcano.helm);
+        createPart(new THREE.ConeGeometry(0.18, 0.7, 6), matObsidian, 0.85, 1.2, 0.1, 0.3, 0, 0.6, gearVolcano.helm);
+
+        // Infernal Magma Broadsword
+        createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 8), matObsidian, 0, -0.2, 0, 0, 0, 0, gearVolcano.weapon);
+        createPart(new THREE.BoxGeometry(0.6, 0.1, 0.15), matObsidian, 0, 0.1, 0, 0, 0, 0, gearVolcano.weapon);
+        createPart(new THREE.BoxGeometry(0.2, 1.6, 0.05), matObsidian, 0, 0.9, 0, 0, 0, 0, gearVolcano.weapon);
+        createPart(new THREE.BoxGeometry(0.08, 1.5, 0.07), matMagmaGlow, 0, 0.9, 0, 0, 0, 0, gearVolcano.weapon);
+
+        // Volcanic Tower Shield
+        createPart(new THREE.BoxGeometry(1.0, 1.7, 0.12), matObsidian, 0, 0, 0, 0, 0, 0, gearVolcano.shield);
+        createPart(new THREE.BoxGeometry(0.15, 1.5, 0.16), matMagmaGlow, 0, 0, 0, 0, 0, 0, gearVolcano.shield);
+
+        // --- ARMS AND LEGS ---
+        const shoulderL = new THREE.Group(); shoulderL.position.set(-1.38, 3.15, 0); bodyGroup.add(shoulderL);
+        const shoulderR = new THREE.Group(); shoulderR.position.set(1.38, 3.15, 0); bodyGroup.add(shoulderR);
+        const elbowL = new THREE.Group(); elbowL.position.set(0, -0.65, 0); shoulderL.add(elbowL);
+        const elbowR = new THREE.Group(); elbowR.position.set(0, -0.65, 0); shoulderR.add(elbowR);
+
+        // Layered Articulated Steel Pauldrons
+        createPart(new THREE.SphereGeometry(0.52, 10, 10), steelPlateMat, 0, 0.1, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.SphereGeometry(0.52, 10, 10), steelPlateMat, 0, 0.1, 0, 0, 0, 0, shoulderR);
+
+        createPart(new THREE.CylinderGeometry(0.28, 0.25, 0.75, 8), matRoyalBlue, 0, -0.3, 0, 0, 0, 0, shoulderL);
+        createPart(new THREE.CylinderGeometry(0.28, 0.25, 0.75, 8), matRoyalBlue, 0, -0.3, 0, 0, 0, 0, shoulderR);
+        createPart(new THREE.CylinderGeometry(0.27, 0.24, 0.65, 8), steelPlateMat, 0, -0.3, 0, 0, 0, 0, elbowL);
+        createPart(new THREE.CylinderGeometry(0.27, 0.24, 0.65, 8), steelPlateMat, 0, -0.3, 0, 0, 0, 0, elbowR);
+
+        // Steel Gauntlets
+        const handL = createPart(new THREE.BoxGeometry(0.35, 0.35, 0.35), steelPlateMat, 0, -0.7, 0, 0, 0, 0, elbowL);
+        const handR = createPart(new THREE.BoxGeometry(0.35, 0.35, 0.35), steelPlateMat, 0, -0.7, 0, 0, 0, 0, elbowR);
+
+        handR.add(slotWeapon);
+        handL.add(slotShield);
+
+        // Armored Legs & Sabatons
+        const hipL = new THREE.Group(); hipL.position.set(-0.55, 1.6, 0); bodyGroup.add(hipL);
+        const hipR = new THREE.Group(); hipR.position.set(0.55, 1.6, 0); bodyGroup.add(hipR);
+        const kneeL = new THREE.Group(); kneeL.position.set(0, -0.7, 0); hipL.add(kneeL);
+        const kneeR = new THREE.Group(); kneeR.position.set(0, -0.7, 0); hipR.add(kneeR);
+
+        createPart(new THREE.CylinderGeometry(0.34, 0.29, 0.8, 8), steelPlateMat, 0, -0.35, 0, 0, 0, 0, hipL);
+        createPart(new THREE.CylinderGeometry(0.34, 0.29, 0.8, 8), steelPlateMat, 0, -0.35, 0, 0, 0, 0, hipR);
+        createPart(new THREE.CylinderGeometry(0.29, 0.24, 0.7, 8), steelPlateMat, 0, -0.35, 0, 0, 0, 0, kneeL);
+        createPart(new THREE.CylinderGeometry(0.29, 0.24, 0.7, 8), steelPlateMat, 0, -0.35, 0, 0, 0, 0, kneeR);
+        createPart(new THREE.BoxGeometry(0.55, 0.38, 0.8), leatherDarkMat, 0, -0.72, 0.12, 0, 0, 0, kneeL);
+        createPart(new THREE.BoxGeometry(0.55, 0.38, 0.8), leatherDarkMat, 0, -0.72, 0.12, 0, 0, 0, kneeR);
+
+        const biomesData = {
+            jungle: {
+                title: "Sentinela da Selva & Rota",
+                desc: "Patrulheiro real do posto da floresta com elmo morion, alabarda de haste longa e escudo brasão.",
+                bg: '#0c1813', fog: '#0c1813',
+                groundColor: 0x1f3823, groundTex: texCloth,
+                gear: gearJungle,
+                items: [
+                    { icon: '🚩', name: 'Bandeira do Posto' }, { icon: '📜', name: 'Mandado Real' },
+                    { icon: '📯', name: 'Berrante de Alerta' }, { icon: '🗡️', name: 'Adaga de Patrulha' },
+                    { icon: '🔒', name: 'Chave da Prisão' }, { icon: '🧪', name: 'Tônico Antídoto' }
+                ]
+            },
+            desert: {
+                title: "Guarda do Sol das Dunas",
+                desc: "Defensor das caravanas e oásis imperiais vestindo capacete de latão com turbante e gládio curvado.",
+                bg: '#2b1c0b', fog: '#2b1c0b',
+                groundColor: 0xd49f4a, groundTex: texSand,
+                gear: gearDesert,
+                items: [
+                    { icon: '☀️', name: 'Insígnia Solar' }, { icon: '📜', name: 'Pacto de Caravana' },
+                    { icon: '🏺', name: 'Cantil de Bronze' }, { icon: '📿', name: 'Amuleto do Deserto' },
+                    { icon: '🗡️', name: 'Adaga Mamluk' }, { icon: '💎', name: 'Topázio Real' }
+                ]
+            },
+            tundra: {
+                title: "Cavaleiro dos Picos Glaciais",
+                desc: "Guerreiro nórdico das estepes congeladas equipado com elmo fechado, machado de guerra e escudo de gelo.",
+                bg: '#0c1622', fog: '#0c1622',
+                groundColor: 0x92a8bd, groundTex: texFur,
+                gear: gearTundra,
+                items: [
+                    { icon: '❄️', name: 'Selo Abissal' }, { icon: '🪓', name: 'Machado de Reserva' },
+                    { icon: '🐺', name: 'Manto de Lobo' }, { icon: '🪵', name: 'Lenha Rúnica' },
+                    { icon: '🧪', name: 'Elixir de Aquecimento' }, { icon: '🧊', name: 'Núcleo Glacial' }
+                ]
+            },
+            volcano: {
+                title: "Guarda do Abismo Vulcânico",
+                desc: "Inflexível sentinela de obsidiana com elmo de visor de magma, espadão flamejante e escudo torre.",
+                bg: '#220808', fog: '#220808',
+                groundColor: 0x2b1010, groundTex: texObsidian,
+                gear: gearVolcano,
+                items: [
+                    { icon: '🔥', name: 'Selo de Magma' }, { icon: '⬛', name: 'Placa de Obsidiana' },
+                    { icon: '⚔️', name: 'Lâmina de Forja' }, { icon: '🩸', name: 'Sangue de Dragão' },
+                    { icon: '🧪', name: 'Poção Ignífuga' }, { icon: '📜', name: 'Decreto do Vulcão' }
+                ]
+            }
+        };
+
+        let currentBiome = 'jungle';
+        let showHelm = true, showShield = true, showWeapon = true;
+
+        function updateGearDisplay() {
+            const data = biomesData[currentBiome];
+            slotHelm.clear(); if (showHelm) slotHelm.add(data.gear.helm);
+            slotShield.clear(); if (showShield) slotShield.add(data.gear.shield);
+            slotWeapon.clear(); if (showWeapon) slotWeapon.add(data.gear.weapon);
+        }
+
+        window.switchBiome = (key) => {
+            if (!biomesData[key]) return;
+            currentBiome = key;
+            const data = biomesData[key];
+
+            scene.background.set(data.bg);
+            scene.fog.color.set(data.fog);
+            groundMat.color.setHex(data.groundColor);
+            groundMat.bumpMap = data.groundTex;
+            groundMat.needsUpdate = true;
+
+            document.getElementById('biome-title').innerText = data.title;
+            document.getElementById('biome-desc').innerText = data.desc;
+
+            document.querySelectorAll('.biome-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-biome-${key}`)?.classList.add('active');
+
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = data.items.map(item => `
+                <div class="bg-slate-800/60 border border-amber-500/20 p-2.5 rounded-2xl flex flex-col items-center justify-center text-center hover:border-amber-400 hover:bg-slate-700/80 transition cursor-pointer">
+                    <span class="text-2xl mb-1">${item.icon}</span>
+                    <span class="text-[11px] font-semibold text-amber-200 line-clamp-1">${item.name}</span>
+                </div>
+            `).join('');
+
+            updateGearDisplay();
+        };
+
+        window.toggleHelm = () => { showHelm = !showHelm; updateGearDisplay(); };
+        window.toggleShield = () => { showShield = !showShield; updateGearDisplay(); };
+        window.toggleWeapon = () => { showWeapon = !showWeapon; updateGearDisplay(); };
+        window.toggleInventoryUI = () => {
+            const inv = document.getElementById('inventory-menu');
+            inv.classList.toggle('hidden');
+        };
+
+        switchBiome('jungle');
+
+        const particles = [];
+        const particleGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const particleMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.6 });
+
+        for (let i = 0; i < 40; i++) {
+            const p = new THREE.Mesh(particleGeo, particleMat);
+            p.position.set((Math.random() - 0.5) * 20, Math.random() * 8, (Math.random() - 0.5) * 20);
+            p.userData = { speedY: Math.random() * 0.02 + 0.005, rotSpeed: Math.random() * 0.02 };
+            scene.add(p);
+            particles.push(p);
+        }
+
+        const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+        let velocityY = 0; let isGrounded = true; let animTime = 0; 
+        let isAttacking = false; let attackTimer = 0; const ATTACK_DURATION = 0.42;
+        let isBlocking = false;
+        let actionState = 'none';
+
+        window.triggerSalute = () => {
+            if (actionState === 'none') {
+                actionState = 'salute';
+                setTimeout(() => actionState = 'none', 1800);
+            }
+        };
+
+        document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = true;
+            if (k === 'h') {
+                document.getElementById('ui-overlay').classList.toggle('hidden');
+                document.getElementById('gear-panel').classList.toggle('hidden');
+            }
+            if (k === 'i') toggleInventoryUI();
+            if (k === 'e') triggerSalute();
+            if (k === 'f' && actionState === 'none') { actionState = 'damage'; setTimeout(() => actionState = 'none', 600); }
+
+            if (e.code === 'Space' || k === ' ') {
+                e.preventDefault(); 
+                if (isGrounded && actionState === 'none') { velocityY = 18; isGrounded = false; }
+            }
+        });
+        document.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = false; });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && !isAttacking && actionState === 'none') { isAttacking = true; attackTimer = ATTACK_DURATION; }
+            if (e.button === 2 && actionState === 'none') { isBlocking = true; }
+        });
+        document.addEventListener('mouseup', (e) => { if (e.button === 2) isBlocking = false; });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        function updateAnimations(delta, isMoving) {
+            animTime += delta;
+            
+            headPivot.rotation.set(0, 0, 0); 
+            torso.rotation.set(0, 0, 0); 
+            bodyGroup.position.set(0, 0, 0);
+
+            if (actionState === 'damage') {
+                bodyGroup.rotation.x = -0.35;
+                headPivot.rotation.x = -0.4;
+                shoulderL.rotation.set(-0.6, 0, 1.2);
+                shoulderR.rotation.set(-0.6, 0, -1.2);
+                bodyGroup.position.x += (Math.random() - 0.5) * 0.12;
+            } else if (actionState === 'salute') {
+                shoulderR.rotation.set(-1.6, 0.4, 0.2);
+                elbowR.rotation.set(-1.8, 0, 0);
+                shoulderL.rotation.set(-0.2, 0, -0.3);
+                torso.rotation.y = 0.15;
+                headPivot.rotation.y = -0.15;
+            } else {
+                if (!isGrounded) {
+                    shoulderL.rotation.set(-1.4, 0, -0.4); 
+                    shoulderR.rotation.set(-1.4, 0, 0.4);
+                    hipL.rotation.set(-0.4, 0, 0); hipR.rotation.set(0.3, 0, 0);
+                } else if (!isMoving) {
+                    bodyGroup.position.y = Math.sin(animTime * 2.2) * 0.03;
+                    if (!isAttacking && !isBlocking) {
+                        shoulderL.rotation.set(-0.3, 0.2, -0.2);
+                        shoulderR.rotation.set(0.2, 0, 0.2);
+                        elbowL.rotation.set(-0.8, 0, 0);
+                        elbowR.rotation.set(-0.3, 0, 0);
+                    }
+                    hipL.rotation.set(0, 0, 0); hipR.rotation.set(0, 0, 0);
+                    kneeL.rotation.set(0, 0, 0); kneeR.rotation.set(0, 0, 0);
+                } else {
+                    const speedMult = keys.shift ? 16 : 10;
+                    const moveSin = Math.sin(animTime * speedMult);
+                    bodyGroup.position.y = Math.abs(moveSin) * (keys.shift ? 0.24 : 0.14);
+                    
+                    if (!isAttacking && !isBlocking) {
+                        shoulderL.rotation.set(-moveSin * 0.7 - 0.2, 0, -0.2);
+                        shoulderR.rotation.set(moveSin * 0.7, 0, 0.2);
+                    }
+                    hipL.rotation.set(moveSin * 0.8, 0, 0);
+                    hipR.rotation.set(-moveSin * 0.8, 0, 0);
+                    kneeL.rotation.set(moveSin > 0 ? moveSin * 0.6 : 0, 0, 0);
+                    kneeR.rotation.set(moveSin < 0 ? -moveSin * 0.6 : 0, 0, 0);
+                }
+
+                if (isBlocking) {
+                    shoulderL.rotation.set(-0.9, 0.6, -0.4);
+                    elbowL.rotation.set(-1.5, 0, 0);
+                    torso.rotation.y = -0.5;
+                    headPivot.rotation.y = 0.5;
+                }
+
+                if (isAttacking) {
+                    attackTimer -= delta;
+                    const progress = 1 - (attackTimer / ATTACK_DURATION);
+                    torso.rotation.y = Math.sin(progress * Math.PI) * 0.7;
+                    shoulderR.rotation.set(-Math.PI * 0.8 * progress, 0.5 * progress, 0);
+                    if (attackTimer <= 0) isAttacking = false;
+                }
+            }
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            let isMoving = false;
+
+            const camDir = new THREE.Vector3(); 
+            camera.getWorldDirection(camDir); 
+            camDir.y = 0; 
+            camDir.normalize();
+            
+            const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+            const speed = keys.shift ? 11 : 6;
+
+            let moveX = 0, moveZ = 0;
+            if (actionState === 'none' && !isAttacking) {
+                if (keys.w) { moveX += camDir.x; moveZ += camDir.z; }
+                if (keys.s) { moveX -= camDir.x; moveZ -= camDir.z; }
+                if (keys.a) { moveX -= camRight.x; moveZ -= camRight.z; }
+                if (keys.d) { moveX += camRight.x; moveZ += camRight.z; }
+            }
+
+            const moveVec = new THREE.Vector3(moveX, 0, moveZ);
+            if (moveVec.lengthSq() > 0) {
+                isMoving = true;
+                moveVec.normalize().multiplyScalar(speed * delta);
+                
+                const targetAngle = Math.atan2(moveVec.x, moveVec.z);
+                let diff = targetAngle - guard.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                guard.rotation.y += diff * 12 * delta;
+                
+                guard.position.add(moveVec);
+            }
+
+            // Gravity
+            guard.position.y += velocityY * delta;
+            velocityY -= 50 * delta;
+            if (guard.position.y <= 0) {
+                guard.position.y = 0;
+                velocityY = 0;
+                isGrounded = true;
+            }
+
+            // Particles
+            particles.forEach(p => {
+                p.position.y -= p.userData.speedY;
+                p.rotation.y += p.userData.rotSpeed;
+                if (p.position.y < 0) p.position.y = 8;
+            });
+
+            // Camera Tracking
+            const targetCamPos = guard.position.clone().add(new THREE.Vector3(0, 6.5, 14));
+            camera.position.lerp(targetCamPos, 4 * delta);
+            controls.target.lerp(guard.position.clone().add(new THREE.Vector3(0, 3.4, 0)), 8 * delta);
+
+            updateAnimations(delta, isMoving);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+        });
+
+        animate();
+    </script>
+</body>
+</html>
