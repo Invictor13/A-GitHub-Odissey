@@ -13,9 +13,6 @@ export class HubResources {
         this.colliders = [];
         this.activeColliders = [];
 
-        this.treeMesh = null;
-        this.rockMesh = null;
-
         this.dummy = new THREE.Object3D();
 
         this.buildInstancedMeshes();
@@ -53,15 +50,15 @@ export class HubResources {
         this.particles = [];
         this.nextParticleIdx = 0;
 
-        for(let i=0; i<200; i++) {
+        for (let i = 0; i < 200; i++) {
             this.particles.push({ active: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, maxLife: 1, color: new THREE.Color() });
-            this.dummy.scale.set(0,0,0);
+            this.dummy.scale.set(0, 0, 0);
             this.dummy.updateMatrix();
             this.particleMesh.setMatrixAt(i, this.dummy.matrix);
             this.particleMesh.setColorAt(i, new THREE.Color(0xffffff));
         }
         this.particleMesh.instanceMatrix.needsUpdate = true;
-        if(this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
+        if (this.particleMesh.instanceColor) this.particleMesh.instanceColor.needsUpdate = true;
     }
 
     spawnResources() {
@@ -329,6 +326,49 @@ export class HubResources {
                 // Grant resources and XP
                 this.distributeLoot(closestNode);
             }
+        }
+    }
+
+    destroyNode(node) {
+        if (node.mesh) {
+            // Remove from scene/group
+            if (node.mesh.parent) {
+                node.mesh.parent.remove(node.mesh);
+            }
+
+            // Dispose geometry and materials
+            node.mesh.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => mat.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Remove collider
+        const colIdx = this.activeColliders.indexOf(node.collider);
+        if (colIdx > -1) {
+            this.activeColliders.splice(colIdx, 1);
+        }
+
+        // Remove from nodes array
+        const nodeIdx = this.nodes.indexOf(node);
+        if (nodeIdx > -1) {
+            this.nodes.splice(nodeIdx, 1);
+        }
+
+        // Remove from global interactive items if it's an herb/interactable
+        if (this.items) {
+             const itemIdx = this.items.findIndex(item => item.node === node);
+             if (itemIdx > -1) {
+                 this.items.splice(itemIdx, 1);
+             }
         }
     }
 
