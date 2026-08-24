@@ -84,7 +84,7 @@ controls.mouseButtons = { LEFT: THREE.MOUSE.NONE, MIDDLE: THREE.MOUSE.DOLLY, RIG
 // AmbientLight has been removed to favor specific HemisphereLight in environment scenes (ProceduralMap / WorldMap).
 
 const shadowDist = 35;
-const sunLight = new THREE.DirectionalLight(0xffedd5, 1.6);
+const sunLight = new THREE.DirectionalLight(0xfff3e0, 1.4);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 1024;
 sunLight.shadow.mapSize.height = 1024;

@@ -109,11 +109,11 @@ export class HubEnvironment {
         this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 0.7);
         this.skyGroup.add(this.hemiLight);
 
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+        this.ambientLight = new THREE.AmbientLight(0xfff3e0, 0.45);
         this.skyGroup.add(this.ambientLight);
 
         // Sun Directional Light
-        this.sunLight = new THREE.DirectionalLight(0xfff7e6, 1.35);
+        this.sunLight = new THREE.DirectionalLight(0xfff3e0, 1.25);
         this.sunLight.position.set(40, 60, 20);
         this.sunLight.castShadow = true;
         this.sunLight.shadow.mapSize.width = 2048;
@@ -683,7 +683,7 @@ export class HubEnvironment {
         if (!this.terrain) return false;
 
         // Prevent falling out of bounds
-        if (Math.abs(pos.x) >= 9.5 || Math.abs(pos.z) >= 9.5) {
+        if (Math.abs(pos.x) >= 13.5 || Math.abs(pos.z) >= 13.5) {
             return true;
         }
 
