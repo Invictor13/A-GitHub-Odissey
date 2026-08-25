@@ -10,7 +10,7 @@ export class Penitent {
     constructor(scene) {
         this.scene = scene;
         this.group = new THREE.Group();
-        this.group.scale.setScalar(0.55);
+        this.group.scale.setScalar(0.275);
         this.modelGroup = new THREE.Group();
         this.group.add(this.modelGroup);
         this.animController = new AnimationController(this);
@@ -646,7 +646,7 @@ export class Penitent {
             isMoving = true;
             this._moveVec.normalize().multiplyScalar(targetSpeed * analogMag * delta);
 
-            const playerRadius = 0.4;
+            const playerRadius = 0.2;
             const originalX = this.group.position.x;
             const originalZ = this.group.position.z;
 

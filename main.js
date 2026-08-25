@@ -303,12 +303,21 @@ try {
 // Inventory Toggle Event
 window.addEventListener('keydown', (e) => {
     if (!window.gameState || !window.gameState.isGameStarted) return;
-    if (e.key.toLowerCase() === 'i' || e.key === 'Tab') {
-        e.preventDefault();
+
+    if (e.code === 'KeyI') {
         if (window.inventoryUI) {
             window.inventoryUI.toggle();
             controls.enabled = !window.inventoryUI.isOpen;
+            console.log('Inventory toggled');
+        } else {
+            console.log('Inventory toggled (UI not attached)');
         }
+    }
+
+    if (e.code === 'Tab') {
+        e.preventDefault();
+        window.isBuildMode = !window.isBuildMode;
+        console.log('Build Mode:', window.isBuildMode);
     }
 
     // Manage OrbitControls state for CodexUI as well
@@ -340,14 +349,6 @@ window.addEventListener('keydown', (e) => {
         if (e.key.toLowerCase() === 'e' && window.currentNearbyObject && window.hubBuildingState !== 'BUILDING_GRID') {
             window.currentNearbyObject.action();
         }
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const tabMenu = document.getElementById('tab-menu');
-            if (tabMenu && !tabMenu.classList.contains('hidden')) {
-                tabMenu.classList.add('hidden');
-                window.hubBuildingState = 'EXPLORING';
-            }
-        }
         if (e.key === 'Escape') {
             const tabMenu = document.getElementById('tab-menu');
             if (tabMenu && !tabMenu.classList.contains('hidden')) {
@@ -360,10 +361,6 @@ window.addEventListener('keydown', (e) => {
             } else if (!document.getElementById('journal-ui').classList.contains('hidden')) {
                 document.getElementById('btn-close-journal').click();
             }
-        }
-        if (e.key.toLowerCase() === 'r' && window.hubBuildingState === 'BUILDING_GRID' && currentEnvironment && currentEnvironment.previewMesh) {
-            currentEnvironment.previewRotationY += Math.PI / 8;
-            currentEnvironment.previewMesh.rotation.y = currentEnvironment.previewRotationY;
         }
     }
 });
