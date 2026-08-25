@@ -118,6 +118,47 @@ export class HubTerrain {
                         initialMats[uType].push({ mat: dummy.matrix.clone(), pos: [wX, y, wZ] });
                     }
                 }
+            }
+        }
+
+        // Bind to GPU
+        this.typeKeys.forEach(type => {
+            const initData = initialMats[type];
+            const pool = this.blockPools[type];
+
+            pool.capacity = initData.length + EXTRA_CAPACITY;
+            pool.mesh = new THREE.InstancedMesh(this.boxGeo, this.matDict[type], pool.capacity);
+
+            if (type !== 'water') {
+                pool.mesh.receiveShadow = true;
+                pool.mesh.castShadow = false; // Terrain optimization
+            } else {
+                pool.mesh.receiveShadow = true;
+                pool.mesh.castShadow = false;
+                pool.mesh.renderOrder = 10;
+            }
+
+            const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
+            for(let i=0; i<pool.capacity; i++) pool.mesh.setMatrixAt(i, zeroMat);
+
+            initData.forEach((data, i) => {
+                pool.mesh.setMatrixAt(i, data.mat);
+                const key = `${Math.round(data.pos[0])},${Math.round(data.pos[1])},${Math.round(data.pos[2])}`;
+                this.worldGrid.set(key, { type: type, id: i });
+                pool.idToKey[i] = key;
+                pool.count++;
+
+                // Add Collider if it's top surface (roughly Y >= 0 and not water, optimization for collision checks)
+                // In game, we check `getHeightAt` so we don't strictly need boxes for everything,
+                // but if HubEnvironment.checkCollision relies on boxes:
+                if (type !== 'water' && data.pos[1] >= -2) {
+                    const box = new THREE.Box3();
+                    // Voxel is 1x1x1 centered at y+0.5
+                    const min = new THREE.Vector3(data.pos[0] - 0.5, data.pos[1], data.pos[2] - 0.5);
+                    const max = new THREE.Vector3(data.pos[0] + 0.5, data.pos[1] + 1, data.pos[2] + 0.5);
+                    box.set(min, max);
+                    this.colliders.push(box);
+                }
             });
             pool.mesh.count = pool.count;
             this.group.add(pool.mesh);
