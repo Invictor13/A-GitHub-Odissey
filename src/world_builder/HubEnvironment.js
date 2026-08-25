@@ -949,7 +949,7 @@ export class HubEnvironment {
         if (!this.terrain) return false;
 
         // Prevent falling out of bounds (expanded hub limits)
-        if (Math.abs(pos.x) >= 18 || Math.abs(pos.z) >= 18) {
+        if (Math.abs(pos.x) >= 28 || Math.abs(pos.z) >= 28) {
             return true;
         }
 

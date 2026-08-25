@@ -83,26 +83,31 @@ export class HubTerrain {
                 const wX = x - HALF_MAP; const wZ = z - HALF_MAP;
                 const distFromCenter = Math.hypot(wX, wZ);
 
-                // Radius of 18 (28x28 area expanded a bit more to 36x36)
-                if (distFromCenter > 18) continue;
+                if (distFromCenter > 28) continue; // Circular island bounds
 
                 let n = this.noise(x, z);
                 let h = Math.floor(n * 2.5) + 1;
 
-                // Specific Hub rules
+                const riverPath = Math.sin(wX * 0.15) * 8;
+                const isRiver = Math.abs(wZ - riverPath) < 3.5;
+                const isMountain = (wX > 5 && wZ < -5 && distFromCenter < 22);
+                const isBeach = (wZ > 15 && distFromCenter < 25);
                 const isPortalArea = (wX >= -2 && wX <= 2 && wZ >= -12 && wZ <= -7);
-                const isCenter = (Math.abs(wX) <= 4 && Math.abs(wZ) <= 4);
-                const isRiver = ((wZ >= 3 && wZ <= 5 && Math.abs(wX) < 8) || (wZ >= 2 && wZ <= 4 && Math.abs(wX) < 10));
-
-                if (isPortalArea) { h = 2; }
-                else if (isCenter) { h = 2; }
-                else if (distFromCenter > 14 && Math.random() > 0.4) { h = 3; }
-                else { h = Math.random() > 0.8 ? 1 : 2; }
 
                 let topType = 'grass';
                 if (isRiver) {
                     topType = 'water';
-                    h = 0;
+                } else if (isMountain) {
+                    h += Math.floor(Math.random()*2) + 3;
+                    topType = 'rock';
+                } else if (isBeach) {
+                    topType = 'sand';
+                }
+
+                // Ensure the portal area is flat enough
+                if (isPortalArea && topType !== 'water') {
+                    h = 2;
+                    topType = 'stone_tile';
                 }
 
                 if (topType === 'water') {
@@ -123,14 +128,15 @@ export class HubTerrain {
                     dummy.updateMatrix();
                     initialMats[topType].push({ mat: dummy.matrix.clone(), pos: [wX, h, wZ] });
 
-                    // Sub Layers (dirt/rock down to -6)
-                    const dirtDepth = Math.floor(Math.random() * 2) + 2;
+                    // Sub Layers
+                    const dirtDepth = (topType === 'sand') ? 1 : Math.floor(Math.random() * 2) + 2;
                     for (let y = h - 1; y >= -6; y--) {
                         dummy.position.set(wX, y + 0.5, wZ);
                         dummy.updateMatrix();
 
                         let uType = 'dirt';
-                        if (y < h - dirtDepth) uType = 'rock';
+                        if (topType === 'rock' || y < h - dirtDepth) uType = 'rock';
+                        else if (topType === 'sand') uType = 'sand';
 
                         initialMats[uType].push({ mat: dummy.matrix.clone(), pos: [wX, y, wZ] });
                     }
