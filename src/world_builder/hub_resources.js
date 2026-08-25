@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { inventoryManager } from '../systems/InventoryManager.js';
+import { applyWorldCurvature } from '../core/GraphicsUtils.js';
 
 export class HubResources {
     constructor(scene, terrain) {
@@ -16,18 +17,25 @@ export class HubResources {
         this.dummy = new THREE.Object3D();
 
         // Standard Geometry and Materials
-        this.trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 6);
-        this.trunkGeo.translate(0, 1, 0);
-        this.leavesGeo = new THREE.ConeGeometry(1.2, 3, 7);
-        this.leavesGeo.translate(0, 2.5, 0);
+        this.pineGeo = new THREE.ConeGeometry(1.2, 2.5, 6); this.pineGeo.translate(0, 1.25, 0);
+        this.oakGeo = new THREE.DodecahedronGeometry(1.5, 0); this.oakGeo.translate(0, 1.5, 0);
+        this.trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 1, 5); this.trunkGeo.translate(0, 0.5, 0);
 
-        this.trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2e18, flatShading: true });
-        this.leavesMat = new THREE.MeshLambertMaterial({ color: 0x1e4d2b, flatShading: true });
+        this.mWood = new THREE.MeshLambertMaterial({ color: 0x78350f, roughness: 0.9, flatShading: true });
+        this.mLeavesPine = new THREE.MeshLambertMaterial({ color: 0x064e3b, roughness: 0.9, flatShading: true });
+        this.mLeavesOak = new THREE.MeshLambertMaterial({ color: 0x15803d, roughness: 0.9, flatShading: true });
 
-        this.rockGeo = new THREE.DodecahedronGeometry(0.8, 0);
-        this.rockGeo.scale(1, 0.8, 1);
-        this.rockGeo.translate(0, 0.5, 0);
-        this.rockMat = new THREE.MeshLambertMaterial({ color: 0x5a6269, flatShading: true });
+        applyWorldCurvature(this.mWood, false, false);
+        applyWorldCurvature(this.mLeavesPine, true, false);
+        applyWorldCurvature(this.mLeavesOak, true, false);
+
+        this.rockGeo = new THREE.DodecahedronGeometry(0.7, 1);
+        this.mRock = new THREE.MeshLambertMaterial({ color: 0x475569, roughness: 0.9, flatShading: true });
+        applyWorldCurvature(this.mRock, false, false);
+
+        this.grassTuftGeo = new THREE.ConeGeometry(0.15, 0.45, 3); this.grassTuftGeo.translate(0, 0.225, 0);
+        this.mGrassTuft = new THREE.MeshLambertMaterial({ color: 0x16a34a, roughness: 0.9, flatShading: true, side: THREE.DoubleSide });
+        applyWorldCurvature(this.mGrassTuft, true, false);
 
         this.buildParticleSystem();
         this.spawnResources();
@@ -36,6 +44,8 @@ export class HubResources {
     buildParticleSystem() {
         const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        applyWorldCurvature(pMat, false, false);
+
         this.particleMesh = new THREE.InstancedMesh(pGeo, pMat, 200);
         this.particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         this.group.add(this.particleMesh);
@@ -55,127 +65,115 @@ export class HubResources {
     }
 
     spawnResources() {
-        // Spawn 6 to 8 trees
-        const numTrees = 6 + Math.floor(Math.random() * 3);
-        let treeCount = 0;
+        this.floraPools = {
+            'grass': { mesh: null, count: 0, capacity: 6000, idToKey: [], geo: this.grassTuftGeo, mat: this.mGrassTuft }
+        };
 
-        // Spawn 4 to 6 rocks
-        const numRocks = 4 + Math.floor(Math.random() * 3);
+        Object.keys(this.floraPools).forEach(type => {
+            const pool = this.floraPools[type];
+            pool.mesh = new THREE.InstancedMesh(pool.geo, pool.mat, pool.capacity);
+            pool.mesh.castShadow = true; pool.mesh.receiveShadow = false;
+            const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
+            for(let i=0; i<pool.capacity; i++) pool.mesh.setMatrixAt(i, zeroMat);
+            this.group.add(pool.mesh);
+        });
+
+        let treeCount = 0;
         let rockCount = 0;
 
-        const maxAttempts = 100;
-        let attempts = 0;
+        if (!this.terrain || !this.terrain.worldGrid) return;
 
-        while ((treeCount < numTrees || rockCount < numRocks) && attempts < maxAttempts) {
-            attempts++;
-            const x = -10 + Math.random() * 20;
-            const z = -10 + Math.random() * 20;
+        this.terrain.worldGrid.forEach((val, key) => {
+            const [x, y, z] = key.split(',').map(Number);
 
-            const gridX = Math.floor(x);
-            const gridZ = Math.floor(z);
+            // Safety: Only spawn flora on the absolute surface
+            if (this.terrain.worldGrid.has(`${x},${y + 1},${z}`)) return;
+            if (val.type !== 'grass' && val.type !== 'rock') return;
+            if (Math.hypot(x, z) < 6) return; // Keep center clear for player spawn
 
-            // Avoid center spawn point
-            if (Math.abs(gridX) <= 2 && Math.abs(gridZ) <= 2) continue;
-            // Avoid portal area (0, 2, -8) roughly x between -2 and 2, z between -9 and -7
-            if (gridX >= -3 && gridX <= 3 && gridZ >= -10 && gridZ <= -6) continue;
+            const r = Math.random();
+            if (r < 0.05) { // Trees
+                const tree = new THREE.Group(); tree.position.set(x, y + 1, z);
+                const trunk = new THREE.Mesh(this.trunkGeo, this.mWood); trunk.castShadow = true; tree.add(trunk);
 
-            const y = this.terrain.getHeightAt(x, z);
-
-            if (y >= 1 && y < 3) {
-                // Check distance to existing nodes to prevent clustering
-                const pos = new THREE.Vector3(x, y, z);
-                let tooClose = false;
-                for (const node of this.nodes) {
-                    if (node.position.distanceToSquared(pos) < 2.5 * 2.5) {
-                        tooClose = true;
-                        break;
-                    }
+                const isPine = Math.random() > 0.5;
+                const leaves = new THREE.Mesh(isPine ? this.pineGeo : this.oakGeo, isPine ? this.mLeavesPine : this.mLeavesOak);
+                leaves.position.y = 0.8; leaves.castShadow = true;
+                if(isPine) {
+                    const l2 = new THREE.Mesh(this.pineGeo, this.mLeavesPine); l2.position.y = 1.6; l2.scale.setScalar(0.8); l2.castShadow = true; tree.add(l2);
                 }
+                tree.add(leaves); tree.rotation.y = Math.random() * Math.PI;
 
-                if (tooClose) continue;
+                // Invisible Hitbox for Raycasting
+                const hitBox = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1.5), new THREE.MeshBasicMaterial({visible:false}));
+                hitBox.position.y = 1.5; hitBox.userData.isHitBox = true; tree.add(hitBox);
 
-                if (treeCount < numTrees) {
-                    // Add tree
-                    const rotY = Math.random() * Math.PI * 2;
-                    const scale = 0.8 + Math.random() * 0.4;
+                tree.userData = { isTree: true, hp: 3 };
+                this.group.add(tree);
 
-                    const treeGroup = new THREE.Group();
-                    const trunkMesh = new THREE.Mesh(this.trunkGeo, this.trunkMat);
-                    trunkMesh.castShadow = true; trunkMesh.receiveShadow = true;
-                    treeGroup.add(trunkMesh);
+                const node = {
+                    type: 'tree',
+                    index: treeCount++,
+                    position: tree.position.clone(),
+                    hp: 3,
+                    maxHp: 3,
+                    scale: 1,
+                    rotY: tree.rotation.y,
+                    mesh: tree
+                };
+                this.nodes.push(node);
+                const collider = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(x, y + 1.5, z), new THREE.Vector3(0.8, 4, 0.8));
+                node.collider = collider; this.activeColliders.push(collider);
 
-                    const leavesMesh = new THREE.Mesh(this.leavesGeo, this.leavesMat);
-                    leavesMesh.castShadow = true; leavesMesh.receiveShadow = true;
-                    treeGroup.add(leavesMesh);
+            } else if (r > 0.05 && r < 0.08 && val.type === 'grass') { // Rocks
+                const boulder = new THREE.Group(); boulder.position.set(x, y + 1, z);
+                const rockMesh = new THREE.Mesh(this.rockGeo, this.mRock);
+                rockMesh.position.y = 0.4; rockMesh.castShadow = true; boulder.add(rockMesh);
 
-                    treeGroup.position.copy(pos);
-                    treeGroup.rotation.set(0, rotY, 0);
-                    treeGroup.scale.set(scale, scale, scale);
-                    this.group.add(treeGroup);
+                const hitBox = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshBasicMaterial({visible:false}));
+                hitBox.position.y = 0.7; hitBox.userData.isHitBox = true; boulder.add(hitBox);
 
-                    const node = {
-                        type: 'tree',
-                        index: treeCount,
-                        position: pos.clone(),
-                        hp: 3,
-                        maxHp: 3,
-                        scale: scale,
-                        rotY: rotY,
-                        mesh: treeGroup
-                    };
-                    this.nodes.push(node);
+                boulder.userData = { isBoulder: true, hp: 3 };
+                this.group.add(boulder);
 
-                    // Add collider
-                    const collider = new THREE.Box3().setFromCenterAndSize(
-                        new THREE.Vector3(pos.x, pos.y + 1, pos.z),
-                        new THREE.Vector3(0.8, 4, 0.8)
-                    );
-                    node.collider = collider;
-                    this.activeColliders.push(collider);
+                const node = {
+                    type: 'rock',
+                    index: rockCount++,
+                    position: boulder.position.clone(),
+                    hp: 3,
+                    maxHp: 3,
+                    scale: 1,
+                    rotY: boulder.rotation.y,
+                    mesh: boulder
+                };
+                this.nodes.push(node);
+                const collider = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(x, y + 1.4, z), new THREE.Vector3(1.2, 0.8, 1.2));
+                node.collider = collider; this.activeColliders.push(collider);
 
-                    treeCount++;
-                } else if (rockCount < numRocks) {
-                    // Add rock
-                    const rotY = Math.random() * Math.PI * 2;
-                    const scale = 0.7 + Math.random() * 0.6;
-
-                    const rockMesh = new THREE.Mesh(this.rockGeo, this.rockMat);
-                    rockMesh.castShadow = true; rockMesh.receiveShadow = true;
-
-                    rockMesh.position.copy(pos);
-                    rockMesh.rotation.set(0, rotY, 0);
-                    rockMesh.scale.set(scale, scale, scale);
-                    this.group.add(rockMesh);
-
-                    const node = {
-                        type: 'rock',
-                        index: rockCount,
-                        position: pos.clone(),
-                        hp: 3,
-                        maxHp: 3,
-                        scale: scale,
-                        rotY: rotY,
-                        mesh: rockMesh
-                    };
-                    this.nodes.push(node);
-
-                    const collider = new THREE.Box3().setFromCenterAndSize(
-                        new THREE.Vector3(pos.x, pos.y + 0.4, pos.z),
-                        new THREE.Vector3(1.2, 0.8, 1.2)
-                    );
-                    node.collider = collider;
-                    this.activeColliders.push(collider);
-
-                    rockCount++;
+            } else if (r > 0.1 && r < 0.4 && val.type === 'grass') { // Triangular 3D Grass
+                const pool = this.floraPools['grass'];
+                if(pool.count < pool.capacity) {
+                    const mat = new THREE.Matrix4();
+                    mat.makeTranslation(x + (Math.random()-0.5)*0.7, y + 1, z + (Math.random()-0.5)*0.7);
+                    mat.multiply(new THREE.Matrix4().makeRotationY(Math.random() * Math.PI));
+                    mat.scale(new THREE.Vector3(1, 0.6 + Math.random()*0.8, 1));
+                    pool.mesh.setMatrixAt(pool.count, mat);
+                    pool.count++;
                 }
             }
-        }
+        });
+
+        Object.keys(this.floraPools).forEach(type => {
+            const pool = this.floraPools[type];
+            pool.mesh.count = pool.count;
+            pool.mesh.instanceMatrix.needsUpdate = true;
+        });
 
         // Spawn Herbs
         let herbCount = 0;
         for (let i = 0; i < 15; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = 5 + Math.random() * 20;
+            const dist = 5 + Math.random() * 12;
             const x = Math.cos(angle) * dist;
             const z = Math.sin(angle) * dist;
 
@@ -188,9 +186,13 @@ export class HubResources {
                     posY = this.terrain.position.y;
                 }
 
+                if (posY <= 0) continue;
+
                 // Herb Geometry
                 const herbGeo = new THREE.CylinderGeometry(0, 0.1, 0.4, 4);
                 const herbMat = new THREE.MeshLambertMaterial({ color: 0x22c55e }); // Green
+                applyWorldCurvature(herbMat, true, false);
+
                 const herbMesh = new THREE.Mesh(herbGeo, herbMat);
                 herbMesh.position.set(x, posY + 0.2, z);
                 herbMesh.castShadow = false;
