@@ -118,6 +118,48 @@ export class HubTerrain {
                         initialMats[uType].push({ mat: dummy.matrix.clone(), pos: [wX, y, wZ] });
                     }
                 }
+            });
+            pool.mesh.count = pool.count;
+            this.group.add(pool.mesh);
+        });
+    }
+
+    removeBlock(x, y, z) {
+        const key = `${x},${y},${z}`;
+        if (!this.worldGrid.has(key)) return false;
+
+        const { type, id } = this.worldGrid.get(key);
+        const pool = this.blockPools[type];
+        const lastId = pool.count - 1;
+
+        // Swap with last instance to keep array packed
+        if (id !== lastId) {
+            const mat = new THREE.Matrix4();
+            pool.mesh.getMatrixAt(lastId, mat);
+            pool.mesh.setMatrixAt(id, mat);
+
+            const lastKey = pool.idToKey[lastId];
+            this.worldGrid.get(lastKey).id = id;
+            pool.idToKey[id] = lastKey;
+        }
+
+        const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
+        pool.mesh.setMatrixAt(lastId, zeroMat);
+
+        this.worldGrid.delete(key);
+        pool.idToKey.pop();
+        pool.count--;
+        pool.mesh.count = pool.count;
+        pool.mesh.instanceMatrix.needsUpdate = true;
+
+        // Remove from colliders roughly (exact match check)
+        const blockMin = new THREE.Vector3(x - 0.5, y, z - 0.5);
+        const blockMax = new THREE.Vector3(x + 0.5, y + 1, z + 0.5);
+        for(let i=0; i<this.colliders.length; i++) {
+            const box = this.colliders[i];
+            if(box.min.equals(blockMin) && box.max.equals(blockMax)) {
+                this.colliders.splice(i, 1);
+                break;
             }
         }
 
