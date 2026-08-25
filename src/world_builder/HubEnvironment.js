@@ -4,9 +4,7 @@ import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
-import { disposeHierarchy } from '../core/GraphicsUtils.js';
-
-
+import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -15,6 +13,40 @@ const WEATHER_TYPES = {
     WINDY: { name: 'Ventania', icon: 'fa-wind', color: '#94a3b8' },
     SNOW: { name: 'Neve', icon: 'fa-snowflake', color: '#e2e8f0' }
 };
+
+function createComplexStructure(type, isPreview = false) {
+    const group = new THREE.Group();
+    const opacity = isPreview ? 0.6 : 1.0;
+    const transparent = isPreview;
+
+    if (type === 'tent') {
+        const canvasMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xf97316, transparent, opacity, side: THREE.DoubleSide });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x451a03, transparent, opacity });
+
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(2, 2.5, 4, 1, true, 0, Math.PI * 1.5), canvasMat);
+        roof.position.y = 1.25; roof.rotation.y = Math.PI / 4; roof.castShadow = !isPreview;
+        group.add(roof);
+
+        const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8), woodMat); p1.position.set(-1, 1.4, 1); p1.rotation.z = -0.3; group.add(p1);
+        const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8), woodMat); p2.position.set(1, 1.4, 1); p2.rotation.z = 0.3; group.add(p2);
+
+    } else if (type === 'campfire') {
+        const rockMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x64748b, transparent, opacity });
+        for(let i=0; i<8; i++) {
+            const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), rockMat);
+            r.position.set(Math.cos(i/8 * Math.PI*2)*0.6, 0.1, Math.sin(i/8 * Math.PI*2)*0.6);
+            r.castShadow = !isPreview; group.add(r);
+        }
+        const logMat = new THREE.MeshStandardMaterial({ color: 0x451a03, transparent, opacity });
+        const log1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1), logMat); log1.position.y = 0.15; log1.rotation.x = Math.PI/2; log1.rotation.z = 0.5; group.add(log1);
+        const log2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1), logMat); log2.position.y = 0.15; log2.rotation.z = Math.PI/2; group.add(log2);
+
+        if (!isPreview) {
+            const light = new THREE.PointLight(0xf97316, 2, 10); light.position.y = 0.5; group.add(light);
+        }
+    }
+    return group;
+}
 
 export class HubEnvironment {
     constructor(scene, camera) {
@@ -27,8 +59,6 @@ export class HubEnvironment {
         this.scene.add(this.skyGroup);
 
         this.interactiveObjects = [];
-
-
 
         this.isNearEros = false;
         this.isModalOpen = false;
@@ -55,7 +85,16 @@ export class HubEnvironment {
         this.mouseVec = new THREE.Vector2();
         this.gridSnapPos = new THREE.Vector3();
 
+        // Target state for building
+        this.targetBlock = null;
+        this.targetNormal = null;
 
+        // Setup visual cursor for voxel interaction
+        const cursorGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+        cursorGeo.translate(0, 0.5, 0);
+        this.cursorMesh = new THREE.Mesh(cursorGeo, new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: true, transparent: true, opacity: 0.8}));
+        this.cursorMesh.visible = false;
+        this.scene.add(this.cursorMesh);
 
         this.setupMaterials();
         this.setupLightingAndSky();
@@ -74,6 +113,128 @@ export class HubEnvironment {
         this.setupWeatherParticles();
 
         this.updateTimeAndWeatherHUD();
+
+        // Active tool state (we could map this to 1-5 keys if we had UI for it, defaulting to dirt for now)
+        this.activeToolType = 'dirt';
+
+        this.placedStructures = new THREE.Group();
+        this.hubGroup.add(this.placedStructures);
+
+        // Listeners for mouse move and click to handle voxel building
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onMouseDown = this.onMouseDown.bind(this);
+        this.onKeyDown = this.onKeyDown.bind(this);
+
+        window.addEventListener('mousemove', this.onMouseMove);
+        window.addEventListener('mousedown', this.onMouseDown);
+        window.addEventListener('keydown', this.onKeyDown);
+    }
+
+    onMouseMove(e) {
+        this.mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    onMouseDown(e) {
+        if (e.button === 0 && window.hubBuildingState === 'EXPLORING') {
+            // L-Click to BREAK
+            if (this.targetTree && this.resources) {
+                // Find node
+                const node = this.resources.nodes.find(n => n.mesh === this.targetTree);
+                if (node) this.resources.hitNode(this.targetTree.position, 1);
+
+                if (window.showFloatingText && window.penitent) {
+                    window.showFloatingText("Quebrando...", window.penitent.group.position.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+                }
+            } else if (this.targetBoulder && this.resources) {
+                // Find node
+                const node = this.resources.nodes.find(n => n.mesh === this.targetBoulder);
+                if (node) this.resources.hitNode(this.targetBoulder.position, 1);
+
+                if (window.showFloatingText && window.penitent) {
+                    window.showFloatingText("Minerando...", window.penitent.group.position.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+                }
+            } else if (this.targetBlock && this.terrain) {
+                const key = `${this.targetBlock.x},${this.targetBlock.y},${this.targetBlock.z}`;
+                if(this.terrain.worldGrid.has(key)) {
+                    const type = this.terrain.worldGrid.get(key).type;
+                    if(type !== 'water') {
+                        // Normally we'd add to inventory here
+                        if(window.inventoryManager) {
+                            // inventoryManager.addItem(type, 1);
+                        }
+                    }
+                }
+
+                // Use a little particle effect
+                if (window.showFloatingText) {
+                    // Just simple feedback
+                }
+
+                this.terrain.removeBlock(this.targetBlock.x, this.targetBlock.y, this.targetBlock.z);
+                this.targetBlock = null;
+                this.cursorMesh.visible = false;
+            }
+        }
+    }
+
+    onKeyDown(e) {
+        const k = e.key.toLowerCase();
+
+        // Temporary tool selection via keys 1-5
+        const tools = ['dirt', 'grass', 'rock', 'sand', 'wood'];
+        if (e.key >= '1' && e.key <= '5') {
+            const idx = parseInt(e.key) - 1;
+            this.activeToolType = tools[idx];
+            if (window.showFloatingText && window.penitent) {
+                window.showFloatingText(`Equipado: ${this.activeToolType}`, window.penitent.group.position.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+            }
+        }
+
+        if (k === 'r' && window.hubBuildingState === 'BUILDING_GRID' && this.previewMesh && this.previewMesh.visible) {
+            // Place complex structure
+            const finalMesh = createComplexStructure(this.selectedBuildType, false);
+            finalMesh.position.copy(this.previewMesh.position);
+            finalMesh.rotation.y = this.previewRotationY;
+            this.placedStructures.add(finalMesh);
+
+            // Exit build mode
+            window.hubBuildingState = 'EXPLORING';
+            this.scene.remove(this.previewMesh);
+            this.previewMesh = null;
+            const hint = document.getElementById('build-hint');
+            if (hint) hint.classList.add('hidden');
+
+            if (window.showFloatingText && window.penitent) {
+                window.showFloatingText("Estrutura construída!", window.penitent.group.position.clone().add(new THREE.Vector3(0, 2, 0)), '#22c55e');
+            }
+        } else if (k === 'r' && window.hubBuildingState === 'EXPLORING') {
+            // R to PLACE block
+            if (this.targetBlock && this.targetNormal && this.terrain) {
+                const px = this.targetBlock.x + this.targetNormal.x;
+                const py = this.targetBlock.y + this.targetNormal.y;
+                const pz = this.targetBlock.z + this.targetNormal.z;
+
+                // Collision check with player
+                const playerBox = new THREE.Box3();
+                if (window.penitent && window.penitent.group) {
+                    const pos = window.penitent.group.position;
+                    playerBox.min.set(pos.x - 0.3, pos.y + 0.1, pos.z - 0.3);
+                    playerBox.max.set(pos.x + 0.3, pos.y + 1.8, pos.z + 0.3);
+                }
+
+                const bBox = new THREE.Box3(
+                    new THREE.Vector3(px - 0.5, py, pz - 0.5),
+                    new THREE.Vector3(px + 0.5, py + 1, pz + 0.5)
+                );
+
+                if (!playerBox.intersectsBox(bBox)) {
+                    if (this.terrain.addBlock(px, py, pz, this.activeToolType)) {
+                        // Normally we'd deduct from inventory here
+                    }
+                }
+            }
+        }
     }
 
     setupMaterials() {
@@ -229,58 +390,8 @@ export class HubEnvironment {
     }
 
     setupVegetation() {
-        const grassMat = new THREE.MeshLambertMaterial({ color: 0x22c55e, flatShading: true });
-        const flowerMats = [
-            new THREE.MeshLambertMaterial({ color: 0xffa500, flatShading: true }), // Orange
-            new THREE.MeshLambertMaterial({ color: 0xef4444, flatShading: true }), // Red
-            new THREE.MeshLambertMaterial({ color: 0xa855f7, flatShading: true })  // Purple
-        ];
-
-        const grassGeo = new THREE.ConeGeometry(0.1, 0.4, 3);
-        grassGeo.translate(0, 0.2, 0);
-
-        const flowerGeo = new THREE.DodecahedronGeometry(0.15, 0);
-        flowerGeo.translate(0, 0.2, 0);
-
-        this.vegetationGroup = new THREE.Group();
-
-        // Scatter 150 grass tufts and 30 flowers
-        for (let i = 0; i < 180; i++) {
-            const x = -13 + Math.random() * 26;
-            const z = -13 + Math.random() * 26;
-
-            // Only spawn on valid terrain
-            if (this.terrain) {
-                const y = this.terrain.getHeightAt(x, z);
-                if (y > 0 && y < 3) {
-                    const isFlower = i > 150;
-                    let mesh;
-                    if (isFlower) {
-                        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 3), grassMat);
-                        stem.position.y = 0.1;
-                        const bloom = new THREE.Mesh(flowerGeo, flowerMats[Math.floor(Math.random() * flowerMats.length)]);
-                        bloom.position.y = 0.2;
-                        mesh = new THREE.Group();
-                        mesh.add(stem);
-                        mesh.add(bloom);
-                    } else {
-                        mesh = new THREE.Group();
-                        for (let g = 0; g < 3; g++) {
-                            const blade = new THREE.Mesh(grassGeo, grassMat);
-                            blade.rotation.x = (Math.random() - 0.5) * 0.5;
-                            blade.rotation.z = (Math.random() - 0.5) * 0.5;
-                            blade.rotation.y = Math.random() * Math.PI;
-                            blade.scale.setScalar(0.5 + Math.random() * 0.8);
-                            mesh.add(blade);
-                        }
-                    }
-                    mesh.position.set(x, y, z);
-                    this.vegetationGroup.add(mesh);
-                }
-            }
-        }
-
-        this.hubGroup.add(this.vegetationGroup);
+        // Remove old implementation since it uses simple cones on Y
+        // We will stick to the HubResources and the voxel map for now
     }
 
     setupPortal() {
@@ -381,6 +492,31 @@ export class HubEnvironment {
         }
     }
 
+    startGridPlacement(type) {
+        this.selectedBuildType = type;
+        this.previewRotationY = 0;
+        window.hubBuildingState = 'BUILDING_GRID';
+
+        if (this.previewMesh) {
+            this.scene.remove(this.previewMesh);
+            this.previewMesh = null;
+        }
+
+        this.previewMesh = createComplexStructure(type, true);
+        this.previewMesh.visible = false;
+        this.scene.add(this.previewMesh);
+    }
+
+    cancelGridPlacement() {
+        window.hubBuildingState = 'EXPLORING';
+        if (this.previewMesh) {
+            this.scene.remove(this.previewMesh);
+            this.previewMesh = null;
+        }
+        const hint = document.getElementById('build-hint');
+        if (hint) hint.classList.add('hidden');
+    }
+
     setupEros() {
         this.eros = new Eros(this.scene, new THREE.Vector3(2.0, 2.0, 0.5));
         this.eros.group.lookAt(0, 2, 0);
@@ -401,11 +537,26 @@ export class HubEnvironment {
             radius: 5.0,
             action: () => {
                 if (window.hubBuildingState !== 'EXPLORING' && window.hubBuildingState !== 'INSIDE_TENT') return;
-                window.hubBuildingState = 'BUILDING';
-                const hubUI = document.getElementById('hub-status-ui');
-                const buildUI = document.getElementById('build-ui');
-                if (hubUI) hubUI.classList.add('opacity-0');
-                if (buildUI) buildUI.classList.remove('hidden');
+
+                // For this prototype logic, open build UI with Tent and Campfire options instead of the original build UI
+                // Because we replaced the logic but we need to wire up the UI elements to trigger startGridPlacement
+
+                const tabMenu = document.getElementById('tab-menu');
+                if (tabMenu) {
+                    tabMenu.classList.remove('hidden');
+                    window.hubBuildingState = 'UI_OPEN';
+
+                    document.getElementById('build-tent').onclick = () => {
+                        this.startGridPlacement('tent');
+                        tabMenu.classList.add('hidden');
+                        document.getElementById('build-hint').classList.remove('hidden');
+                    };
+                    document.getElementById('build-campfire').onclick = () => {
+                        this.startGridPlacement('campfire');
+                        tabMenu.classList.add('hidden');
+                        document.getElementById('build-hint').classList.remove('hidden');
+                    };
+                }
             },
             prompt: 'Falar com Eros (Construir)'
         });
@@ -426,13 +577,6 @@ export class HubEnvironment {
         const weatherBadgeText = document.getElementById('weather-badge-text');
 
         if(locationSubtitle) {
-            const WEATHER_TYPES = {
-                SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
-                LIGHT_RAIN: { name: 'Chuva Leve', icon: 'fa-cloud-rain', color: '#38bdf8' },
-                STORM: { name: 'Tempestade', icon: 'fa-bolt', color: '#a855f7' },
-                WINDY: { name: 'Ventania', icon: 'fa-wind', color: '#94a3b8' },
-                SNOW: { name: 'Neve', icon: 'fa-snowflake', color: '#e2e8f0' }
-            };
             const wType = WEATHER_TYPES[gameState.hubState.currentWeatherKey] || WEATHER_TYPES.SUNNY;
             locationSubtitle.textContent = `Dia ${gameState.hubState.dayCount} • ${timeStr} • ${wType.name}`;
 
@@ -461,12 +605,20 @@ export class HubEnvironment {
     }
 
     cleanup() {
+        window.removeEventListener('mousemove', this.onMouseMove);
+        window.removeEventListener('mousedown', this.onMouseDown);
+        window.removeEventListener('keydown', this.onKeyDown);
+
+        if (this.cursorMesh) {
+            this.scene.remove(this.cursorMesh);
+            this.cursorMesh.geometry.dispose();
+            this.cursorMesh.material.dispose();
+        }
+
         const disposeGroup = (group) => {
             if (!group) return;
-            import('../core/GraphicsUtils.js').then(({ disposeHierarchy }) => {
-                disposeHierarchy(group);
-                this.scene.remove(group);
-            });
+            disposeHierarchy(group);
+            this.scene.remove(group);
         };
 
         disposeGroup(this.hubGroup);
@@ -474,15 +626,13 @@ export class HubEnvironment {
         if(this.weatherParticleGroup) disposeGroup(this.weatherParticleGroup);
 
         if (this.erosSpot) {
-            import('../core/GraphicsUtils.js').then(({ disposeHierarchy }) => {
-                disposeHierarchy(this.erosSpot);
-                this.scene.remove(this.erosSpot);
-                if(this.erosSpot.target) {
-                    disposeHierarchy(this.erosSpot.target);
-                    this.scene.remove(this.erosSpot.target);
-                }
-                this.erosSpot.dispose();
-            });
+            disposeHierarchy(this.erosSpot);
+            this.scene.remove(this.erosSpot);
+            if(this.erosSpot.target) {
+                disposeHierarchy(this.erosSpot.target);
+                this.scene.remove(this.erosSpot.target);
+            }
+            this.erosSpot.dispose();
         }
 
         this.interactiveObjects = [];
@@ -611,46 +761,103 @@ export class HubEnvironment {
         }
     }
 
-    animateCampfireAndVegetation(delta, time) {
-        // Vento estático - A animação de grama via GPU (Custom Shader)
-        // será implementada futuramente.
-    }
-
     update(delta, time, camera, playerPos) {
         // Trava de segurança para a posição do jogador
         const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
 
+        // Update Global Uniforms for Animal Crossing Curvature Shader
+        globalUniforms.uTime.value = time;
+        if(safePos) globalUniforms.uPlayerPos.value.copy(safePos);
+
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
-        this.animateCampfireAndVegetation(delta, time);
         if (this.terrain) this.terrain.update(time);
+
+        // Raycasting for Voxel Interaction
+        this.targetBlock = null;
+        this.targetNormal = null;
+        this.cursorMesh.visible = false;
+
+        if ((window.hubBuildingState === 'EXPLORING' || window.hubBuildingState === 'BUILDING_GRID') && this.terrain) {
+            this.raycaster.setFromCamera(this.mouseVec, camera);
+
+            // Collect all instanced meshes from blockPools
+            const checkMeshes = [];
+            this.terrain.typeKeys.forEach(t => {
+                if (this.terrain.blockPools[t] && this.terrain.blockPools[t].mesh) {
+                    checkMeshes.push(this.terrain.blockPools[t].mesh);
+                }
+            });
+            if (this.resources && this.resources.nodes) {
+                this.resources.nodes.forEach(node => {
+                    if (node.mesh) {
+                        const hb = node.mesh.children.find(c => c.userData && c.userData.isHitBox);
+                        if (hb) checkMeshes.push(hb);
+                    }
+                });
+            }
+
+            const intersects = this.raycaster.intersectObjects(checkMeshes, false);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                if (hit.point.distanceTo(safePos) < 8.0) { // Distance to PLAYER
+                    if (hit.object.userData && (hit.object.userData.isHitBox)) {
+                        const nodeGroup = hit.object.parent;
+                        if (nodeGroup && nodeGroup.userData && (nodeGroup.userData.isTree || nodeGroup.userData.isBoulder)) {
+                            this.targetBlock = null;
+                            if (nodeGroup.userData.isTree) {
+                                this.targetTree = nodeGroup;
+                                this.targetBoulder = null;
+                            } else {
+                                this.targetBoulder = nodeGroup;
+                                this.targetTree = null;
+                            }
+                            this.cursorMesh.visible = true;
+                            this.cursorMesh.scale.set(1.5, 3, 1.5);
+                            this.cursorMesh.position.copy(nodeGroup.position);
+                            this.cursorMesh.position.y -= 0.5;
+                            if (nodeGroup.userData.isBoulder) this.cursorMesh.scale.set(1.5, 1.5, 1.5);
+                        }
+                    } else if (hit.instanceId !== undefined) {
+                        this.targetTree = null;
+                        this.targetBoulder = null;
+                        this.cursorMesh.scale.set(1, 1, 1);
+                        const mat = new THREE.Matrix4();
+                        hit.object.getMatrixAt(hit.instanceId, mat);
+                        const pos = new THREE.Vector3().setFromMatrixPosition(mat);
+
+                        this.targetBlock = { x: Math.round(pos.x), y: Math.round(pos.y), z: Math.round(pos.z) };
+                        this.targetNormal = hit.face.normal;
+
+                        this.cursorMesh.visible = true;
+
+                        // Handle flat tiles cursor offset visually
+                        let yOffset = 0;
+                        if (hit.object.geometry && hit.object.geometry.parameters && hit.object.geometry.parameters.height < 0.2) {
+                             yOffset = -0.45;
+                        }
+
+                        this.cursorMesh.position.set(this.targetBlock.x, this.targetBlock.y + yOffset, this.targetBlock.z);
+
+                        if (window.hubBuildingState === 'BUILDING_GRID' && this.previewMesh) {
+                            this.previewMesh.visible = true;
+                            this.previewMesh.position.set(this.targetBlock.x, this.targetBlock.y + 1, this.targetBlock.z);
+                            this.previewMesh.rotation.y = this.previewRotationY;
+                            this.cursorMesh.visible = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (window.hubBuildingState === 'BUILDING_GRID' && !this.targetBlock && this.previewMesh) {
+            this.previewMesh.visible = false;
+        }
 
 
         if (this.resources) {
             this.resources.update(delta);
-        }
-
-        if (this.expandingSegments && this.expandingSegments.length > 0) {
-            for (let i = this.expandingSegments.length - 1; i >= 0; i--) {
-                const seg = this.expandingSegments[i];
-                if (seg.group.position.y < seg.targetY) {
-                    seg.group.position.y += delta * 5.0; // Subida suave
-                    if (seg.group.position.y >= seg.targetY) {
-                        seg.group.position.y = seg.targetY;
-
-                        // Add collisions once stationary
-                        if (!seg.collidersAdded && this.terrain) {
-                            seg.group.children.forEach(mesh => {
-                                const box = new THREE.Box3().setFromObject(mesh);
-                                this.terrain.colliders.push(box);
-                            });
-                            seg.collidersAdded = true;
-                        }
-
-                        this.expandingSegments.splice(i, 1);
-                    }
-                }
-            }
         }
 
         if(window.hubBuildingState !== 'INSIDE_TENT') {
@@ -742,7 +949,7 @@ export class HubEnvironment {
         if (!this.terrain) return false;
 
         // Prevent falling out of bounds (expanded hub limits)
-        if (Math.abs(pos.x) >= 13.5 || Math.abs(pos.z) >= 13.5) {
+        if (Math.abs(pos.x) >= 28 || Math.abs(pos.z) >= 28) {
             return true;
         }
 
@@ -765,79 +972,5 @@ export class HubEnvironment {
             }
         }
         return false;
-    }
-
-    expandIslandSegment(direction) {
-        if (direction !== 'south') {
-            console.warn(`[HUB] Direção de expansão ${direction} não suportada ainda.`);
-            return;
-        }
-
-        const cost = { 'wood_ancient': 10, 'stone': 10 };
-
-        // Verificar recursos no inventoryManager global
-        for (let [itemId, amount] of Object.entries(cost)) {
-            if (!window.inventoryManager || !window.inventoryManager.hasItem(itemId, amount)) {
-                console.warn(`[HUB] Recursos insuficientes para expansão. Necessário: ${amount} de ${itemId}`);
-                if (window.showFloatingText) {
-                    window.showFloatingText(`Precisa de ${amount} ${itemId}`, new THREE.Vector3(0, 3, 0), '#ef4444');
-                }
-                return;
-            }
-        }
-
-        // Deduzir os itens
-        for (let [itemId, amount] of Object.entries(cost)) {
-            window.inventoryManager.removeItemById(itemId, amount);
-        }
-
-        // Instancia uma nova malha voxel 6x6 na borda sul (coordenadas +Z)
-        // com a mesma paleta do HubTerrain (topo verde #3b7a3a e laterais escuras #4a3b32)
-        const topMaterial = new THREE.MeshLambertMaterial({ color: 0x3b7a3a });
-        const sideMaterial = new THREE.MeshLambertMaterial({ color: 0x4a3b32 });
-        const materials = [sideMaterial, sideMaterial, topMaterial, sideMaterial, sideMaterial, sideMaterial];
-
-        const blockSize = 1;
-        const width = 6;
-        const depth = 6;
-
-        const segmentGroup = new THREE.Group();
-
-        for (let x = -3; x < 3; x++) {
-            for (let z = 0; z < depth; z++) {
-                const height = 2; // Platô base height
-                const geo = new THREE.BoxGeometry(blockSize, height, blockSize);
-                const mesh = new THREE.Mesh(geo, materials);
-                // Position relative to segment group
-                mesh.position.set(x + 0.5, height / 2, z + 0.5);
-                mesh.receiveShadow = true;
-                mesh.castShadow = false; // Optimize terrain shadows
-                segmentGroup.add(mesh);
-            }
-        }
-
-        // Position at the south edge (+Z) of the main island
-        segmentGroup.position.set(0, -10, 10);
-        this.hubGroup.add(segmentGroup);
-
-        // Add to expanding segments array for animation
-        if (!this.expandingSegments) {
-            this.expandingSegments = [];
-        }
-
-        this.expandingSegments.push({
-            group: segmentGroup,
-            targetY: 0,
-            collidersAdded: false
-        });
-
-        console.log(`[HUB] Expansão do segmento sul iniciada com sucesso!`);
-        if (window.showFloatingText) {
-            window.showFloatingText(`Expansão Iniciada!`, new THREE.Vector3(0, 4, 10), '#22c55e');
-        }
-
-        // Close build UI
-        const btnCloseBuild = document.getElementById('btn-close-build');
-        if (btnCloseBuild) btnCloseBuild.click();
     }
 }
