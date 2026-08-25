@@ -396,7 +396,12 @@ export class HubEnvironment {
 
     setupPortal() {
         const portalGroup = new THREE.Group();
-        const x = 0, y = 2.0, z = -8.0;
+        const x = 0, z = -8.0;
+        let y = 2.0;
+        if (this.terrain) {
+            const h = this.terrain.getHeightAt(x, z);
+            if (h > -10) y = h;
+        }
         portalGroup.position.set(x, y, z);
 
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });

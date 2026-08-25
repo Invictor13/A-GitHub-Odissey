@@ -27,6 +27,7 @@ export class HubTerrain {
 
         // Voxel Block (scaled slightly larger (1.002) to seal gaps and completely prevent grid shadow acne)
         this.boxGeo = new THREE.BoxGeometry(1.002, 1.002, 1.002);
+        this.boxGeo.translate(0, 0.5, 0);
 
         this.mGrass = new THREE.MeshLambertMaterial({ color: 0x4ade80, ...matBase });
         this.mDirt = new THREE.MeshLambertMaterial({ color: 0x5a3825, ...matBase });
@@ -82,7 +83,6 @@ export class HubTerrain {
             for (let z = 0; z < MAP_SIZE; z++) {
                 const wX = x - HALF_MAP; const wZ = z - HALF_MAP;
                 const distFromCenter = Math.hypot(wX, wZ);
-
                 if (distFromCenter > 28) continue; // Circular island bounds
 
                 let n = this.noise(x, z);
@@ -92,55 +92,74 @@ export class HubTerrain {
                 const isRiver = Math.abs(wZ - riverPath) < 3.5;
                 const isMountain = (wX > 5 && wZ < -5 && distFromCenter < 22);
                 const isBeach = (wZ > 15 && distFromCenter < 25);
-                const isPortalArea = (wX >= -2 && wX <= 2 && wZ >= -12 && wZ <= -7);
 
                 let topType = 'grass';
-                if (isRiver) {
-                    topType = 'water';
-                } else if (isMountain) {
-                    h += Math.floor(Math.random()*2) + 3;
-                    topType = 'rock';
-                } else if (isBeach) {
-                    topType = 'sand';
-                }
-
-                // Ensure the portal area is flat enough
-                if (isPortalArea && topType !== 'water') {
-                    h = 2;
-                    topType = 'stone_tile';
-                }
+                if (isRiver) topType = 'water';
+                else if (isMountain) { h += Math.floor(Math.random()*2) + 3; topType = 'rock'; }
+                else if (isBeach) topType = 'sand';
 
                 if (topType === 'water') {
-                    // Water Surface
-                    dummy.position.set(wX, -0.2 + 0.5, wZ);
-                    dummy.scale.set(1, 1, 1);
-                    dummy.updateMatrix();
+                    dummy.position.set(wX, -0.2, wZ); dummy.updateMatrix();
                     initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, -0.2, wZ] });
-
-                    // Sand Below Water
-                    dummy.position.set(wX, -1 + 0.5, wZ);
-                    dummy.updateMatrix();
+                    dummy.position.set(wX, -1, wZ); dummy.updateMatrix();
                     initialMats.sand.push({ mat: dummy.matrix.clone(), pos: [wX, -1, wZ] });
                 } else {
                     // Top Surface
-                    dummy.position.set(wX, h + 0.5, wZ);
-                    dummy.scale.set(1, 1, 1);
-                    dummy.updateMatrix();
+                    dummy.position.set(wX, h, wZ); dummy.updateMatrix();
                     initialMats[topType].push({ mat: dummy.matrix.clone(), pos: [wX, h, wZ] });
 
                     // Sub Layers
                     const dirtDepth = (topType === 'sand') ? 1 : Math.floor(Math.random() * 2) + 2;
                     for (let y = h - 1; y >= -6; y--) {
-                        dummy.position.set(wX, y + 0.5, wZ);
-                        dummy.updateMatrix();
-
+                        dummy.position.set(wX, y, wZ); dummy.updateMatrix();
                         let uType = 'dirt';
                         if (topType === 'rock' || y < h - dirtDepth) uType = 'rock';
                         else if (topType === 'sand') uType = 'sand';
-
                         initialMats[uType].push({ mat: dummy.matrix.clone(), pos: [wX, y, wZ] });
                     }
                 }
+            });
+            pool.mesh.count = pool.count;
+            this.group.add(pool.mesh);
+        });
+    }
+
+    removeBlock(x, y, z) {
+        const key = `${x},${y},${z}`;
+        if (!this.worldGrid.has(key)) return false;
+
+        const { type, id } = this.worldGrid.get(key);
+        const pool = this.blockPools[type];
+        const lastId = pool.count - 1;
+
+        // Swap with last instance to keep array packed
+        if (id !== lastId) {
+            const mat = new THREE.Matrix4();
+            pool.mesh.getMatrixAt(lastId, mat);
+            pool.mesh.setMatrixAt(id, mat);
+
+            const lastKey = pool.idToKey[lastId];
+            this.worldGrid.get(lastKey).id = id;
+            pool.idToKey[id] = lastKey;
+        }
+
+        const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
+        pool.mesh.setMatrixAt(lastId, zeroMat);
+
+        this.worldGrid.delete(key);
+        pool.idToKey.pop();
+        pool.count--;
+        pool.mesh.count = pool.count;
+        pool.mesh.instanceMatrix.needsUpdate = true;
+
+        // Remove from colliders roughly (exact match check)
+        const blockMin = new THREE.Vector3(x - 0.5, y, z - 0.5);
+        const blockMax = new THREE.Vector3(x + 0.5, y + 1, z + 0.5);
+        for(let i=0; i<this.colliders.length; i++) {
+            const box = this.colliders[i];
+            if(box.min.equals(blockMin) && box.max.equals(blockMax)) {
+                this.colliders.splice(i, 1);
+                break;
             }
         }
 
@@ -249,7 +268,7 @@ export class HubTerrain {
 
         const id = pool.count;
         const mat = new THREE.Matrix4();
-        mat.makeTranslation(x, y + yOffset, z);
+        mat.makeTranslation(x, y + (yOffset === 0.5 ? 0 : yOffset), z);
         mat.scale(scale);
 
         pool.mesh.setMatrixAt(id, mat);
