@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { inventoryManager } from '../systems/InventoryManager.js';
+import { applyWorldCurvature } from '../core/GraphicsUtils.js';
 
 export class HubResources {
     constructor(scene, terrain) {
@@ -24,10 +25,14 @@ export class HubResources {
         this.trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2e18, flatShading: true });
         this.leavesMat = new THREE.MeshLambertMaterial({ color: 0x1e4d2b, flatShading: true });
 
+        applyWorldCurvature(this.trunkMat, false, false);
+        applyWorldCurvature(this.leavesMat, true, false);
+
         this.rockGeo = new THREE.DodecahedronGeometry(0.8, 0);
         this.rockGeo.scale(1, 0.8, 1);
         this.rockGeo.translate(0, 0.5, 0);
         this.rockMat = new THREE.MeshLambertMaterial({ color: 0x5a6269, flatShading: true });
+        applyWorldCurvature(this.rockMat, false, false);
 
         this.buildParticleSystem();
         this.spawnResources();
@@ -36,6 +41,8 @@ export class HubResources {
     buildParticleSystem() {
         const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        applyWorldCurvature(pMat, false, false);
+
         this.particleMesh = new THREE.InstancedMesh(pGeo, pMat, 200);
         this.particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         this.group.add(this.particleMesh);
@@ -111,6 +118,13 @@ export class HubResources {
                     treeGroup.position.copy(pos);
                     treeGroup.rotation.set(0, rotY, 0);
                     treeGroup.scale.set(scale, scale, scale);
+
+                    // Invisible Hitbox for Raycasting block breaking fallback
+                    const hitBox = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1.5), new THREE.MeshBasicMaterial({visible:false}));
+                    hitBox.position.y = 1.5; hitBox.userData.isHitBox = true; treeGroup.add(hitBox);
+
+                    treeGroup.userData = { isTree: true, hp: 3 };
+
                     this.group.add(treeGroup);
 
                     const node = {
@@ -139,13 +153,18 @@ export class HubResources {
                     const rotY = Math.random() * Math.PI * 2;
                     const scale = 0.7 + Math.random() * 0.6;
 
+                    const boulder = new THREE.Group(); boulder.position.copy(pos); boulder.rotation.set(0, rotY, 0); boulder.scale.set(scale, scale, scale);
                     const rockMesh = new THREE.Mesh(this.rockGeo, this.rockMat);
                     rockMesh.castShadow = true; rockMesh.receiveShadow = true;
 
-                    rockMesh.position.copy(pos);
-                    rockMesh.rotation.set(0, rotY, 0);
-                    rockMesh.scale.set(scale, scale, scale);
-                    this.group.add(rockMesh);
+                    boulder.add(rockMesh);
+
+                    const hitBox = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshBasicMaterial({visible:false}));
+                    hitBox.position.y = 0.7; hitBox.userData.isHitBox = true; boulder.add(hitBox);
+
+                    boulder.userData = { isBoulder: true, hp: 3 };
+
+                    this.group.add(boulder);
 
                     const node = {
                         type: 'rock',
@@ -155,7 +174,7 @@ export class HubResources {
                         maxHp: 3,
                         scale: scale,
                         rotY: rotY,
-                        mesh: rockMesh
+                        mesh: boulder
                     };
                     this.nodes.push(node);
 
@@ -175,7 +194,7 @@ export class HubResources {
         let herbCount = 0;
         for (let i = 0; i < 15; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = 5 + Math.random() * 20;
+            const dist = 5 + Math.random() * 12;
             const x = Math.cos(angle) * dist;
             const z = Math.sin(angle) * dist;
 
@@ -188,9 +207,13 @@ export class HubResources {
                     posY = this.terrain.position.y;
                 }
 
+                if (posY <= 0) continue;
+
                 // Herb Geometry
                 const herbGeo = new THREE.CylinderGeometry(0, 0.1, 0.4, 4);
                 const herbMat = new THREE.MeshLambertMaterial({ color: 0x22c55e }); // Green
+                applyWorldCurvature(herbMat, true, false);
+
                 const herbMesh = new THREE.Mesh(herbGeo, herbMat);
                 herbMesh.position.set(x, posY + 0.2, z);
                 herbMesh.castShadow = false;

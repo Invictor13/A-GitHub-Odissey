@@ -438,6 +438,34 @@
 </section>
 </main>
 
+    <!-- Tab Build Menu -->
+    <div id="tab-menu" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[120] flex items-center justify-center pointer-events-auto">
+        <div class="glass-panel p-8 rounded-3xl max-w-2xl w-full border border-yellow-400/30 shadow-2xl">
+            <h2 class="text-3xl font-black text-white mb-2 text-center drop-shadow-md">Menu de Construção</h2>
+            <p class="text-slate-300 text-center mb-6 text-sm">Selecione uma estrutura para posicionar no acampamento.</p>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div id="build-tent" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-400 transition-all text-center group">
+                    <div class="text-5xl mb-2 group-hover:scale-110 transition-transform">⛺</div>
+                    <h3 class="text-yellow-400 font-bold text-lg">Barraca de Lona</h3>
+                    <p class="text-xs text-slate-400 mt-1">Custa: 10 Madeira</p>
+                </div>
+                <div id="build-campfire" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-orange-400 transition-all text-center group">
+                    <div class="text-5xl mb-2 group-hover:scale-110 transition-transform">🔥</div>
+                    <h3 class="text-orange-400 font-bold text-lg">Fogueira</h3>
+                    <p class="text-xs text-slate-400 mt-1">Custa: 5 Pedra, 5 Madeira</p>
+                </div>
+            </div>
+
+            <p class="text-center text-slate-500 text-xs mt-6 font-bold uppercase tracking-widest">Pressione TAB novamente para fechar</p>
+        </div>
+    </div>
+
+    <!-- Build Mode Hint -->
+    <div id="build-hint" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] bg-yellow-400 text-slate-900 px-6 py-2 rounded-full font-bold shadow-lg animate-bounce pointer-events-none">
+        Mirar no chão e pressionar [R] para Construir
+    </div>
+
 <!-- Hotbar (1-5) -->
 <footer class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
     <div class="flex gap-2 md:gap-3" id="hotbar-grid">

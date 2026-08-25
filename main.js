@@ -340,8 +340,20 @@ window.addEventListener('keydown', (e) => {
         if (e.key.toLowerCase() === 'e' && window.currentNearbyObject && window.hubBuildingState !== 'BUILDING_GRID') {
             window.currentNearbyObject.action();
         }
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const tabMenu = document.getElementById('tab-menu');
+            if (tabMenu && !tabMenu.classList.contains('hidden')) {
+                tabMenu.classList.add('hidden');
+                window.hubBuildingState = 'EXPLORING';
+            }
+        }
         if (e.key === 'Escape') {
-            if (window.hubBuildingState === 'BUILDING_GRID' && currentEnvironment) {
+            const tabMenu = document.getElementById('tab-menu');
+            if (tabMenu && !tabMenu.classList.contains('hidden')) {
+                tabMenu.classList.add('hidden');
+                window.hubBuildingState = 'EXPLORING';
+            } else if (window.hubBuildingState === 'BUILDING_GRID' && currentEnvironment) {
                 currentEnvironment.cancelGridPlacement();
             } else if (window.hubBuildingState === 'BUILDING') {
                 document.getElementById('btn-close-build').click();
