@@ -304,7 +304,7 @@ try {
 window.addEventListener('keydown', (e) => {
     if (!window.gameState || !window.gameState.isGameStarted) return;
 
-    if (e.code === 'KeyI') {
+    if (e.code === 'KeyI' || e.key.toLowerCase() === 'i') {
         if (window.inventoryUI) {
             window.inventoryUI.toggle();
             controls.enabled = !window.inventoryUI.isOpen;
@@ -314,8 +314,38 @@ window.addEventListener('keydown', (e) => {
         }
     }
 
-    if (e.code === 'Tab') {
+    if (e.code === 'Tab' || e.key === 'Tab') {
         e.preventDefault();
+        if (GAME_STATE === 'HUB') {
+            const tabMenu = document.getElementById('tab-menu');
+            if (tabMenu) {
+                if (tabMenu.classList.contains('hidden')) {
+                    tabMenu.classList.remove('hidden');
+                    window.hubBuildingState = 'UI_OPEN';
+                    controls.enabled = false;
+
+                    // Wire up the build buttons just like Eros interaction does
+                    if (currentEnvironment) {
+                        const buildTentBtn = document.getElementById('build-tent');
+                        const buildCampfireBtn = document.getElementById('build-campfire');
+                        if (buildTentBtn) buildTentBtn.onclick = () => {
+                            currentEnvironment.startGridPlacement('tent');
+                            tabMenu.classList.add('hidden');
+                            document.getElementById('build-hint').classList.remove('hidden');
+                        };
+                        if (buildCampfireBtn) buildCampfireBtn.onclick = () => {
+                            currentEnvironment.startGridPlacement('campfire');
+                            tabMenu.classList.add('hidden');
+                            document.getElementById('build-hint').classList.remove('hidden');
+                        };
+                    }
+                } else {
+                    tabMenu.classList.add('hidden');
+                    window.hubBuildingState = 'EXPLORING';
+                    controls.enabled = (!window.inventoryUI || !window.inventoryUI.isOpen) && (!window.codexUI || !window.codexUI.isOpen);
+                }
+            }
+        }
         window.isBuildMode = !window.isBuildMode;
         console.log('Build Mode:', window.isBuildMode);
     }
