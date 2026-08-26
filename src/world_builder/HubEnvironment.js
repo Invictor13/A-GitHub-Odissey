@@ -44,7 +44,50 @@ function createComplexStructure(type, isPreview = false) {
         if (!isPreview) {
             const light = new THREE.PointLight(0xf97316, 2, 10); light.position.y = 0.5; group.add(light);
         }
+    } else if (type === 'fence') {
+        const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, transparent, opacity });
+        const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2), mat); post1.position.set(-0.7, 0.6, 0); group.add(post1);
+        const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2), mat); post2.position.set(0.7, 0.6, 0); group.add(post2);
+        const bar1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.04), mat); bar1.position.set(0, 0.8, 0); group.add(bar1);
+        const bar2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.04), mat); bar2.position.set(0, 0.4, 0); group.add(bar2);
+    } else if (type === 'bench') {
+        const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x5c2b0c, transparent, opacity });
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 0.5), mat); seat.position.set(0, 0.5, 0); group.add(seat);
+        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg1.position.set(-0.6, 0.18, 0); group.add(leg1);
+        const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg2.position.set(0.6, 0.18, 0); group.add(leg2);
+    } else if (type === 'lantern') {
+        const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, transparent, opacity, roughness: 0.4 });
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.6), mat); post.position.y = 0.8; group.add(post);
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.35), new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.9 }));
+        box.position.y = 1.6; group.add(box);
+        if (!isPreview) {
+            const l = new THREE.PointLight(0xfacc15, 2.0, 8); l.position.y = 1.6; group.add(l);
+        }
+    } else if (type === 'target') {
+        const matWood = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, transparent, opacity });
+        const matRing = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xef4444, transparent, opacity });
+        const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg1.position.set(-0.3, 0.9, -0.2); leg1.rotation.z = -0.2; group.add(leg1);
+        const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg2.position.set(0.3, 0.9, -0.2); leg2.rotation.z = 0.2; group.add(leg2);
+        const leg3 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0), matWood); leg3.position.set(0, 0.9, 0.3); leg3.rotation.x = -0.3; group.add(leg3);
+        const board = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.1, 16), matRing); board.rotation.x = Math.PI/2; board.position.set(0, 1.2, 0.1); group.add(board);
+    } else if (type === 'chest') {
+        const chestMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x713f12, roughness: 0.7, transparent, opacity });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.6), chestMat); body.position.y = 0.25; group.add(body);
+        const metalMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xfacc15, metalness: 0.8, transparent, opacity });
+        const lock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.08), metalMat); lock.position.set(0, 0.25, 0.31); group.add(lock);
+    } else if (type === 'tree') {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 1.0), new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x451a03, transparent, opacity })); trunk.position.y = 0.5; group.add(trunk);
+        const foliageMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x047857, transparent, opacity, flatShading: true });
+        const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.6, 6), foliageMat); c1.position.y = 1.4; group.add(c1);
+        const c2 = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.4, 6), foliageMat); c2.position.y = 2.1; group.add(c2);
+        const c3 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.1, 6), foliageMat); c3.position.y = 2.7; group.add(c3);
+    } else if (type === 'pot') {
+        const potMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x9a3412, roughness: 0.8, transparent, opacity });
+        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.6, 12), potMat); pot.position.y = 0.3; group.add(pot);
+        const flowerMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xf43f5e, transparent, opacity });
+        const flower = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25), flowerMat); flower.position.y = 0.7; group.add(flower);
     }
+
     return group;
 }
 
@@ -197,6 +240,10 @@ export class HubEnvironment {
             finalMesh.position.copy(this.previewMesh.position);
             finalMesh.rotation.y = this.previewRotationY;
             this.placedStructures.add(finalMesh);
+
+            if (this.selectedBuildType === 'tent') {
+                this.setupTentInteraction(finalMesh);
+            }
 
             // Exit build mode
             window.hubBuildingState = 'EXPLORING';
@@ -520,6 +567,59 @@ export class HubEnvironment {
         }
         const hint = document.getElementById('build-hint');
         if (hint) hint.classList.add('hidden');
+    }
+
+    setupTentInteraction(tentMesh) {
+        tentMesh.userData.interactable = true;
+        tentMesh.userData.name = 'Tent';
+
+        const enterTent = () => {
+            window.hubBuildingState = 'INSIDE_TENT';
+            if (window.penitent && window.penitent.group) {
+                // Keep the player around the tent entrance or an arbitrary "inside" position
+                window.penitent.group.position.copy(tentMesh.position).add(new THREE.Vector3(0, 0.5, 0));
+                window.penitent.group.visible = false;
+            }
+
+            if (window.showFloatingText && window.penitent) {
+                window.showFloatingText("Entrou na Barraca (Safe Zone)", tentMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '#22c55e');
+            }
+
+            // Temporarily replace action to exit
+            const interactionIdx = this.interactiveObjects.findIndex(obj => obj.mesh === tentMesh);
+            if (interactionIdx > -1) {
+                this.interactiveObjects[interactionIdx].action = exitTent;
+                this.interactiveObjects[interactionIdx].prompt = 'Sair da Barraca';
+            }
+        };
+
+        const exitTent = () => {
+            window.hubBuildingState = 'EXPLORING';
+            if (window.penitent && window.penitent.group) {
+                window.penitent.group.position.copy(tentMesh.position).add(new THREE.Vector3(0, 0.5, 2.0));
+                window.penitent.group.visible = true;
+            }
+
+            if (window.showFloatingText && window.penitent) {
+                window.showFloatingText("Saiu da Barraca", tentMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+            }
+
+            // Restore action to enter
+            const interactionIdx = this.interactiveObjects.findIndex(obj => obj.mesh === tentMesh);
+            if (interactionIdx > -1) {
+                this.interactiveObjects[interactionIdx].action = enterTent;
+                this.interactiveObjects[interactionIdx].prompt = 'Entrar na Barraca';
+            }
+        };
+
+        this.interactiveObjects.push({
+            name: 'Tent',
+            mesh: tentMesh,
+            position: tentMesh.position,
+            radius: 3.5,
+            action: enterTent,
+            prompt: 'Entrar na Barraca'
+        });
     }
 
     setupEros() {
