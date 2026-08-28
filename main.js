@@ -10,6 +10,7 @@ import { InteractionManager } from './src/systems/InteractionManager.js';
 import gameState from './src/core/GameState.js';
 import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
 import { inventoryManager } from './src/systems/InventoryManager.js';
+import { RadialMenu } from './src/ui/RadialMenu.js';
 
 window.inventoryManager = inventoryManager;
 
@@ -510,6 +511,16 @@ currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();
 window.mobileControls = new MobileControls();
+window.radialMenu = new RadialMenu();
+
+// Pause some actions while radial menu is open, handle in resize or game loop if needed.
+window.addEventListener('RadialMenuOpened', () => {
+    // Optional: block player movement by forcing a state if desired,
+    // or just let the mouse capture logic handle it.
+});
+window.addEventListener('RadialMenuClosed', () => {
+    // Optional resume logic
+});
 
 
 // Main Animation Loop
