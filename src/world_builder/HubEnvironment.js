@@ -8,6 +8,7 @@ import { foliageBuilder } from './FoliageBuilder.js';
 import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
+import { cleanupAndSealBase } from './IslandCleanup.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -162,6 +163,9 @@ export class HubEnvironment {
         this.setupPortal();
 
         this.setupWeatherParticles();
+
+        // Perform cleanup of orphan debug wireframes and seal base with solid dark cone
+        cleanupAndSealBase(this.scene, this.hubGroup);
 
         this.updateTimeAndWeatherHUD();
 
