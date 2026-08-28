@@ -149,8 +149,8 @@ export class HubEnvironment {
         this.setupMaterials();
         this.setupLightingAndSky();
 
-        // Initialize Stylized Celestial Water
-        this.water = new StylizedWater(400, 400, 32);
+        // Initialize Stream Water for the Hub river bed
+        this.water = new StreamWater();
         this.hubGroup.add(this.water);
 
         // Initialize Voxel Terrain
@@ -922,7 +922,7 @@ export class HubEnvironment {
 
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
-        if (this.water) this.water.update(time);
+        if (this.water) this.water.update(delta, time);
         if (this.terrain) this.terrain.update(time);
 
         if (this.terraformingSystem) {
