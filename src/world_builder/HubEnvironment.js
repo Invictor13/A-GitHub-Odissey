@@ -9,7 +9,7 @@ import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
 import { cleanupAndSealBase } from './IslandCleanup.js';
-import { StylizedWater } from './StylizedWater.js';
+import { StreamWater } from './StreamWater.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -149,8 +149,8 @@ export class HubEnvironment {
         this.setupMaterials();
         this.setupLightingAndSky();
 
-        // Initialize Stylized Celestial Water
-        this.water = new StylizedWater(400, 400, 32);
+        // Initialize Stream Water for the Hub river bed
+        this.water = new StreamWater();
         this.hubGroup.add(this.water);
 
         // Initialize Voxel Terrain
@@ -921,7 +921,7 @@ export class HubEnvironment {
 
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
-        if (this.water) this.water.update(time);
+        if (this.water) this.water.update(delta, time);
         if (this.terrain) this.terrain.update(time);
 
         if (this.terraformingSystem) {
