@@ -8,7 +8,7 @@ import { foliageBuilder } from './FoliageBuilder.js';
 import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
-import { cleanupAndSealBase } from './IslandCleanup.js';
+import { cleanupAndSealBase, fixTerrainAndBase } from './IslandCleanup.js';
 import { StylizedWater } from './StylizedWater.js';
 
 const WEATHER_TYPES = {
@@ -169,8 +169,9 @@ export class HubEnvironment {
 
         this.setupWeatherParticles();
 
-        // Perform cleanup of orphan debug wireframes and seal base with solid dark cone
+        // Perform cleanup of orphan debug wireframes, fix terrain geometry, and seal base with solid dark cone
         cleanupAndSealBase(this.scene, this.hubGroup);
+        fixTerrainAndBase(this.scene, this.hubGroup);
 
         this.updateTimeAndWeatherHUD();
 
