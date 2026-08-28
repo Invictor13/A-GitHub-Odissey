@@ -95,14 +95,7 @@ export class HubResources {
             if (r < 0.05) { // Trees
                 const tree = new THREE.Group(); tree.position.set(x, y + 1, z);
                 const trunk = new THREE.Mesh(this.trunkGeo, this.mWood); trunk.castShadow = true; tree.add(trunk);
-
-                const isPine = Math.random() > 0.5;
-                const leaves = new THREE.Mesh(isPine ? this.pineGeo : this.oakGeo, isPine ? this.mLeavesPine : this.mLeavesOak);
-                leaves.position.y = 0.8; leaves.castShadow = true;
-                if(isPine) {
-                    const l2 = new THREE.Mesh(this.pineGeo, this.mLeavesPine); l2.position.y = 1.6; l2.scale.setScalar(0.8); l2.castShadow = true; tree.add(l2);
-                }
-                tree.add(leaves); tree.rotation.y = Math.random() * Math.PI;
+                tree.rotation.y = Math.random() * Math.PI;
 
                 // Invisible Hitbox for Raycasting
                 const hitBox = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1.5), new THREE.MeshBasicMaterial({visible:false}));
@@ -150,16 +143,6 @@ export class HubResources {
                 const collider = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(x, y + 1.4, z), new THREE.Vector3(1.2, 0.8, 1.2));
                 node.collider = collider; this.activeColliders.push(collider);
 
-            } else if (r > 0.1 && r < 0.4 && val.type === 'grass') { // Triangular 3D Grass
-                const pool = this.floraPools['grass'];
-                if(pool.count < pool.capacity) {
-                    const mat = new THREE.Matrix4();
-                    mat.makeTranslation(x + (Math.random()-0.5)*0.7, y + 1, z + (Math.random()-0.5)*0.7);
-                    mat.multiply(new THREE.Matrix4().makeRotationY(Math.random() * Math.PI));
-                    mat.scale(new THREE.Vector3(1, 0.6 + Math.random()*0.8, 1));
-                    pool.mesh.setMatrixAt(pool.count, mat);
-                    pool.count++;
-                }
             }
         });
 

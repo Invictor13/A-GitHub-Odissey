@@ -62,11 +62,11 @@ uniform vec3 uPlayerPos;
                     #include <begin_vertex>
                     {
                         #ifdef USE_INSTANCING
-                            vec4 worldPosition = modelMatrix * instanceMatrix * vec4( position, 1.0 );
+                            vec4 vWorldPos = modelMatrix * instanceMatrix * vec4( position, 1.0 );
                         #else
-                            vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+                            vec4 vWorldPos = modelMatrix * vec4( position, 1.0 );
                         #endif
-                        float dist = length(worldPosition.xz - uPlayerPos.xz);
+                        float dist = length(vWorldPos.xz - uPlayerPos.xz);
                         transformed.y -= dist * dist * uCurvature;
                     }
                     `
