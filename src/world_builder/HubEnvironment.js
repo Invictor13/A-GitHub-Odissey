@@ -6,6 +6,7 @@ import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
 import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
+import CurvatureEffect from '../shaders/CurvatureEffect.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -88,6 +89,8 @@ function createComplexStructure(type, isPreview = false) {
         const flowerMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xf43f5e, transparent, opacity });
         const flower = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25), flowerMat); flower.position.y = 0.7; group.add(flower);
     }
+
+        CurvatureEffect.applyCurvature(group);
 
     return group;
 }
@@ -496,6 +499,8 @@ export class HubEnvironment {
         portalLight.position.set(0, 1.9, 0.5);
         portalGroup.add(portalLight);
 
+        CurvatureEffect.applyCurvature(portalGroup);
+
         this.hubGroup.add(portalGroup);
 
         this.portalIslandData = { x, y: y + 0.1, z, radius: 2.0 };
@@ -864,6 +869,9 @@ export class HubEnvironment {
     update(delta, time, camera, playerPos) {
         // Trava de segurança para a posição do jogador
         const safePos = (playerPos && typeof playerPos.x === 'number') ? playerPos : new THREE.Vector3(0, 0, 0);
+
+        // Update Curvature Effect Uniforms for Animal Crossing Curvature Shader
+        CurvatureEffect.updateCurvatureUniforms(this.scene, safePos, 0.0015);
 
         // Update Global Uniforms for Animal Crossing Curvature Shader
         globalUniforms.uTime.value = time;

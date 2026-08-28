@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import CurvatureEffect from '../shaders/CurvatureEffect.js';
 
 export class ErosCompanion {
     constructor(scene, position = new THREE.Vector3()) {
@@ -87,6 +88,8 @@ export class ErosCompanion {
             leg.position.set(i%2===0 ? 0.2 : -0.2, 0.15, i<2 ? 0.3 : -0.3);
             this.bodyGroup.add(leg);
         }
+
+        CurvatureEffect.applyCurvature(this.group);
     }
 
     interact(player) {

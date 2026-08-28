@@ -12,6 +12,7 @@ import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
 import { inventoryManager } from './src/systems/InventoryManager.js';
 import { RadialMenu } from './src/ui/RadialMenu.js';
 import { HubBounds } from './src/world_builder/HubBounds.js';
+import CurvatureEffect from './src/shaders/CurvatureEffect.js';
 
 window.inventoryManager = inventoryManager;
 
@@ -658,6 +659,8 @@ function animate() {
     const playerPos = (penitent && penitent.group && penitent.group.position && typeof penitent.group.position.x === 'number')
         ? penitent.group.position
         : new THREE.Vector3(0, 0, 0);
+
+    CurvatureEffect.updateCurvatureUniforms(scene, playerPos, 0.0015);
 
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
         // Real-time lighting update
