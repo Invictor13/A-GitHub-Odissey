@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import gameState from '../core/GameState.js';
-import { Eros } from '../characters/Eros.js';
+import { ErosCompanion } from '../characters/ErosCompanion.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
@@ -627,7 +627,7 @@ export class HubEnvironment {
     }
 
     setupEros() {
-        this.eros = new Eros(this.scene, new THREE.Vector3(2.0, 2.0, 0.5));
+        this.eros = new ErosCompanion(this.scene, new THREE.Vector3(2.0, 2.0, 0.5));
         this.eros.group.lookAt(0, 2, 0);
         this.eros.group.scale.setScalar(0.82);
         this.hubGroup.add(this.eros.group);
@@ -635,9 +635,6 @@ export class HubEnvironment {
         this.erosSpot = new THREE.SpotLight(0xfff5b6, 12.0, 25, Math.PI/6, 0.6, 1.0);
         this.erosSpot.position.set(2.0, 10, 0.5); this.erosSpot.castShadow = true;
         this.scene.add(this.erosSpot); this.scene.add(this.erosSpot.target);
-
-        this.eros.group.userData.interactable = true;
-        this.eros.group.userData.name = 'Eros';
 
         this.interactiveObjects.push({
             name: 'Eros',
@@ -647,27 +644,10 @@ export class HubEnvironment {
             action: () => {
                 if (window.hubBuildingState !== 'EXPLORING' && window.hubBuildingState !== 'INSIDE_TENT') return;
 
-                // For this prototype logic, open build UI with Tent and Campfire options instead of the original build UI
-                // Because we replaced the logic but we need to wire up the UI elements to trigger startGridPlacement
-
-                const tabMenu = document.getElementById('tab-menu');
-                if (tabMenu) {
-                    tabMenu.classList.remove('hidden');
-                    window.hubBuildingState = 'UI_OPEN';
-
-                    document.getElementById('build-tent').onclick = () => {
-                        this.startGridPlacement('tent');
-                        tabMenu.classList.add('hidden');
-                        document.getElementById('build-hint').classList.remove('hidden');
-                    };
-                    document.getElementById('build-campfire').onclick = () => {
-                        this.startGridPlacement('campfire');
-                        tabMenu.classList.add('hidden');
-                        document.getElementById('build-hint').classList.remove('hidden');
-                    };
-                }
+                // Let Eros handle interaction (opens RadialMenu)
+                this.eros.interact(window.penitent.mesh);
             },
-            prompt: 'Falar com Eros (Construir)'
+            prompt: 'Interagir com Eros'
         });
     }
 
@@ -1013,7 +993,7 @@ export class HubEnvironment {
                     if(prompt) {
                         document.getElementById('prompt-key').textContent = 'E';
                         prompt.style.opacity = '1';
-                        document.getElementById('prompt-text').textContent = 'Falar com Eros (Construir)';
+                        document.getElementById('prompt-text').textContent = 'Interagir com Eros';
                     }
                 }
                 this.isNearEros = true;
