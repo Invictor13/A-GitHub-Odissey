@@ -4,6 +4,7 @@ import { Eros } from '../characters/Eros.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
+import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 
 const WEATHER_TYPES = {
@@ -148,6 +149,9 @@ export class HubEnvironment {
 
         // Initialize Native Resources (Trees, Rocks)
         this.resources = new HubResources(this.scene, this.terrain);
+
+        // Initialize Terraforming & Blueprint Hologram System
+        this.terraformingSystem = new TerraformingSystem(this.scene, this.terrain);
 
         this.setupEnvironment();
         this.setupEros();
@@ -709,10 +713,21 @@ export class HubEnvironment {
         this.barkTimeout = setTimeout(() => { diagBox.style.opacity = '0'; }, 4000);
     }
 
+    expandIslandSegment(slotId = 'south', cost = null) {
+        if (this.terraformingSystem) {
+            return this.terraformingSystem.buildExpansion(slotId, cost);
+        }
+        return false;
+    }
+
     cleanup() {
         window.removeEventListener('mousemove', this.onMouseMove);
         window.removeEventListener('mousedown', this.onMouseDown);
         window.removeEventListener('keydown', this.onKeyDown);
+
+        if (this.terraformingSystem) {
+            this.terraformingSystem.cleanup();
+        }
 
         if (this.cursorMesh) {
             this.scene.remove(this.cursorMesh);
@@ -877,6 +892,10 @@ export class HubEnvironment {
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
         if (this.terrain) this.terrain.update(time);
+
+        if (this.terraformingSystem) {
+            this.terraformingSystem.update(delta);
+        }
 
         // Raycasting for Voxel Interaction
         this.targetBlock = null;
