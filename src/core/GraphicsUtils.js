@@ -17,6 +17,10 @@ export function applyWorldCurvature(material, isVegetation = false, isWater = fa
             }
             shader.uniforms.uTime = globalUniforms.uTime;
 
+            if ((isVegetation || isWater) && !shader.vertexShader.includes('uTime')) {
+                shader.vertexShader = `uniform float uTime;\n` + shader.vertexShader;
+            }
+
             if (isVegetation && !shader.vertexShader.includes('swayHeight')) {
                 shader.vertexShader = shader.vertexShader.replace(
                     '#include <begin_vertex>',

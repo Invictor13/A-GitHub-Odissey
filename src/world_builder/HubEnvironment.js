@@ -4,6 +4,7 @@ import { ErosCompanion } from '../characters/ErosCompanion.js';
 import { StructureBuilder } from './structures/StructureBuilder.js';
 import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
+import { foliageBuilder } from './FoliageBuilder.js';
 import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
@@ -444,8 +445,34 @@ export class HubEnvironment {
     }
 
     setupVegetation() {
-        // Remove old implementation since it uses simple cones on Y
-        // We will stick to the HubResources and the voxel map for now
+        if (!this.terrain || !this.terrain.worldGrid) return;
+
+        // 1. Gather all grass block top surfaces for scattering grass tufts
+        const grassBlockPositions = [];
+        this.terrain.worldGrid.forEach((val, key) => {
+            if (val.type === 'grass') {
+                const [x, y, z] = key.split(',').map(Number);
+                // Only top surface grass blocks
+                if (!this.terrain.worldGrid.has(`${x},${y + 1},${z}`)) {
+                    grassBlockPositions.push(new THREE.Vector3(x, y + 1, z));
+                }
+            }
+        });
+
+        if (grassBlockPositions.length > 0) {
+            foliageBuilder.scatterGrassTufts(this.hubGroup, grassBlockPositions, 0.5, { offsetY: 0 });
+        }
+
+        // 2. Gather all tree positions from HubResources and attach tree tops
+        if (this.resources && Array.isArray(this.resources.nodes)) {
+            const treePositions = this.resources.nodes
+                .filter(node => node.type === 'tree')
+                .map(node => node.position);
+
+            if (treePositions.length > 0) {
+                foliageBuilder.attachTreeTops(this.hubGroup, treePositions, { offsetY: 0.8 });
+            }
+        }
     }
 
     setupPortal() {
