@@ -9,6 +9,7 @@ import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
 import { cleanupAndSealBase } from './IslandCleanup.js';
+import { StylizedWater } from './StylizedWater.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
@@ -147,6 +148,10 @@ export class HubEnvironment {
 
         this.setupMaterials();
         this.setupLightingAndSky();
+
+        // Initialize Stylized Celestial Water
+        this.water = new StylizedWater(400, 400, 32);
+        this.hubGroup.add(this.water);
 
         // Initialize Voxel Terrain
         this.terrain = new HubTerrain(this.scene);
@@ -750,6 +755,13 @@ export class HubEnvironment {
             this.cursorMesh.material.dispose();
         }
 
+        if (this.water) {
+            if (this.water.parent) this.water.parent.remove(this.water);
+            if (this.water.geometry) this.water.geometry.dispose();
+            if (this.water.material) this.water.material.dispose();
+            this.water = null;
+        }
+
         const disposeGroup = (group) => {
             if (!group) return;
             disposeHierarchy(group);
@@ -909,6 +921,7 @@ export class HubEnvironment {
 
         this.updateDayNightLighting(delta);
         this.updateWeatherSimulation(delta, time);
+        if (this.water) this.water.update(time);
         if (this.terrain) this.terrain.update(time);
 
         if (this.terraformingSystem) {
