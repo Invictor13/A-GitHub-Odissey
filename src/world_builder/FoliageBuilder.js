@@ -11,32 +11,44 @@ export class FoliageBuilder {
     }
 
     /**
-     * Attaches stylized foliage tree tops to specified tree trunk positions.
+     * Attaches stylized foliage tree tops to specified tree trunk positions or tree objects/nodes.
      *
-     * @param {THREE.Scene|THREE.Group} scene - Target scene or container group.
-     * @param {Array<THREE.Vector3|Object>} treePositions - Array of tree trunk positions.
+     * @param {THREE.Scene|THREE.Group} scene - Target scene or container group (used for standalone positions).
+     * @param {Array<THREE.Vector3|Object>} treeTargets - Array of tree trunk positions or tree objects/nodes.
      * @param {Object} [options={}] - Optional settings (style, offsetY).
-     * @returns {THREE.Group} Group containing created foliage tops.
+     * @returns {THREE.Group} Group containing created standalone foliage tops (if any).
      */
-    attachTreeTops(scene, treePositions = [], options = {}) {
+    attachTreeTops(scene, treeTargets = [], options = {}) {
         const foliageGroup = new THREE.Group();
         foliageGroup.name = 'FoliageTreeTops';
 
-        if (!Array.isArray(treePositions) || treePositions.length === 0) {
+        if (!Array.isArray(treeTargets) || treeTargets.length === 0) {
             if (scene) scene.add(foliageGroup);
             return foliageGroup;
         }
 
         const styleOption = options.style || 'random';
-        const offsetY = options.offsetY !== undefined ? options.offsetY : 1.2;
 
-        treePositions.forEach((pos) => {
-            const x = pos.x ?? pos.position?.x ?? 0;
-            const y = pos.y ?? pos.position?.y ?? 0;
-            const z = pos.z ?? pos.position?.z ?? 0;
+        treeTargets.forEach((target) => {
+            let targetMesh = null;
+            if (target && target.isObject3D) {
+                targetMesh = target;
+            } else if (target && target.mesh && target.mesh.isObject3D) {
+                targetMesh = target.mesh;
+            }
+
+            const defaultOffsetY = options.offsetY !== undefined ? options.offsetY : (targetMesh ? 1.0 : 1.2);
 
             const treeTopGroup = new THREE.Group();
-            treeTopGroup.position.set(x, y + offsetY, z);
+
+            if (targetMesh) {
+                treeTopGroup.position.set(0, defaultOffsetY, 0);
+            } else {
+                const x = target.x ?? target.position?.x ?? 0;
+                const y = target.y ?? target.position?.y ?? 0;
+                const z = target.z ?? target.position?.z ?? 0;
+                treeTopGroup.position.set(x, y + defaultOffsetY, z);
+            }
 
             const selectedStyle = styleOption === 'random'
                 ? (Math.random() > 0.5 ? 'dodecahedron' : 'cones')
@@ -100,10 +112,14 @@ export class FoliageBuilder {
                 treeTopGroup.rotation.y = Math.random() * Math.PI * 2;
             }
 
-            foliageGroup.add(treeTopGroup);
+            if (targetMesh) {
+                targetMesh.add(treeTopGroup);
+            } else {
+                foliageGroup.add(treeTopGroup);
+            }
         });
 
-        if (scene) {
+        if (scene && foliageGroup.children.length > 0) {
             scene.add(foliageGroup);
         }
 

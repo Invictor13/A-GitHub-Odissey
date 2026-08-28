@@ -463,14 +463,13 @@ export class HubEnvironment {
             foliageBuilder.scatterGrassTufts(this.hubGroup, grassBlockPositions, 0.5, { offsetY: 0 });
         }
 
-        // 2. Gather all tree positions from HubResources and attach tree tops
+        // 2. Gather all tree nodes from HubResources and attach tree tops directly to tree meshes
         if (this.resources && Array.isArray(this.resources.nodes)) {
-            const treePositions = this.resources.nodes
-                .filter(node => node.type === 'tree')
-                .map(node => node.position);
+            const treeNodes = this.resources.nodes
+                .filter(node => node.type === 'tree');
 
-            if (treePositions.length > 0) {
-                foliageBuilder.attachTreeTops(this.hubGroup, treePositions, { offsetY: 0.8 });
+            if (treeNodes.length > 0) {
+                foliageBuilder.attachTreeTops(this.hubGroup, treeNodes, { offsetY: 0.5 });
             }
         }
     }
