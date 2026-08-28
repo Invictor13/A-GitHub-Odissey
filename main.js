@@ -10,6 +10,7 @@ import { InteractionManager } from './src/systems/InteractionManager.js';
 import gameState from './src/core/GameState.js';
 import { FloatingDamageManager } from './src/ui/FloatingDamageManager.js';
 import { inventoryManager } from './src/systems/InventoryManager.js';
+import { HubBounds } from './src/world_builder/HubBounds.js';
 
 window.inventoryManager = inventoryManager;
 
@@ -510,7 +511,7 @@ currentEnvironment = new HubEnvironment(scene);
 
 const survivalSystem = new SurvivalSystem();
 window.mobileControls = new MobileControls();
-
+const hubBounds = new HubBounds();
 
 // Main Animation Loop
 function animate() {
@@ -553,6 +554,10 @@ function animate() {
         const getMapBoundsFunc = () => mapBounds;
 
         penitent.update(window.gameState.delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc);
+
+        if (GAME_STATE === 'HUB') {
+            hubBounds.checkPlayerFall(penitent);
+        }
 
         if (penitent.group && penitent.group.visible) {
             const playerPos = penitent.group.position;
@@ -617,8 +622,8 @@ function animate() {
             } else {
                 // Lock isometric pitch for exploring
                 if (window.ISOMETRIC_PITCH) {
-                    controls.minPolarAngle = window.ISOMETRIC_PITCH;
-                    controls.maxPolarAngle = window.ISOMETRIC_PITCH;
+                    controls.minPolarAngle = 0.1;
+                    controls.maxPolarAngle = Math.PI / 2.1;
                 }
                 if (!window.dynamicCameraOffset) {
                     window.dynamicCameraOffset = new THREE.Vector3(14, 18, 14);
