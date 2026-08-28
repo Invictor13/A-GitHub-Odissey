@@ -1,72 +1,48 @@
 import * as THREE from 'three';
+import CurvatureEffect from '../shaders/CurvatureEffect.js';
 
 export const globalUniforms = {
     uTime: { value: 0 },
-    uPlayerPos: { value: new THREE.Vector3(0, 0, 0) }
+    uPlayerPos: CurvatureEffect.uniforms.uPlayerPos
 };
 
 export function applyWorldCurvature(material, isVegetation = false, isWater = false) {
-    material.onBeforeCompile = (shader) => {
-        shader.uniforms.uTime = globalUniforms.uTime;
-        shader.uniforms.uPlayerPos = globalUniforms.uPlayerPos;
-        shader.vertexShader = `
-            uniform float uTime;
-            uniform vec3 uPlayerPos;
-            varying vec3 vWorldPos;
-            ${shader.vertexShader}
-        `.replace(
-            '#include <project_vertex>',
-            `
-            vec4 mvPosition = vec4( transformed, 1.0 );
-            #ifdef USE_INSTANCING
-                mvPosition = instanceMatrix * mvPosition;
-            #endif
+    CurvatureEffect.applyCurvature(material);
 
-            vec4 acWorldPos = modelMatrix * mvPosition;
-            vWorldPos = acWorldPos.xyz;
+    if (isVegetation || isWater) {
+        const previousOnBeforeCompile = material.onBeforeCompile;
+        material.onBeforeCompile = (shader, renderer) => {
+            if (typeof previousOnBeforeCompile === 'function') {
+                previousOnBeforeCompile(shader, renderer);
+            }
+            shader.uniforms.uTime = globalUniforms.uTime;
 
-            ${isVegetation ? `
-                // WIND AND PLAYER INTERACTION (BENDS AWAY)
-                float swayHeight = max(0.0, transformed.y);
-                float wind = sin(uTime * 3.0 + acWorldPos.x * 0.5 + acWorldPos.z * 0.5) * 0.12 * swayHeight;
-                acWorldPos.x += wind;
-                acWorldPos.z += wind;
+            if (isVegetation && !shader.vertexShader.includes('swayHeight')) {
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <begin_vertex>',
+                    `
+                    #include <begin_vertex>
+                    float swayHeight = max(0.0, position.y);
+                    float wind = sin(uTime * 3.0 + position.x * 0.5 + position.z * 0.5) * 0.12 * swayHeight;
+                    transformed.x += wind;
+                    transformed.z += wind;
+                    `
+                );
+            }
 
-                float pDist = distance(acWorldPos.xz, uPlayerPos.xz);
-                if(pDist < 1.5 && swayHeight > 0.0) {
-                    vec2 push = normalize(acWorldPos.xz - uPlayerPos.xz) * (1.5 - pDist) * 0.6 * swayHeight;
-                    acWorldPos.x += push.x;
-                    acWorldPos.z += push.y;
-                }
-            ` : ''}
-
-            ${isWater ? `
-                // WATER WAVES
-                float wave = sin(uTime * 2.0 + acWorldPos.x * 1.5 + acWorldPos.z * 1.5) * 0.06;
-                acWorldPos.y += wave;
-            ` : ''}
-
-            // ANIMAL CROSSING HORIZON CURVATURE
-            float distX = acWorldPos.x - cameraPosition.x;
-            float distZ = acWorldPos.z - cameraPosition.z;
-            float distSq = (distX * distX) + (distZ * distZ);
-            acWorldPos.y -= distSq * 0.0015; // Curve downwards away from camera
-
-            mvPosition = viewMatrix * acWorldPos;
-            gl_Position = projectionMatrix * mvPosition;
-            `
-        );
-
-        // Override world position to avoid shadow mapping conflicts
-        shader.vertexShader = shader.vertexShader.replace(
-            '#include <worldpos_vertex>',
-            `
-            #if defined( USE_ENVMAP ) || defined( DISTANCE ) || defined ( USE_SHADOWMAP )
-                vec4 worldPosition = acWorldPos;
-            #endif
-            `
-        );
-    };
+            if (isWater && !shader.vertexShader.includes('wave')) {
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <begin_vertex>',
+                    `
+                    #include <begin_vertex>
+                    float wave = sin(uTime * 2.0 + position.x * 1.5 + position.z * 1.5) * 0.06;
+                    transformed.y += wave;
+                    `
+                );
+            }
+        };
+        material.needsUpdate = true;
+    }
 }
 
 export function disposeHierarchy(node) {
