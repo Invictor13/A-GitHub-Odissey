@@ -189,16 +189,18 @@ function transitionToMainMenu() {
 // Ouvintes de evento para transição da intro
 if (introVideo) {
     introVideo.addEventListener('ended', transitionToMainMenu);
+    introVideo.addEventListener('error', transitionToMainMenu);
+    introVideo.play().catch(err => {
+        console.warn("Intro video autoplay failed or was blocked:", err);
+    });
 }
 if (introContainer) {
     introContainer.addEventListener('click', transitionToMainMenu);
 }
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-        if (introContainer && introContainer.style.display !== 'none') {
-            e.preventDefault();
-            transitionToMainMenu();
-        }
+    if (introContainer && introContainer.style.display !== 'none' && introContainer.style.opacity !== '0') {
+        e.preventDefault();
+        transitionToMainMenu();
     }
 });
 
