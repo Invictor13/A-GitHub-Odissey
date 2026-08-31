@@ -158,11 +158,12 @@ const btnPlayNew = document.getElementById('btn-play-new');
 const btnNewGame = document.getElementById('btn-new-game');
 
 function transitionToMainMenu() {
-    if (introContainer && introContainer.style.display === 'none') return;
+    if (!introContainer || introContainer.style.display === 'none') return;
 
     // Primeiro preparamos o Menu em Loop por trás (visível, mas sob a Intro)
     if (menuContainer) {
-        menuContainer.style.display = 'block';
+        menuContainer.style.display = 'flex';
+        void menuContainer.offsetWidth; // Force reflow
         menuContainer.style.opacity = '1';
     }
     if (menuBgVideo) {
@@ -175,7 +176,6 @@ function transitionToMainMenu() {
         introContainer.style.pointerEvents = 'none';
     }
 
-
     setTimeout(() => {
         if (introContainer) {
             introContainer.style.display = 'none';
@@ -186,21 +186,34 @@ function transitionToMainMenu() {
     }, 1000); // Duração sincronizada com o CSS transition
 }
 
-// Ouvintes de evento para transição da intro
+// Ouvintes de evento para transição da intro e suporte a teclado na tela de título
 if (introVideo) {
     introVideo.addEventListener('ended', transitionToMainMenu);
     introVideo.addEventListener('error', transitionToMainMenu);
     introVideo.play().catch(err => {
         console.warn("Intro video autoplay failed or was blocked:", err);
+        transitionToMainMenu();
     });
 }
 if (introContainer) {
     introContainer.addEventListener('click', transitionToMainMenu);
 }
+
 window.addEventListener('keydown', (e) => {
+    // Se a intro estiver ativa, qualquer tecla pula para o menu principal
     if (introContainer && introContainer.style.display !== 'none' && introContainer.style.opacity !== '0') {
         e.preventDefault();
         transitionToMainMenu();
+        return;
+    }
+
+    // Se o menu principal estiver visível, Espaço ou Enter inicia a aventura
+    if (menuContainer && menuContainer.style.display !== 'none' && menuContainer.style.opacity !== '0' && (!window.gameState || !window.gameState.isGameStarted)) {
+        if (e.code === 'Space' || e.code === 'Enter' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (btnPlayNew) btnPlayNew.click();
+            return;
+        }
     }
 });
 
