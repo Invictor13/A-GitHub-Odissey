@@ -22,9 +22,9 @@ function isEarthyMaterial(mat) {
 }
 
 /**
- * Fixes terrain geometry issues, removes defective central sealing meshes extending above Y = -0.1,
+ * Fixes terrain geometry issues, removes defective central sealing meshes extending above Y = -3.0,
  * recalculates bounding boxes and spheres across island hierarchy to prevent popping/rescaling,
- * and ensures the bottom rocky cone is strictly contained below Y <= -0.5 with dark rock material (#2c1d11) and flatShading.
+ * and ensures the bottom rocky cone is strictly contained below Y <= -4.0 with dark rock material (#2c1d11) and flatShading.
  *
  * @param {THREE.Scene} scene - The main Three.js scene
  * @param {THREE.Group|THREE.Object3D} [islandGroup] - The root island group (optional)
@@ -70,8 +70,8 @@ export function fixTerrainAndBase(scene, islandGroup = null) {
                         if (v.y > maxVertexY) maxVertexY = v.y;
                     }
 
-                    // If sealing/base mesh has vertices protruding above Y = -0.1, mark for removal
-                    if (maxVertexY > -0.1 && (isSealingCandidate || child.geometry.type === 'ConeGeometry' || child.geometry.type === 'CylinderGeometry')) {
+                    // If sealing/base mesh has vertices protruding above Y = -3.0, mark for removal
+                    if (maxVertexY > -3.0 && (isSealingCandidate || child.geometry.type === 'ConeGeometry' || child.geometry.type === 'CylinderGeometry')) {
                         objectsToRemove.push(child);
                     }
                 }
@@ -96,7 +96,7 @@ export function fixTerrainAndBase(scene, islandGroup = null) {
         }
     });
 
-    // 2. Ensure bottom rocky cone is strictly contained below Y <= -0.5, with dark rock material (#2c1d11) and flatShading
+    // 2. Ensure bottom rocky cone is strictly contained below Y <= -4.0, with dark rock material (#2c1d11) and flatShading
     const targetParent = islandGroup || scene;
     const darkRockColor = 0x2c1d11; // Dark rock (#2c1d11)
 
@@ -113,12 +113,12 @@ export function fixTerrainAndBase(scene, islandGroup = null) {
     const coneRadius = 16.0;
 
     if (bottomCone) {
-        // Adjust existing bottom cone Y position and material to stay strictly below Y <= -0.5
+        // Adjust existing bottom cone Y position and material to stay strictly below Y <= -4.0
         // A cone of height 18 inverted (apex pointing down, base at Y_top) placed at Y position
         // Top of inverted cone is at position.y + coneHeight/2.
-        // We want top of cone Y_top <= -0.5 -> position.y <= -0.5 - coneHeight/2 = -9.5.
-        if (bottomCone.position.y > -9.5) {
-            bottomCone.position.y = -9.5;
+        // We want top of cone Y_top <= -4.0 -> position.y <= -4.0 - coneHeight/2 = -13.0.
+        if (bottomCone.position.y > -13.0) {
+            bottomCone.position.y = -13.0;
         }
 
         if (bottomCone.material) {
@@ -150,8 +150,8 @@ export function fixTerrainAndBase(scene, islandGroup = null) {
 
         bottomCone = new THREE.Mesh(coneGeo, darkRockMat);
         bottomCone.rotation.x = Math.PI; // Taper downwards
-        // Top surface of this inverted cone is at position.y + (coneHeight / 2) = -9.5 + 9.0 = -0.5
-        bottomCone.position.set(0, -9.5, 0);
+        // Top surface of this inverted cone is at position.y + (coneHeight / 2) = -13.0 + 9.0 = -4.0
+        bottomCone.position.set(0, -13.0, 0);
         bottomCone.receiveShadow = true;
         bottomCone.castShadow = false;
         bottomCone.name = 'bottomCone';
