@@ -14,6 +14,42 @@ const CRAFTING_RECIPES = [
         name: 'Lança de Madeira',
         inputs: [{ itemId: 'stick', amount: 1 }, { itemId: 'stone', amount: 1 }],
         output: { itemId: 'wooden_spear', amount: 1 }
+    },
+    {
+        id: 'structure_fence',
+        name: 'Cerca de Madeira',
+        inputs: [{ itemId: 'stick', amount: 4 }],
+        output: { itemId: 'structure_fence', amount: 1 }
+    },
+    {
+        id: 'structure_torch',
+        name: 'Tocha / Lanterna',
+        inputs: [{ itemId: 'stick', amount: 3 }, { itemId: 'stone', amount: 2 }],
+        output: { itemId: 'structure_torch', amount: 1 }
+    },
+    {
+        id: 'structure_bench',
+        name: 'Banco de Madeira',
+        inputs: [{ itemId: 'stick', amount: 6 }],
+        output: { itemId: 'structure_bench', amount: 1 }
+    },
+    {
+        id: 'structure_chair',
+        name: 'Cadeira de Madeira',
+        inputs: [{ itemId: 'stick', amount: 4 }],
+        output: { itemId: 'structure_chair', amount: 1 }
+    },
+    {
+        id: 'structure_forge',
+        name: 'Forja de Pedra',
+        inputs: [{ itemId: 'stone', amount: 10 }, { itemId: 'stick', amount: 5 }],
+        output: { itemId: 'structure_forge', amount: 1 }
+    },
+    {
+        id: 'structure_anvil',
+        name: 'Bigorna de Ferro',
+        inputs: [{ itemId: 'stone', amount: 12 }, { itemId: 'stick', amount: 4 }],
+        output: { itemId: 'structure_anvil', amount: 1 }
     }
 ];
 

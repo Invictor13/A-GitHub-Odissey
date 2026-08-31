@@ -6,6 +6,16 @@ export class StructureBuilder {
         const opacity = isPreview ? 0.65 : 1.0;
         const transparent = isPreview;
 
+        // Normalização de tipo
+        if (type === 'tent') type = 'barraca';
+        if (type === 'campfire') type = 'fogueira';
+        if (type === 'cadeira') type = 'chair';
+        if (type === 'banco') type = 'bench';
+        if (type === 'cerca') type = 'fence';
+        if (type === 'tocha' || type === 'lanterna') type = 'lantern';
+        if (type === 'forja' || type === 'forge') type = 'furnace';
+        if (type === 'bigorna') type = 'anvil';
+
         // 1. INTERIORES
         if (type === 'barraca') {
             const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.8, transparent, opacity });
@@ -115,6 +125,14 @@ export class StructureBuilder {
             const seat = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.6), mat); seat.position.y = 0.45; group.add(seat);
             const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg1.position.set(-0.6, 0.18, 0); group.add(leg1);
             const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.36, 0.5), mat); leg2.position.set(0.6, 0.18, 0); group.add(leg2);
+        } else if (type === 'chair') {
+            const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, transparent, opacity, roughness: 0.8 });
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.7), mat); seat.position.y = 0.45; group.add(seat);
+            const back = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.1), mat); back.position.set(0, 0.75, -0.3); group.add(back);
+            const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); leg1.position.set(-0.28, 0.2, -0.28); group.add(leg1);
+            const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); leg2.position.set(0.28, 0.2, -0.28); group.add(leg2);
+            const leg3 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); leg3.position.set(-0.28, 0.2, 0.28); group.add(leg3);
+            const leg4 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); leg4.position.set(0.28, 0.2, 0.28); group.add(leg4);
         } else if (type === 'lantern') {
             const mat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x334155, transparent, opacity, roughness: 0.4 });
             const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.6), mat); post.position.y = 0.8; group.add(post);
