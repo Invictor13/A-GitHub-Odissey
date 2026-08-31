@@ -17,6 +17,7 @@ export class PlainsBiome extends BiomeBase {
         this.matDirt = new THREE.MeshStandardMaterial({ color: 0x3e2723, ...this.matBase });
         this.matRock = new THREE.MeshStandardMaterial({ color: 0x607d8b, ...this.matBase });
         this.matTrunk = new THREE.MeshStandardMaterial({ color: 0x4e342e, ...this.matBase });
+        this.matWater = this.getWaterMaterial(0x38bdf8);
         this.matCanopy = new THREE.MeshStandardMaterial({ color: 0x33691e, ...this.matBase, transparent: true, depthWrite: false });
 
         this.matCanopy.onBeforeCompile = (shader) => {
@@ -86,7 +87,7 @@ export class PlainsBiome extends BiomeBase {
             for (let cz = 0; cz < numChunksZ; cz++) {
                 const chunkGroup = new THREE.Group();
 
-                const floorGeos = [], dirtGeos = [];
+                const floorGeos = [], dirtGeos = [], waterGeos = [];
                 const grassMatrices = [], rockMatrices = [], canopyBaseMatrices = [];
                 const trunkMatrices = [], trunkData = [], rockData = [];
 
@@ -159,6 +160,10 @@ export class PlainsBiome extends BiomeBase {
                                 rockData.push({ pos: new THREE.Vector3(rx, surfaceY + 0.3, rz) });
                             }
 
+                        } else if (cell.type === this.TILE_WATER) {
+                            const wGeo = this.planeGeo.clone();
+                            wGeo.translate(px, surfaceY - 0.2, pz);
+                            waterGeos.push(wGeo);
                         } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
                             const vColors = []; const vCount = fGeo.attributes.position.count;
@@ -182,6 +187,7 @@ export class PlainsBiome extends BiomeBase {
 
                 if (floorGeos.length > 0) { const mFloor = new THREE.Mesh(mergeGeometries(floorGeos), this.matFloor); mFloor.receiveShadow = true; chunkGroup.add(mFloor); }
                 if (dirtGeos.length > 0) { const mDirt = new THREE.Mesh(mergeGeometries(dirtGeos), this.matDirt); mDirt.receiveShadow = true; mDirt.castShadow = false; chunkGroup.add(mDirt); }
+                if (waterGeos.length > 0) { const mWater = new THREE.Mesh(mergeGeometries(waterGeos), this.matWater); mWater.renderOrder = 10; mWater.castShadow = false; mWater.receiveShadow = true; chunkGroup.add(mWater); }
 
                 let iTrunk = null, iRock = null;
                 if (trunkMatrices.length > 0) {
