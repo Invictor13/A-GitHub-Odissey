@@ -9,7 +9,7 @@ import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
 import { cleanupAndSealBase, fixTerrainAndBase } from './IslandCleanup.js';
-import { StylizedWater } from './StylizedWater.js';
+import { StreamWater } from './StreamWater.js';
 
 const WEATHER_TYPES = {
     SUNNY: { name: 'Ensolarado', icon: 'fa-sun', color: '#facc15' },
