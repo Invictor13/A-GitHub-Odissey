@@ -344,18 +344,24 @@ window.addEventListener('keydown', (e) => {
 
                     // Wire up the build buttons just like Eros interaction does
                     if (currentEnvironment) {
-                        const buildTentBtn = document.getElementById('build-tent');
-                        const buildCampfireBtn = document.getElementById('build-campfire');
-                        if (buildTentBtn) buildTentBtn.onclick = () => {
-                            currentEnvironment.startGridPlacement('tent');
-                            tabMenu.classList.add('hidden');
-                            document.getElementById('build-hint').classList.remove('hidden');
-                        };
-                        if (buildCampfireBtn) buildCampfireBtn.onclick = () => {
-                            currentEnvironment.startGridPlacement('campfire');
-                            tabMenu.classList.add('hidden');
-                            document.getElementById('build-hint').classList.remove('hidden');
-                        };
+                        const buildItems = [
+                            { id: 'build-tent', type: 'tent' },
+                            { id: 'build-campfire', type: 'campfire' },
+                            { id: 'build-fence', type: 'fence' },
+                            { id: 'build-lantern', type: 'lantern' },
+                            { id: 'build-bench', type: 'bench' },
+                            { id: 'build-chair', type: 'chair' },
+                            { id: 'build-furnace', type: 'furnace' },
+                            { id: 'build-anvil', type: 'anvil' }
+                        ];
+                        buildItems.forEach(item => {
+                            const btn = document.getElementById(item.id);
+                            if (btn) btn.onclick = () => {
+                                currentEnvironment.startGridPlacement(item.type);
+                                tabMenu.classList.add('hidden');
+                                document.getElementById('build-hint').classList.remove('hidden');
+                            };
+                        });
                     }
                 } else {
                     tabMenu.classList.add('hidden');
@@ -583,7 +589,7 @@ function animate() {
 
         penitent.update(window.gameState.delta, camera, getFloorFunc, getMapBoundsFunc, checkCollisionFunc);
 
-        if (GAME_STATE === 'HUB') {
+        if (GAME_STATE === 'HUB' && window.hubBuildingState !== 'INSIDE_TENT') {
             hubBounds.checkPlayerFall(penitent);
         }
 

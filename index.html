@@ -441,16 +441,46 @@
             <h2 class="text-3xl font-black text-white mb-2 text-center drop-shadow-md">Menu de Construção</h2>
             <p class="text-slate-300 text-center mb-6 text-sm">Selecione uma estrutura para posicionar no acampamento.</p>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
                 <div id="build-tent" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-400 transition-all text-center group">
-                    <div class="text-5xl mb-2 group-hover:scale-110 transition-transform">⛺</div>
-                    <h3 class="text-yellow-400 font-bold text-lg">Barraca de Lona</h3>
-                    <p class="text-xs text-slate-400 mt-1">Custa: 10 Madeira</p>
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">⛺</div>
+                    <h3 class="text-yellow-400 font-bold text-sm">Barraca</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">10 Madeira</p>
                 </div>
                 <div id="build-campfire" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-orange-400 transition-all text-center group">
-                    <div class="text-5xl mb-2 group-hover:scale-110 transition-transform">🔥</div>
-                    <h3 class="text-orange-400 font-bold text-lg">Fogueira</h3>
-                    <p class="text-xs text-slate-400 mt-1">Custa: 5 Pedra, 5 Madeira</p>
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🔥</div>
+                    <h3 class="text-orange-400 font-bold text-sm">Fogueira</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">5 Pedra, 5 Madeira</p>
+                </div>
+                <div id="build-fence" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-500 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪵</div>
+                    <h3 class="text-amber-400 font-bold text-sm">Cerca</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">4 Madeira</p>
+                </div>
+                <div id="build-lantern" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-300 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🏮</div>
+                    <h3 class="text-yellow-300 font-bold text-sm">Tocha / Poste</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">3 Madeira, 2 Pedra</p>
+                </div>
+                <div id="build-bench" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪑</div>
+                    <h3 class="text-amber-500 font-bold text-sm">Banco de Madeira</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">6 Madeira</p>
+                </div>
+                <div id="build-chair" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪑</div>
+                    <h3 class="text-amber-500 font-bold text-sm">Cadeira de Madeira</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">4 Madeira</p>
+                </div>
+                <div id="build-furnace" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-red-400 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🌋</div>
+                    <h3 class="text-red-400 font-bold text-sm">Forja</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">10 Pedra, 5 Madeira</p>
+                </div>
+                <div id="build-anvil" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-slate-300 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">⚒️</div>
+                    <h3 class="text-slate-300 font-bold text-sm">Bigorna</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">12 Pedra, 4 Madeira</p>
                 </div>
             </div>
 

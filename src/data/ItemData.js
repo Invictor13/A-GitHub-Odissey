@@ -20,6 +20,13 @@ export const ITEM_DATABASE = {
     "wooden_stick": { id: "wooden_stick", name: "Bastão de Madeira", type: "weapon_1h", modelType: "club", value: 3, icon: "fa-gavel", rarity: "common", damage: 4, comboSpeed: 1.0, reach: 1.2, comboMax: 2 },
     "wooden_spear": { id: "wooden_spear", name: "Lança de Madeira", type: "weapon_2h", modelType: "spear", value: 8, icon: "fa-arrow-up", rarity: "common", damage: 6, comboSpeed: 1.2, reach: 2.5, comboMax: 3 },
 
+    "structure_fence": { id: "structure_fence", name: "Cerca de Madeira", type: "material", value: 4, icon: "fa-grip-lines-vertical", rarity: "common" },
+    "structure_torch": { id: "structure_torch", name: "Tocha / Lanterna", type: "material", value: 5, icon: "fa-fire-flame-curved", rarity: "common" },
+    "structure_bench": { id: "structure_bench", name: "Banco de Madeira", type: "material", value: 6, icon: "fa-couch", rarity: "common" },
+    "structure_chair": { id: "structure_chair", name: "Cadeira de Madeira", type: "material", value: 5, icon: "fa-chair", rarity: "common" },
+    "structure_forge": { id: "structure_forge", name: "Forja de Pedra", type: "material", value: 12, icon: "fa-fire", rarity: "uncommon" },
+    "structure_anvil": { id: "structure_anvil", name: "Bigorna de Ferro", type: "material", value: 15, icon: "fa-hammer", rarity: "uncommon" },
+
     "hood_sinner": { id: "hood_sinner", name: "Capuz do Pecador", type: "armor_head", value: 12, icon: "fa-hat-cowboy", rarity: "common", defense: 1 },
     "leather_armor": { id: "leather_armor", name: "Armadura de Couro", type: "armor_chest", value: 18, icon: "fa-shirt", rarity: "common", defense: 3 },
 
