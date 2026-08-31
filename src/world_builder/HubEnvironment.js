@@ -20,22 +20,17 @@ const WEATHER_TYPES = {
 };
 
 function createComplexStructure(type, isPreview = false) {
+    if (type === 'tent' || type === 'barraca') {
+        const group = StructureBuilder.create3DObject('barraca', isPreview);
+        CurvatureEffect.applyCurvature(group);
+        return group;
+    }
+
     const group = new THREE.Group();
     const opacity = isPreview ? 0.6 : 1.0;
     const transparent = isPreview;
 
-    if (type === 'tent') {
-        const canvasMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xf97316, transparent, opacity, side: THREE.DoubleSide });
-        const woodMat = new THREE.MeshStandardMaterial({ color: 0x451a03, transparent, opacity });
-
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(2, 2.5, 4, 1, true, 0, Math.PI * 1.5), canvasMat);
-        roof.position.y = 1.25; roof.rotation.y = Math.PI / 4; roof.castShadow = !isPreview;
-        group.add(roof);
-
-        const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8), woodMat); p1.position.set(-1, 1.4, 1); p1.rotation.z = -0.3; group.add(p1);
-        const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8), woodMat); p2.position.set(1, 1.4, 1); p2.rotation.z = 0.3; group.add(p2);
-
-    } else if (type === 'campfire') {
+    if (type === 'campfire') {
         const rockMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x64748b, transparent, opacity });
         for(let i=0; i<8; i++) {
             const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), rockMat);
@@ -181,6 +176,34 @@ export class HubEnvironment {
         this.placedStructures = new THREE.Group();
         this.hubGroup.add(this.placedStructures);
 
+        this.setupTentInterior();
+
+        // Load or spawn placed structures
+        if (gameState.hubState && Array.isArray(gameState.hubState.structures) && gameState.hubState.structures.length > 0) {
+            gameState.hubState.structures.forEach(structData => {
+                const mesh = createComplexStructure(structData.type, false);
+                mesh.position.set(structData.x, structData.y, structData.z);
+                if (structData.rotationY) mesh.rotation.y = structData.rotationY;
+                this.placedStructures.add(mesh);
+
+                if (structData.type === 'tent' || structData.type === 'barraca') {
+                    this.setupTentInteraction(mesh);
+                }
+            });
+        } else {
+            // Default initial tent at startup if none exists
+            const defaultTent = createComplexStructure('tent', false);
+            defaultTent.position.set(-4.0, 0, 2.0);
+            this.placedStructures.add(defaultTent);
+            this.setupTentInteraction(defaultTent);
+
+            if (gameState.hubState) {
+                if (!Array.isArray(gameState.hubState.structures)) gameState.hubState.structures = [];
+                gameState.hubState.structures.push({ type: 'tent', x: -4.0, y: 0, z: 2.0, rotationY: 0 });
+                gameState.save();
+            }
+        }
+
         // Listeners for mouse move and click to handle voxel building
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseDown = this.onMouseDown.bind(this);
@@ -259,7 +282,19 @@ export class HubEnvironment {
             finalMesh.rotation.y = this.previewRotationY;
             this.placedStructures.add(finalMesh);
 
-            if (this.selectedBuildType === 'tent') {
+            if (gameState.hubState) {
+                if (!Array.isArray(gameState.hubState.structures)) gameState.hubState.structures = [];
+                gameState.hubState.structures.push({
+                    type: this.selectedBuildType,
+                    x: finalMesh.position.x,
+                    y: finalMesh.position.y,
+                    z: finalMesh.position.z,
+                    rotationY: this.previewRotationY
+                });
+                gameState.save();
+            }
+
+            if (this.selectedBuildType === 'tent' || this.selectedBuildType === 'barraca') {
                 this.setupTentInteraction(finalMesh);
             }
 
@@ -614,46 +649,226 @@ export class HubEnvironment {
         if (hint) hint.classList.add('hidden');
     }
 
+    setupTentInterior() {
+        this.tentInteriorGroup = new THREE.Group();
+        this.tentInteriorGroup.position.set(200, 0, 200);
+
+        const canvasMat = new THREE.MeshStandardMaterial({ color: 0xddc088, roughness: 0.7, side: THREE.DoubleSide });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e16, roughness: 0.8 });
+        const rugMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.7 });
+        const borderMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
+
+        // Platform Floor
+        const platform = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.25, 12), woodMat);
+        platform.position.y = 0.125;
+        this.tentInteriorGroup.add(platform);
+
+        // Canopy Roof Shell
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(5.2, 4.2, 8, 1, true), canvasMat);
+        roof.position.y = 2.2;
+        this.tentInteriorGroup.add(roof);
+
+        // Central Carpet Rug
+        const centralRug = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.03, 2.2), rugMat);
+        centralRug.position.set(0, 0.26, 0);
+        this.tentInteriorGroup.add(centralRug);
+
+        // Entrance Exit Rug & Gold Border
+        const exitRug = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.03, 1.2), rugMat);
+        exitRug.position.set(0, 0.26, 3.5);
+        this.tentInteriorGroup.add(exitRug);
+
+        const rugBorder = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.03, 1.6), borderMat);
+        rugBorder.position.set(0, 0.25, 3.5);
+        this.tentInteriorGroup.add(rugBorder);
+
+        // Hanging Ceiling Lantern
+        const lanternFrame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.35), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 }));
+        lanternFrame.position.set(0, 3.5, 0);
+        this.tentInteriorGroup.add(lanternFrame);
+
+        const lanternLight = new THREE.PointLight(0xff9900, 2.8, 14);
+        lanternLight.position.set(0, 3.3, 0);
+        this.tentInteriorGroup.add(lanternLight);
+
+        // 1. Small Table with Journal & Candle
+        const tableGroup = new THREE.Group();
+        tableGroup.position.set(-2.8, 0.2, -1.8);
+
+        const smallDesk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.85, 0.9, 12), woodMat);
+        smallDesk.position.y = 0.45; smallDesk.castShadow = true; tableGroup.add(smallDesk);
+
+        const journalCover = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.08, 0.35), new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.5 }));
+        journalCover.position.set(-0.1, 0.94, 0.05); journalCover.rotation.y = 0.25; tableGroup.add(journalCover);
+
+        const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        candle.position.set(0.25, 1.05, -0.1); tableGroup.add(candle);
+
+        const candleFlame = new THREE.PointLight(0xffaa00, 1.2, 4);
+        candleFlame.position.set(0.25, 1.25, -0.1); tableGroup.add(candleFlame);
+
+        this.tentInteriorGroup.add(tableGroup);
+
+        // 2. Sleeping Bag (Saco de Dormir)
+        const bedGroup = new THREE.Group();
+        bedGroup.position.set(2.6, 0.2, -0.8);
+        bedGroup.rotation.y = -Math.PI / 6;
+
+        const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 2.6), new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.85 }));
+        mattress.position.y = 0.09; mattress.castShadow = true; bedGroup.add(mattress);
+
+        const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.22, 0.6), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 }));
+        pillow.position.set(0, 0.2, -0.9); bedGroup.add(pillow);
+
+        const blanket = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.2, 1.7), new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.8 }));
+        blanket.position.set(0, 0.12, 0.35); bedGroup.add(blanket);
+
+        this.tentInteriorGroup.add(bedGroup);
+
+        // 3. Tactical Map Desk
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.18, 1.5), new THREE.MeshStandardMaterial({ color: 0x3d230d, roughness: 0.8 }));
+        desk.position.set(0, 0.9, -2.5); desk.castShadow = true;
+        this.tentInteriorGroup.add(desk);
+
+        const mapMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.2), new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.9, side: THREE.DoubleSide }));
+        mapMesh.rotation.x = -Math.PI / 2; mapMesh.position.set(0, 0.99, -2.5);
+        this.tentInteriorGroup.add(mapMesh);
+
+        this.tentInteriorGroup.visible = false;
+        this.scene.add(this.tentInteriorGroup);
+    }
+
+    triggerSleepBlink(callback) {
+        const top = document.getElementById('eyelid-top');
+        const bot = document.getElementById('eyelid-bottom');
+        if (top && bot) {
+            top.style.height = '50%';
+            bot.style.height = '50%';
+            setTimeout(() => {
+                if (callback) callback();
+                setTimeout(() => {
+                    top.style.height = '0%';
+                    bot.style.height = '0%';
+                }, 600);
+            }, 600);
+        } else {
+            if (callback) callback();
+        }
+    }
+
     setupTentInteraction(tentMesh) {
+        if (!tentMesh) return;
         tentMesh.userData.interactable = true;
         tentMesh.userData.name = 'Tent';
 
-        const enterTent = () => {
-            window.hubBuildingState = 'INSIDE_TENT';
-            if (window.penitent && window.penitent.group) {
-                // Keep the player around the tent entrance or an arbitrary "inside" position
-                window.penitent.group.position.copy(tentMesh.position).add(new THREE.Vector3(0, 0.5, 0));
-                window.penitent.group.visible = false;
-            }
+        const handleSleepInTent = () => {
+            this.triggerSleepBlink(() => {
+                if (gameState.hubState) {
+                    gameState.hubState.gameTimeHours = (gameState.hubState.gameTimeHours + 8.0) % 24.0;
+                    if (gameState.hubState.gameTimeHours < 8.0) {
+                        gameState.hubState.dayCount++;
+                    }
+                }
+                if (gameState.vitals) {
+                    gameState.vitals.hp = gameState.vitals.maxHp || 100;
+                    gameState.vitals.food = Math.min(100, (gameState.vitals.food || 0) + 30);
+                    gameState.vitals.water = Math.min(100, (gameState.vitals.water || 0) + 30);
+                }
+                gameState.save();
+                this.updateTimeAndWeatherHUD();
 
-            if (window.showFloatingText && window.penitent) {
-                window.showFloatingText("Entrou na Barraca (Safe Zone)", tentMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '#22c55e');
-            }
+                if (window.showFloatingText && window.penitent) {
+                    window.showFloatingText("😴 Descansou por 8 Horas! HP e Energia Restaurados", new THREE.Vector3(200, 2, 200), '#22c55e');
+                }
+            });
+        };
 
-            // Temporarily replace action to exit
-            const interactionIdx = this.interactiveObjects.findIndex(obj => obj.mesh === tentMesh);
-            if (interactionIdx > -1) {
-                this.interactiveObjects[interactionIdx].action = exitTent;
-                this.interactiveObjects[interactionIdx].prompt = 'Sair da Barraca';
+        const handleJournalInteraction = () => {
+            gameState.save();
+            if (window.showFloatingText) {
+                window.showFloatingText("📖 Progresso Salvo no Diário!", new THREE.Vector3(197.2, 2, 198.2), '#facc15');
+            }
+            if (window.codexUI) {
+                window.codexUI.toggle();
             }
         };
 
         const exitTent = () => {
             window.hubBuildingState = 'EXPLORING';
+
+            if (this.tentInteriorGroup) {
+                this.tentInteriorGroup.visible = false;
+            }
+
+            const exitPos = tentMesh ? tentMesh.position.clone().add(new THREE.Vector3(0, 0.1, 3.2)) : new THREE.Vector3(0, 0.2, 3.5);
+
             if (window.penitent && window.penitent.group) {
-                window.penitent.group.position.copy(tentMesh.position).add(new THREE.Vector3(0, 0.5, 2.0));
+                window.penitent.group.position.copy(exitPos);
                 window.penitent.group.visible = true;
+
+                this.camera.position.copy(exitPos).add(new THREE.Vector3(14, 18, 14));
+            }
+
+            if (this.exteriorInteractiveObjects) {
+                this.interactiveObjects = [...this.exteriorInteractiveObjects];
             }
 
             if (window.showFloatingText && window.penitent) {
-                window.showFloatingText("Saiu da Barraca", tentMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+                window.showFloatingText("Saiu da Barraca", exitPos.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
+            }
+        };
+
+        const enterTent = () => {
+            window.hubBuildingState = 'INSIDE_TENT';
+
+            this.exteriorInteractiveObjects = [...this.interactiveObjects];
+
+            if (this.tentInteriorGroup) {
+                this.tentInteriorGroup.visible = true;
             }
 
-            // Restore action to enter
-            const interactionIdx = this.interactiveObjects.findIndex(obj => obj.mesh === tentMesh);
-            if (interactionIdx > -1) {
-                this.interactiveObjects[interactionIdx].action = enterTent;
-                this.interactiveObjects[interactionIdx].prompt = 'Entrar na Barraca';
+            if (window.penitent && window.penitent.group) {
+                window.penitent.group.position.set(200, 0.2, 201);
+                window.penitent.group.visible = true;
+            }
+
+            this.interactiveObjects = [
+                {
+                    name: 'TapeteSaida',
+                    mesh: null,
+                    position: new THREE.Vector3(200, 0.2, 203.5),
+                    radius: 2.5,
+                    action: exitTent,
+                    prompt: 'Pressione E para Sair da Barraca'
+                },
+                {
+                    name: 'SacoDormir',
+                    mesh: null,
+                    position: new THREE.Vector3(202.6, 0.2, 199.2),
+                    radius: 2.5,
+                    action: handleSleepInTent,
+                    prompt: 'Pressione E para Dormir (Recuperar HP e Tempo)'
+                },
+                {
+                    name: 'Diario',
+                    mesh: null,
+                    position: new THREE.Vector3(197.2, 0.2, 198.2),
+                    radius: 2.5,
+                    action: handleJournalInteraction,
+                    prompt: 'Pressione E para Abrir e Salvar no Diário'
+                },
+                {
+                    name: 'MesaTatica',
+                    mesh: null,
+                    position: new THREE.Vector3(200, 0.2, 197.5),
+                    radius: 2.5,
+                    action: () => this.openExpeditionUI(),
+                    prompt: 'Pressione E para Examinar Mapa Tático'
+                }
+            ];
+
+            if (window.showFloatingText && window.penitent) {
+                window.showFloatingText("Entrou na Barraca (Acomodações)", new THREE.Vector3(200, 2, 200), '#22c55e');
             }
         };
 
@@ -663,7 +878,7 @@ export class HubEnvironment {
             position: tentMesh.position,
             radius: 3.5,
             action: enterTent,
-            prompt: 'Entrar na Barraca'
+            prompt: 'Pressione E para Entrar na Barraca'
         });
     }
 
