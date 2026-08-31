@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { inventoryManager } from '../systems/InventoryManager.js';
-import { applyWorldCurvature } from '../core/GraphicsUtils.js';
+import { applyWorldCurvature, disposeHierarchy } from '../core/GraphicsUtils.js';
 
 export class HubResources {
     constructor(scene, terrain) {
@@ -8,7 +8,6 @@ export class HubResources {
         this.terrain = terrain;
 
         this.group = new THREE.Group();
-        this.scene.add(this.group);
 
         this.nodes = [];
         this.colliders = [];
@@ -448,5 +447,18 @@ export class HubResources {
         if (window.gainSkillXP) {
             window.gainSkillXP(skillName, xpAmount);
         }
+    }
+
+    cleanup() {
+        if (this.group) {
+            if (this.group.parent) {
+                this.group.parent.remove(this.group);
+            }
+            disposeHierarchy(this.group);
+        }
+        this.nodes = [];
+        this.colliders = [];
+        this.activeColliders = [];
+        if (this.items) this.items = [];
     }
 }

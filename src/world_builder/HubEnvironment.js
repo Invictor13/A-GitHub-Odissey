@@ -154,6 +154,7 @@ export class HubEnvironment {
 
         // Initialize Native Resources (Trees, Rocks)
         this.resources = new HubResources(this.scene, this.terrain);
+        this.hubGroup.add(this.resources.group);
 
         // Initialize Terraforming & Blueprint Hologram System
         this.terraformingSystem = new TerraformingSystem(this.scene, this.terrain);
@@ -965,10 +966,32 @@ export class HubEnvironment {
             this.terraformingSystem.cleanup();
         }
 
+        if (this.terrain && typeof this.terrain.cleanup === 'function') {
+            this.terrain.cleanup();
+        }
+
+        if (this.resources && typeof this.resources.cleanup === 'function') {
+            this.resources.cleanup();
+        }
+
+        if (this.eros && typeof this.eros.destroy === 'function') {
+            this.eros.destroy();
+        }
+
         if (this.cursorMesh) {
             this.scene.remove(this.cursorMesh);
             this.cursorMesh.geometry.dispose();
             this.cursorMesh.material.dispose();
+        }
+
+        if (this.buildPivot) {
+            this.scene.remove(this.buildPivot);
+        }
+
+        if (this.previewMesh) {
+            this.scene.remove(this.previewMesh);
+            disposeHierarchy(this.previewMesh);
+            this.previewMesh = null;
         }
 
         if (this.water) {
@@ -986,7 +1009,9 @@ export class HubEnvironment {
 
         disposeGroup(this.hubGroup);
         disposeGroup(this.skyGroup);
-        if(this.weatherParticleGroup) disposeGroup(this.weatherParticleGroup);
+        disposeGroup(this.tentInteriorGroup);
+        disposeGroup(this.weatherGroup);
+        disposeGroup(this.weatherParticleGroup);
 
         if (this.erosSpot) {
             disposeHierarchy(this.erosSpot);

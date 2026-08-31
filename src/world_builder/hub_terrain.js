@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { applyWorldCurvature } from '../core/GraphicsUtils.js';
+import { applyWorldCurvature, disposeHierarchy } from '../core/GraphicsUtils.js';
 
 export class HubTerrain {
     constructor(scene) {
@@ -18,8 +18,6 @@ export class HubTerrain {
         this.initMaterials();
         this.initPools();
         this.buildTerrain();
-
-        this.scene.add(this.group);
     }
 
     initMaterials() {
@@ -353,5 +351,17 @@ export class HubTerrain {
 
     update(time) {
         // Water is handled by shader now, but we can leave this stub
+    }
+
+    cleanup() {
+        if (this.group) {
+            if (this.group.parent) {
+                this.group.parent.remove(this.group);
+            }
+            disposeHierarchy(this.group);
+        }
+        this.worldGrid.clear();
+        this.colliders = [];
+        this.blockPools = {};
     }
 }

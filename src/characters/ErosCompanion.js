@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
+import { disposeHierarchy } from '../core/GraphicsUtils.js';
 
 export class ErosCompanion {
     constructor(scene, position = new THREE.Vector3()) {
@@ -299,6 +300,11 @@ export class ErosCompanion {
 
     destroy() {
         window.removeEventListener('ErosCommand', this.handleCommand);
-        // Assuming disposeHierarchy exists in window scope or is handled by HubEnvironment
+        if (this.group) {
+            if (this.group.parent) {
+                this.group.parent.remove(this.group);
+            }
+            disposeHierarchy(this.group);
+        }
     }
 }
