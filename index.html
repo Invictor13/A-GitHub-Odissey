@@ -354,19 +354,16 @@
     </div>
 
     <!-- Main Menu Screen -->
-    <div id="main-menu-container" class="fixed inset-0 flex items-center justify-center bg-black transition-opacity duration-1000 pointer-events-auto" style="z-index: 9999; display: none; opacity: 0;">
+    <div id="main-menu-container" class="fixed inset-0 flex flex-col justify-end items-center pb-12 bg-black transition-opacity duration-1000 pointer-events-auto" style="z-index: 9999; display: none; opacity: 0;">
         <video id="menu-bg-video" class="absolute w-full h-full object-cover opacity-60" loop muted playsinline>
             <source src="src/assets/videos/menu.mp4" type="video/mp4">
         </video>
-        <div class="relative z-10 flex flex-col items-center gap-6">
-            <h1 class="text-6xl md:text-8xl text-amber-500 font-title drop-shadow-[0_0_15px_rgba(245,158,11,0.8)] text-center mb-8">
-                A GitHub Odyssey
-            </h1>
-            <button id="btn-play-new" class="btn-embark w-64 text-xl py-4 group">
+        <div class="relative z-10 flex flex-row flex-wrap items-center justify-center gap-4 md:gap-6 px-4 w-full max-w-2xl mb-4">
+            <button id="btn-play-new" class="btn-embark flex-1 min-w-[200px] text-base py-3.5 group !mt-0">
                 <i class="fa-solid fa-play mr-2 group-hover:scale-110 transition-transform"></i> Iniciar Aventura
             </button>
-            <button id="btn-new-game" class="bg-transparent border border-amber-700/50 hover:bg-amber-900/30 text-amber-200/80 hover:text-amber-100 py-3 px-6 rounded-lg font-sub text-sm tracking-widest transition-all">
-                NOVO JOGO (Resetar Progresso)
+            <button id="btn-new-game" class="flex-1 min-w-[200px] bg-stone-900/80 hover:bg-amber-900/40 border border-amber-600/60 hover:border-amber-400 text-amber-200 hover:text-amber-100 py-3.5 px-6 rounded-xl font-sub text-sm font-bold tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-rotate-left text-amber-400"></i> NOVO JOGO
             </button>
         </div>
     </div>
