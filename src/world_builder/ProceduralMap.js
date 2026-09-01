@@ -141,7 +141,7 @@ export class ProceduralMap {
             constructor(x, y, w, h, id, targetRooms) {
                 this.x = x; this.y = y; this.w = w; this.h = h;
                 this.cx = Math.floor(x + w/2); this.cy = Math.floor(y + h/2);
-                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.28);
+                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.35);
                 this.elev = this.isLake ? 0 : Math.floor(Math.random() * 2) + 1;
             }
             intersects(other) { return (this.x <= other.x + other.w + 2 && this.x + this.w + 2 >= other.x && this.y <= other.y + other.h + 2 && this.y + this.h + 2 >= other.y); }
@@ -191,14 +191,18 @@ export class ProceduralMap {
                 let px = path[j].x, pz = path[j].z;
                 let cType = elev === 0 ? this.TILE_WATER : this.TILE_TRAIL;
 
-                for(let dx=-5; dx<=5; dx++) {
-                    for(let dz=-5; dz<=5; dz++) {
-                        if (Math.abs(dx) + Math.abs(dz) <= 6 || Math.random() < 0.9) {
+                for(let dx=-2; dx<=2; dx++) {
+                    for(let dz=-2; dz<=2; dz++) {
+                        if (Math.abs(dx) + Math.abs(dz) <= 3) {
                             let nx = px+dx, nz = pz+dz;
                             if (nx >= 0 && nx < size && nz >= 0 && nz < size) {
-                                if (this.grid[nx][nz].type === this.TILE_WATER && cType !== this.TILE_WATER && elev > 0) {
-                                    this.grid[nx][nz].type = this.TILE_BRIDGE;
-                                    this.grid[nx][nz].elev = elev;
+                                if (this.grid[nx][nz].type === this.TILE_WATER) {
+                                    // If crossing existing water with an elevated path, place a bridge along the centerline
+                                    if (cType !== this.TILE_WATER && elev > 0 && Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                                        this.grid[nx][nz].type = this.TILE_BRIDGE;
+                                        this.grid[nx][nz].elev = elev;
+                                    }
+                                    // Leave surrounding water intact!
                                 } else if (this.grid[nx][nz].type !== this.TILE_BRIDGE) {
                                     this.grid[nx][nz].type = cType;
                                     this.grid[nx][nz].elev = elev;
