@@ -118,7 +118,7 @@ export class ForestBiome extends BiomeBase {
                         if (cell.type === this.TILE_EMPTY) continue;
 
                         let surfaceY = cell.elev * this.STEP_HEIGHT;
-                        let dirtTop = cell.type === this.TILE_WATER ? -0.5 : surfaceY;
+                        let dirtTop = surfaceY;
 
                         let minDistToRoom = 999;
                         if (this.map.rooms) {

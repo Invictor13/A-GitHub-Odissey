@@ -650,10 +650,13 @@ export class ProceduralMap {
         const z0 = Math.floor(gridZ);
         const z1 = z0 + 1;
 
-        if (x0 < 0 || x1 >= this.gridSize || z0 < 0 || z1 >= this.gridSize) return 0;
+        if (x0 < 0 || x1 >= this.gridSize || z0 < 0 || z1 >= this.gridSize) return -50;
 
-        if (!this.grid[x0] || !this.grid[x1]) return 0;
-        if (!this.grid[x0][z0] || !this.grid[x1][z0] || !this.grid[x0][z1] || !this.grid[x1][z1]) return 0;
+        if (!this.grid[x0] || !this.grid[x1]) return -50;
+        if (!this.grid[x0][z0] || !this.grid[x1][z0] || !this.grid[x0][z1] || !this.grid[x1][z1]) return -50;
+
+        const centerCell = this.grid[Math.round(gridX)]?.[Math.round(gridZ)];
+        if (centerCell && centerCell.type === this.TILE_EMPTY) return -50;
 
         const elev00 = (this.grid[x0][z0].elev !== undefined ? this.grid[x0][z0].elev : 0) * this.STEP_HEIGHT;
         const elev10 = (this.grid[x1][z0].elev !== undefined ? this.grid[x1][z0].elev : 0) * this.STEP_HEIGHT;
@@ -666,7 +669,13 @@ export class ProceduralMap {
         const y0 = elev00 * (1 - wx) + elev10 * wx;
         const y1 = elev01 * (1 - wx) + elev11 * wx;
 
-        return y0 * (1 - wz) + y1 * wz;
+        let interpolatedY = y0 * (1 - wz) + y1 * wz;
+
+        if (centerCell && centerCell.type === this.TILE_WATER) {
+            interpolatedY += 0.1;
+        }
+
+        return interpolatedY;
     }
 
     checkCollision(pos, radius = 0.4) {

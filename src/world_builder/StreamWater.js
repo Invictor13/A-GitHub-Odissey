@@ -17,7 +17,7 @@ export class StreamWater extends THREE.Mesh {
                 const t = i / steps;
                 const x = -28 + t * 56;
                 const z = Math.sin(x * 0.15) * 8;
-                const y = -0.15;
+                const y = 0.25;
                 defaultPoints.push(new THREE.Vector3(x, y, z));
             }
             curve = new THREE.CatmullRomCurve3(defaultPoints);
