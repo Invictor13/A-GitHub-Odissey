@@ -67,7 +67,7 @@ export class MushroomBiome extends BiomeBase {
                         if (cell.type === this.TILE_EMPTY) continue;
 
                         let surfaceY = cell.elev * this.STEP_HEIGHT;
-                        let dirtTop = cell.type === this.TILE_WATER ? -0.5 : surfaceY;
+                        let dirtTop = surfaceY;
                         let islandThickness = 15.0;
 
                         const dirtDepth = dirtTop + islandThickness;

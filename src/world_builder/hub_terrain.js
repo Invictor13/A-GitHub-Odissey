@@ -103,10 +103,10 @@ export class HubTerrain {
                 else if (isBeach) topType = 'sand';
 
                 if (topType === 'water') {
-                    dummy.position.set(wX, -0.15, wZ); dummy.updateMatrix();
-                    initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, -0.15, wZ] });
-                    dummy.position.set(wX, -1, wZ); dummy.updateMatrix();
-                    initialMats.sand.push({ mat: dummy.matrix.clone(), pos: [wX, -1, wZ] });
+                    dummy.position.set(wX, 0.25, wZ); dummy.updateMatrix();
+                    initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, 0.25, wZ] });
+                    dummy.position.set(wX, 0, wZ); dummy.updateMatrix();
+                    initialMats.sand.push({ mat: dummy.matrix.clone(), pos: [wX, 0, wZ] });
                 } else {
                     // Top Surface
                     dummy.position.set(wX, h, wZ); dummy.updateMatrix();
@@ -348,7 +348,7 @@ export class HubTerrain {
             const key = `${gx},${y},${gz}`;
             if (this.worldGrid.has(key)) {
                 const type = this.worldGrid.get(key).type;
-                if(type === 'water') return y - 0.2;
+                if(type === 'water') return y + 0.1;
                 if(type.includes('tile')) return y + 0.1;
                 return y + 1.0;
             }

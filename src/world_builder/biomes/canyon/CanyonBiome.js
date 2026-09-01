@@ -59,7 +59,7 @@ export class CanyonBiome extends BiomeBase {
                         // Increase elevation variations artificially for Canyon feel
                         let elevBoost = (this.noiseGen.noise(px * 0.1, pz * 0.1) > 0.4 && cell.type === this.TILE_SOLID) ? 2.0 : 0.0;
                         let surfaceY = (cell.elev + elevBoost) * this.STEP_HEIGHT;
-                        let dirtTop = cell.type === this.TILE_WATER ? -0.5 : surfaceY;
+                        let dirtTop = surfaceY;
                         let islandThickness = 20.0;
 
                         const dirtDepth = dirtTop + islandThickness;
@@ -84,7 +84,7 @@ export class CanyonBiome extends BiomeBase {
                                 dummy.updateMatrix(); rockMatrices.push(dummy.matrix.clone());
                             }
                         } else if (cell.type === this.TILE_WATER) {
-                            const wGeo = this.planeGeo.clone(); wGeo.translate(px, surfaceY - 0.2, pz); waterGeos.push(wGeo);
+                            const wGeo = this.planeGeo.clone(); wGeo.translate(px, surfaceY + 0.25, pz); waterGeos.push(wGeo);
                         } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
                             const vColors = []; const vCount = fGeo.attributes.position.count;

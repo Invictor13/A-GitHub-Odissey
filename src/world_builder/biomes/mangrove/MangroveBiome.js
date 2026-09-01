@@ -64,7 +64,7 @@ export class MangroveBiome extends BiomeBase {
                         if (cell.type === this.TILE_EMPTY) continue;
 
                         let surfaceY = cell.elev * this.STEP_HEIGHT;
-                        let dirtTop = cell.type === this.TILE_WATER ? -0.5 : surfaceY;
+                        let dirtTop = surfaceY;
                         let islandThickness = 12.0;
 
                         const dirtDepth = dirtTop + islandThickness;
@@ -99,7 +99,7 @@ export class MangroveBiome extends BiomeBase {
                                 dummy.updateMatrix(); rockMatrices.push(dummy.matrix.clone());
                             }
                         } else if (cell.type === this.TILE_WATER) {
-                            const wGeo = this.planeGeo.clone(); wGeo.translate(px, surfaceY - 0.2, pz); waterGeos.push(wGeo);
+                            const wGeo = this.planeGeo.clone(); wGeo.translate(px, surfaceY + 0.25, pz); waterGeos.push(wGeo);
                             // Mangrove roots in water
                             if (Math.random() < 0.1) {
                                 dummy.position.set(px + (Math.random()-0.5)*0.5, surfaceY - 0.5, pz + (Math.random()-0.5)*0.5);
