@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import CurvatureEffect from '../shaders/CurvatureEffect.js';
+import { applyWorldCurvature } from '../core/GraphicsUtils.js';
 
 export class StreamWater extends THREE.Mesh {
-    constructor(curvePoints = null, width = 2.2) {
+    constructor(curvePoints = null, width = 3.5) {
         // Build curve if points provided or use default Hub river path
         let curve;
         if (curvePoints && curvePoints.isCurve) {
@@ -17,7 +17,7 @@ export class StreamWater extends THREE.Mesh {
                 const t = i / steps;
                 const x = -28 + t * 56;
                 const z = Math.sin(x * 0.15) * 8;
-                const y = 0.25;
+                const y = 0.28;
                 defaultPoints.push(new THREE.Vector3(x, y, z));
             }
             curve = new THREE.CatmullRomCurve3(defaultPoints);
@@ -28,7 +28,7 @@ export class StreamWater extends THREE.Mesh {
         const geometry = StreamWater.createRibbonGeometry(curve, width, lengthSegments, widthSegments);
 
         const material = new THREE.MeshStandardMaterial({
-            color: 0x38bdf8,
+            color: 0x0ea5e9,
             roughness: 0.1,
             metalness: 0.1,
             transparent: true,
@@ -37,9 +37,10 @@ export class StreamWater extends THREE.Mesh {
             side: THREE.DoubleSide
         });
 
-        CurvatureEffect.applyCurvature(material);
+        applyWorldCurvature(material, false, true);
 
         super(geometry, material);
+        this.renderOrder = 10;
 
         this.width = width;
         this.curve = curve;

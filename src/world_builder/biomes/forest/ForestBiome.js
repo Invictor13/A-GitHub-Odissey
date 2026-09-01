@@ -176,8 +176,8 @@ export class ForestBiome extends BiomeBase {
                             }
 
                         } else if (cell.type === this.TILE_WATER) {
-                            const wGeo = this.planeGeo.clone();
-                            wGeo.translate(px, surfaceY - 0.2, pz);
+                            const wGeo = this.waterPlaneGeo.clone();
+                            wGeo.translate(px, surfaceY + 0.18, pz);
                             waterGeos.push(wGeo);
                         } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
