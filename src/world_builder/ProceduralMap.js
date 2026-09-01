@@ -141,7 +141,7 @@ export class ProceduralMap {
             constructor(x, y, w, h, id, targetRooms) {
                 this.x = x; this.y = y; this.w = w; this.h = h;
                 this.cx = Math.floor(x + w/2); this.cy = Math.floor(y + h/2);
-                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.20);
+                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.28);
                 this.elev = this.isLake ? 0 : Math.floor(Math.random() * 2) + 1;
             }
             intersects(other) { return (this.x <= other.x + other.w + 2 && this.x + this.w + 2 >= other.x && this.y <= other.y + other.h + 2 && this.y + this.h + 2 >= other.y); }

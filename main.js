@@ -681,7 +681,8 @@ function animate() {
         ? penitent.group.position
         : new THREE.Vector3(0, 0, 0);
 
-    CurvatureEffect.updateCurvatureUniforms(scene, playerPos, 0.0015);
+    const curvatureFactor = (GAME_STATE === 'HUB') ? 0.0015 : 0.0;
+    CurvatureEffect.updateCurvatureUniforms(scene, playerPos, curvatureFactor);
 
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
         // Real-time lighting update
