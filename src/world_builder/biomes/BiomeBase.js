@@ -65,6 +65,9 @@ export class BiomeBase {
 
         this.matBase = { roughness: 0.9, flatShading: true };
         this.interactiveProps = [];
+
+        this.waterPlaneGeo = new THREE.PlaneGeometry(1, 1, 4, 4);
+        this.waterPlaneGeo.rotateX(-Math.PI / 2);
     }
 
     // Abstract methods to be implemented by child biomes
@@ -74,9 +77,9 @@ export class BiomeBase {
         const mat = new THREE.MeshStandardMaterial({
             color: baseColorHex,
             transparent: true,
-            opacity: 0.82,
+            opacity: 0.85,
             roughness: 0.1,
-            metalness: 0.1,
+            metalness: 0.2,
             flatShading: true,
             depthWrite: false,
             side: THREE.DoubleSide

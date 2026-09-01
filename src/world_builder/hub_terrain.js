@@ -27,8 +27,8 @@ export class HubTerrain {
         this.boxGeo = new THREE.BoxGeometry(1.002, 1.002, 1.002);
         this.boxGeo.translate(0, 0.5, 0);
 
-        // Flat Surface Plane for Water (prevents blocky 3D cube edges sticking out)
-        this.waterPlaneGeo = new THREE.PlaneGeometry(1.002, 1.002);
+        // Flat Surface Plane for Water with subdivisions for 3D wave animation
+        this.waterPlaneGeo = new THREE.PlaneGeometry(1.002, 1.002, 4, 4);
         this.waterPlaneGeo.rotateX(-Math.PI / 2);
 
         this.mGrass = new THREE.MeshLambertMaterial({ color: 0x4ade80, ...matBase });
@@ -105,8 +105,14 @@ export class HubTerrain {
                 if (topType === 'water') {
                     dummy.position.set(wX, 0.25, wZ); dummy.updateMatrix();
                     initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, 0.25, wZ] });
-                    dummy.position.set(wX, 0, wZ); dummy.updateMatrix();
-                    initialMats.sand.push({ mat: dummy.matrix.clone(), pos: [wX, 0, wZ] });
+
+                    // Sand bed starting at y = -1 (top surface at Y = 0.0) down to y = -6
+                    for (let y = -1; y >= -6; y--) {
+                        dummy.position.set(wX, y, wZ); dummy.updateMatrix();
+                        let uType = (y === -1) ? 'sand' : 'dirt';
+                        if (y < -3) uType = 'rock';
+                        initialMats[uType].push({ mat: dummy.matrix.clone(), pos: [wX, y, wZ] });
+                    }
                 } else {
                     // Top Surface
                     dummy.position.set(wX, h, wZ); dummy.updateMatrix();
@@ -133,89 +139,6 @@ export class HubTerrain {
             pool.capacity = initData.length + EXTRA_CAPACITY;
             const geo = (type === 'water') ? this.waterPlaneGeo : this.boxGeo;
             pool.mesh = new THREE.InstancedMesh(geo, this.matDict[type], pool.capacity);
-
-            if (type !== 'water') {
-                pool.mesh.receiveShadow = true;
-                pool.mesh.castShadow = false; // Terrain optimization
-            } else {
-                pool.mesh.receiveShadow = true;
-                pool.mesh.castShadow = false;
-                pool.mesh.renderOrder = 10;
-            }
-
-            const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
-            for(let i=0; i<pool.capacity; i++) pool.mesh.setMatrixAt(i, zeroMat);
-
-            initData.forEach((data, i) => {
-                pool.mesh.setMatrixAt(i, data.mat);
-                const key = `${Math.round(data.pos[0])},${Math.round(data.pos[1])},${Math.round(data.pos[2])}`;
-                this.worldGrid.set(key, { type: type, id: i });
-                pool.idToKey[i] = key;
-                pool.count++;
-
-                // Add Collider if it's top surface (roughly Y >= 0 and not water, optimization for collision checks)
-                // In game, we check `getHeightAt` so we don't strictly need boxes for everything,
-                // but if HubEnvironment.checkCollision relies on boxes:
-                if (type !== 'water' && data.pos[1] >= -2) {
-                    const box = new THREE.Box3();
-                    // Voxel is 1x1x1 centered at y+0.5
-                    const min = new THREE.Vector3(data.pos[0] - 0.5, data.pos[1], data.pos[2] - 0.5);
-                    const max = new THREE.Vector3(data.pos[0] + 0.5, data.pos[1] + 1, data.pos[2] + 0.5);
-                    box.set(min, max);
-                    this.colliders.push(box);
-                }
-            });
-            pool.mesh.count = pool.count;
-            this.group.add(pool.mesh);
-        });
-    }
-
-    removeBlock(x, y, z) {
-        const key = `${x},${y},${z}`;
-        if (!this.worldGrid.has(key)) return false;
-
-        const { type, id } = this.worldGrid.get(key);
-        const pool = this.blockPools[type];
-        const lastId = pool.count - 1;
-
-        // Swap with last instance to keep array packed
-        if (id !== lastId) {
-            const mat = new THREE.Matrix4();
-            pool.mesh.getMatrixAt(lastId, mat);
-            pool.mesh.setMatrixAt(id, mat);
-
-            const lastKey = pool.idToKey[lastId];
-            this.worldGrid.get(lastKey).id = id;
-            pool.idToKey[id] = lastKey;
-        }
-
-        const zeroMat = new THREE.Matrix4().makeScale(0,0,0);
-        pool.mesh.setMatrixAt(lastId, zeroMat);
-
-        this.worldGrid.delete(key);
-        pool.idToKey.pop();
-        pool.count--;
-        pool.mesh.count = pool.count;
-        pool.mesh.instanceMatrix.needsUpdate = true;
-
-        // Remove from colliders roughly (exact match check)
-        const blockMin = new THREE.Vector3(x - 0.5, y, z - 0.5);
-        const blockMax = new THREE.Vector3(x + 0.5, y + 1, z + 0.5);
-        for(let i=0; i<this.colliders.length; i++) {
-            const box = this.colliders[i];
-            if(box.min.equals(blockMin) && box.max.equals(blockMax)) {
-                this.colliders.splice(i, 1);
-                break;
-            }
-        }
-
-        // Bind to GPU
-        this.typeKeys.forEach(type => {
-            const initData = initialMats[type];
-            const pool = this.blockPools[type];
-
-            pool.capacity = initData.length + EXTRA_CAPACITY;
-            pool.mesh = new THREE.InstancedMesh(this.boxGeo, this.matDict[type], pool.capacity);
 
             if (type !== 'water') {
                 pool.mesh.receiveShadow = true;

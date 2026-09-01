@@ -97,7 +97,7 @@ export class MushroomBiome extends BiomeBase {
                                 dummy.updateMatrix(); rockMatrices.push(dummy.matrix.clone());
                             }
                         } else if (cell.type === this.TILE_WATER) {
-                            const wGeo = this.planeGeo.clone(); wGeo.translate(px, surfaceY - 0.2, pz); waterGeos.push(wGeo);
+                            const wGeo = this.waterPlaneGeo.clone(); wGeo.translate(px, surfaceY + 0.18, pz); waterGeos.push(wGeo);
                         } else if (cell.type === this.TILE_FLOOR || cell.type === this.TILE_TRAIL) {
                             const fGeo = this.planeGeo.clone(); fGeo.translate(px, surfaceY, pz);
                             const vColors = []; const vCount = fGeo.attributes.position.count;
