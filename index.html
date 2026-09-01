@@ -609,5 +609,105 @@
     </div>
 </div>
 
+    <!-- Fullscreen Inventory Modal UI -->
+    <div id="inventory-modal" class="fixed inset-0 z-[130] hidden bg-black/85 backdrop-blur-md flex flex-col p-4 md:p-6 text-white pointer-events-auto overflow-y-auto">
+        <div class="glass-panel border border-amber-600/40 p-4 md:p-6 rounded-2xl w-full max-w-6xl mx-auto flex flex-col my-auto shadow-2xl relative min-h-[80vh]">
+            <!-- Header with Tabs and Close Button -->
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-6 border-b border-amber-900/60 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-950 to-stone-950 border border-amber-600/50 flex items-center justify-center text-amber-400 text-xl shadow-lg">
+                        <i class="fa-solid fa-book-skull"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg md:text-xl font-extrabold text-amber-200 uppercase tracking-wider font-title">Inventário • Tomo do Purgatório</h2>
+                        <div class="flex items-center gap-3 text-xs text-amber-400/80 font-mono">
+                            <span id="hud-gold-counter" class="flex items-center gap-1"><i class="fa-solid fa-coins text-amber-400"></i> Ouro: <span id="hud-gold-value" class="text-amber-100 font-bold">0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="flex items-center gap-2 bg-stone-950/80 p-1.5 rounded-xl border border-amber-900/50">
+                    <button id="tab-btn-equipamento" class="inv-tab-btn active bg-amber-900/40 text-amber-200 border border-amber-500/50 rounded-lg px-4 py-2 font-bold cursor-pointer text-xs md:text-sm font-sub transition flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved"></i> Equipamentos
+                    </button>
+                    <button id="tab-btn-status" class="inv-tab-btn bg-stone-950/40 text-amber-200/50 border border-transparent rounded-lg px-4 py-2 font-bold cursor-pointer text-xs md:text-sm font-sub transition flex items-center gap-2">
+                        <i class="fa-solid fa-chart-simple"></i> Status
+                    </button>
+                    <button id="tab-btn-crafting" class="inv-tab-btn bg-stone-950/40 text-amber-200/50 border border-transparent rounded-lg px-4 py-2 font-bold cursor-pointer text-xs md:text-sm font-sub transition flex items-center gap-2">
+                        <i class="fa-solid fa-flask-vial"></i> Crafting
+                    </button>
+                </div>
+
+                <!-- Close Button -->
+                <button id="btn-close-inventory" class="w-10 h-10 bg-stone-900 hover:bg-amber-900/60 text-amber-200 rounded-full border border-amber-700/50 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- TAB 1: Equipamentos e Mochila -->
+            <div id="tab-content-equipamento" class="inv-tab-content transition-opacity duration-300 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-grow opacity-100">
+                <!-- Left: Equipment Slots -->
+                <div class="lg:col-span-4 bg-stone-950/60 border border-amber-900/40 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+                    <h3 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 w-full text-center font-title">Equipamentos Equipados</h3>
+                    <div class="flex flex-col items-center gap-3">
+                        <!-- Head -->
+                        <div id="slot-head" data-equip-type="head" class="inventory-slot slot-equip slot-head w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                        <!-- Chest -->
+                        <div id="slot-chest" data-equip-type="chest" class="inventory-slot slot-equip slot-chest w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                        <!-- Hands -->
+                        <div class="flex items-center gap-4">
+                            <div id="slot-right_hand" data-equip-type="right_hand" class="inventory-slot slot-equip slot-right_hand w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                            <div id="slot-left_hand" data-equip-type="left_hand" class="inventory-slot slot-equip slot-left_hand w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                        </div>
+                        <!-- Feet & Accessory -->
+                        <div class="flex items-center gap-4">
+                            <div id="slot-feet" data-equip-type="feet" class="inventory-slot slot-equip slot-feet w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                            <div id="slot-accessory" data-equip-type="accessory" class="inventory-slot slot-equip slot-accessory w-16 h-16 rounded-xl flex items-center justify-center cursor-pointer"></div>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-amber-300/60 font-script text-center mt-2">Clique em um item da mochila para equipar, ou no slot para desequipar.</p>
+                </div>
+
+                <!-- Right: Mochila (Backpack) -->
+                <div class="lg:col-span-8 bg-stone-950/60 border border-amber-900/40 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-2 mb-4 font-title flex items-center justify-between">
+                            <span><i class="fa-solid fa-suitcase text-amber-500 mr-2"></i>Mochila</span>
+                            <span class="text-[10px] text-amber-400/60 font-mono">20 Espaços</span>
+                        </h3>
+                        <div id="backpack-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2.5 max-h-[45vh] overflow-y-auto p-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Status (Skills & Habilidades) -->
+            <div id="tab-content-status" class="inv-tab-content transition-opacity duration-300 w-full flex-grow opacity-0 pointer-events-none hidden">
+                <div class="bg-stone-950/60 border border-amber-900/40 rounded-xl p-6 h-full flex flex-col">
+                    <h3 class="text-sm font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-3 mb-4 font-title flex items-center gap-2">
+                        <i class="fa-solid fa-award text-amber-400"></i> Habilidades & Maestrias do Personagem
+                    </h3>
+                    <div id="masteries-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[55vh] pr-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Crafting -->
+            <div id="tab-content-crafting" class="inv-tab-content transition-opacity duration-300 w-full flex-grow opacity-0 pointer-events-none hidden">
+                <div class="bg-stone-950/60 border border-amber-900/40 rounded-xl p-6 h-full flex flex-col">
+                    <h3 class="text-sm font-bold text-amber-200 uppercase tracking-wider border-b border-amber-900/60 pb-3 mb-4 font-title flex items-center gap-2">
+                        <i class="fa-solid fa-flask-vial text-amber-500"></i> Bancada de Criação & Receitas
+                    </h3>
+                    <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto max-h-[55vh] pr-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

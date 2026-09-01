@@ -100,6 +100,13 @@ export class InventoryUI {
 
 
     setupInteractions() {
+        const closeBtn = document.getElementById('btn-close-inventory');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                if (this.isOpen) this.toggle();
+            });
+        }
+
         const grid = document.getElementById('backpack-grid');
         if (grid) {
             grid.addEventListener('click', (e) => {
@@ -136,16 +143,18 @@ export class InventoryUI {
                 // Update visible content
                 tabContents.forEach(content => {
                     if (content.id === targetId) {
-                        content.classList.remove('opacity-0', 'pointer-events-none');
+                        content.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
                         content.classList.add('opacity-100');
-                        if (targetId === 'tab-content-crafting') {
+                        if (targetId === 'tab-content-equipamento') {
+                            this.render();
+                        } else if (targetId === 'tab-content-crafting') {
                             this.renderCrafting();
                         } else if (targetId === 'tab-content-status') {
                             this.renderStatus();
                         }
                     } else {
                         content.classList.remove('opacity-100');
-                        content.classList.add('opacity-0', 'pointer-events-none');
+                        content.classList.add('opacity-0', 'pointer-events-none', 'hidden');
                     }
                 });
             });
