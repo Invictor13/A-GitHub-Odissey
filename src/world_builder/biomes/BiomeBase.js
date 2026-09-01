@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyWorldCurvature } from '../../core/GraphicsUtils.js';
 import { CampProp } from '../../characters/npcs/CampProp.js';
 import { Merchant } from '../../characters/npcs/Merchant.js';
 import { Guard } from '../../characters/npcs/Guard.js';
@@ -70,30 +71,17 @@ export class BiomeBase {
     setupMaterials() {}
 
     getWaterMaterial(baseColorHex) {
-        const mat = new THREE.MeshStandardMaterial({ color: baseColorHex, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.1, flatShading: true, depthWrite: false, side: THREE.DoubleSide });
-        mat.onBeforeCompile = (shader) => {
-            shader.uniforms.uTime = this.map.waterUniforms ? this.map.waterUniforms.uTime : { value: 0 };
-            shader.uniforms.uPlayerPos = this.map.waterUniforms ? this.map.waterUniforms.uPlayerPos : { value: new THREE.Vector3() };
-            shader.vertexShader = `
-                uniform float uTime;
-                uniform vec3 uPlayerPos;
-                ${shader.vertexShader}
-            `;
-            shader.vertexShader = shader.vertexShader.replace(
-                '#include <begin_vertex>',
-                `
-                #include <begin_vertex>
-                vec4 vWorldPos = modelMatrix * vec4(position, 1.0);
-                float wave = sin(vWorldPos.x * 2.0 + uTime * 2.0) * 0.05 + cos(vWorldPos.z * 2.0 + uTime * 1.5) * 0.05;
-                float dist = distance(vWorldPos.xyz, uPlayerPos);
-                float ripple = 0.0;
-                if (dist < 3.0) {
-                    ripple = sin(dist * 10.0 - uTime * 5.0) * 0.1 * (1.0 - dist / 3.0);
-                }
-                transformed.y += wave + ripple;
-                `
-            );
-        };
+        const mat = new THREE.MeshStandardMaterial({
+            color: baseColorHex,
+            transparent: true,
+            opacity: 0.82,
+            roughness: 0.1,
+            metalness: 0.1,
+            flatShading: true,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
+        applyWorldCurvature(mat, false, true);
         return mat;
     }
     build3DGeometry(terrainGroup, chunksList) {}

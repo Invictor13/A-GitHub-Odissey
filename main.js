@@ -13,6 +13,7 @@ import { inventoryManager } from './src/systems/InventoryManager.js';
 import { RadialMenu } from './src/ui/RadialMenu.js';
 import { HubBounds } from './src/world_builder/HubBounds.js';
 import CurvatureEffect from './src/shaders/CurvatureEffect.js';
+import { globalUniforms } from './src/core/GraphicsUtils.js';
 
 window.inventoryManager = inventoryManager;
 
@@ -553,6 +554,7 @@ function animate() {
 
     window.gameState.delta = Math.min(window.gameState.clock.getDelta(), 0.1);
     window.gameState.time = window.gameState.clock.getElapsedTime();
+    globalUniforms.uTime.value = window.gameState.time;
 
     if (GAME_STATE === 'MENU' && currentEnvironment && currentEnvironment.hubGroup) {
         currentEnvironment.hubGroup.rotation.y += window.gameState.delta * 0.05;

@@ -39,8 +39,15 @@ export function applyWorldCurvature(material, isVegetation = false, isWater = fa
                     '#include <begin_vertex>',
                     `
                     #include <begin_vertex>
-                    float wave = sin(uTime * 2.0 + position.x * 1.5 + position.z * 1.5) * 0.06;
-                    transformed.y += wave;
+                    {
+                        #ifdef USE_INSTANCING
+                            vec4 wPos = modelMatrix * instanceMatrix * vec4( position, 1.0 );
+                        #else
+                            vec4 wPos = modelMatrix * vec4( position, 1.0 );
+                        #endif
+                        float wave = sin(uTime * 2.5 + wPos.x * 0.8 + wPos.z * 0.8) * 0.08 + cos(uTime * 1.8 + wPos.x * 0.5 - wPos.z * 0.5) * 0.05;
+                        transformed.y += wave;
+                    }
                     `
                 );
             }

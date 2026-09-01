@@ -27,6 +27,10 @@ export class HubTerrain {
         this.boxGeo = new THREE.BoxGeometry(1.002, 1.002, 1.002);
         this.boxGeo.translate(0, 0.5, 0);
 
+        // Flat Surface Plane for Water (prevents blocky 3D cube edges sticking out)
+        this.waterPlaneGeo = new THREE.PlaneGeometry(1.002, 1.002);
+        this.waterPlaneGeo.rotateX(-Math.PI / 2);
+
         this.mGrass = new THREE.MeshLambertMaterial({ color: 0x4ade80, ...matBase });
         this.mDirt = new THREE.MeshLambertMaterial({ color: 0x5a3825, ...matBase });
         this.mSand = new THREE.MeshLambertMaterial({ color: 0xfde047, ...matBase });
@@ -39,10 +43,12 @@ export class HubTerrain {
         this.mWoodTile = new THREE.MeshLambertMaterial({ color: 0x78350f, ...matBase });
         this.mGraniteTile = new THREE.MeshLambertMaterial({ color: 0x334155, ...matBase });
 
-        this.mWater = new THREE.MeshLambertMaterial({
-            color: 0x0ea5e9,
+        this.mWater = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            roughness: 0.1,
+            metalness: 0.1,
             transparent: true,
-            opacity: 0.8,
+            opacity: 0.82,
             depthWrite: false,
             side: THREE.DoubleSide
         });
@@ -97,8 +103,8 @@ export class HubTerrain {
                 else if (isBeach) topType = 'sand';
 
                 if (topType === 'water') {
-                    dummy.position.set(wX, -0.2, wZ); dummy.updateMatrix();
-                    initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, -0.2, wZ] });
+                    dummy.position.set(wX, -0.15, wZ); dummy.updateMatrix();
+                    initialMats.water.push({ mat: dummy.matrix.clone(), pos: [wX, -0.15, wZ] });
                     dummy.position.set(wX, -1, wZ); dummy.updateMatrix();
                     initialMats.sand.push({ mat: dummy.matrix.clone(), pos: [wX, -1, wZ] });
                 } else {
@@ -125,7 +131,8 @@ export class HubTerrain {
             const pool = this.blockPools[type];
 
             pool.capacity = initData.length + EXTRA_CAPACITY;
-            pool.mesh = new THREE.InstancedMesh(this.boxGeo, this.matDict[type], pool.capacity);
+            const geo = (type === 'water') ? this.waterPlaneGeo : this.boxGeo;
+            pool.mesh = new THREE.InstancedMesh(geo, this.matDict[type], pool.capacity);
 
             if (type !== 'water') {
                 pool.mesh.receiveShadow = true;
