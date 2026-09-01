@@ -398,8 +398,16 @@ window.addEventListener('keyup', (e) => {
     if (window.keyStates.hasOwnProperty(e.key.toLowerCase())) window.keyStates[e.key.toLowerCase()] = false;
 });
 
-// Hub Interactions
+// Global & Hub Interactions
 window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (window.inventoryUI && window.inventoryUI.isOpen) {
+            window.inventoryUI.toggle();
+            controls.enabled = true;
+            return;
+        }
+    }
+
     if (GAME_STATE === 'HUB') {
         if (e.key.toLowerCase() === 'e' && window.currentNearbyObject && window.hubBuildingState !== 'BUILDING_GRID') {
             window.currentNearbyObject.action();
@@ -488,15 +496,6 @@ document.addEventListener('click', (e) => {
     const btn = e.target.closest('#btn-mobile-journal');
     if (btn) {
         toggleJournal();
-    }
-});
-document.addEventListener('touchstart', (e) => {
-    const btn = e.target.closest('#btn-mobile-inventory');
-    if (btn) {
-        if (window.inventoryUI) {
-            window.inventoryUI.toggle();
-            controls.enabled = !window.inventoryUI.isOpen;
-        }
     }
 });
 
