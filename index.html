@@ -438,49 +438,77 @@
     <!-- Tab Build Menu -->
     <div id="tab-menu" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[120] flex items-center justify-center pointer-events-auto">
         <div class="glass-panel p-8 rounded-3xl max-w-2xl w-full border border-yellow-400/30 shadow-2xl">
-            <h2 class="text-3xl font-black text-white mb-2 text-center drop-shadow-md">Menu de Construção</h2>
-            <p class="text-slate-300 text-center mb-6 text-sm">Selecione uma estrutura para posicionar no acampamento.</p>
+            <h2 class="text-3xl font-black text-white mb-1 text-center drop-shadow-md">Menu de Construção</h2>
+            <p class="text-slate-300 text-center mb-4 text-sm">Selecione uma estrutura para posicionar no acampamento.</p>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto p-1">
-                <div id="build-tent" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-400 transition-all text-center group">
+            <!-- Categories Header Tabs -->
+            <div class="flex justify-center gap-2 mb-4 border-b border-slate-700/60 pb-3" id="build-category-tabs">
+                <button data-cat="all" class="cat-btn active bg-yellow-400 text-slate-900 font-bold px-4 py-1.5 rounded-xl text-xs transition">Todas</button>
+                <button data-cat="estruturas" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-1.5 rounded-xl text-xs transition">Estruturas</button>
+                <button data-cat="utilitarios" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-1.5 rounded-xl text-xs transition">Utilitários</button>
+                <button data-cat="pisos" class="cat-btn bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-1.5 rounded-xl text-xs transition">Pisos</button>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-[55vh] overflow-y-auto p-1" id="build-cards-container">
+                <div id="build-tent" data-category="estruturas" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-400 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">⛺</div>
                     <h3 class="text-yellow-400 font-bold text-sm">Barraca</h3>
                     <p class="text-[10px] text-slate-400 mt-1">10 Madeira</p>
                 </div>
-                <div id="build-campfire" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-orange-400 transition-all text-center group">
+                <div id="build-campfire" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-orange-400 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🔥</div>
                     <h3 class="text-orange-400 font-bold text-sm">Fogueira</h3>
                     <p class="text-[10px] text-slate-400 mt-1">5 Pedra, 5 Madeira</p>
                 </div>
-                <div id="build-fence" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-500 transition-all text-center group">
+                <div id="build-fence" data-category="estruturas" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-500 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪵</div>
                     <h3 class="text-amber-400 font-bold text-sm">Cerca</h3>
                     <p class="text-[10px] text-slate-400 mt-1">4 Madeira</p>
                 </div>
-                <div id="build-lantern" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-300 transition-all text-center group">
+                <div id="build-lantern" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-yellow-300 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🏮</div>
                     <h3 class="text-yellow-300 font-bold text-sm">Tocha / Poste</h3>
                     <p class="text-[10px] text-slate-400 mt-1">3 Madeira, 2 Pedra</p>
                 </div>
-                <div id="build-bench" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
+                <div id="build-bench" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪑</div>
-                    <h3 class="text-amber-500 font-bold text-sm">Banco de Madeira</h3>
+                    <h3 class="text-amber-500 font-bold text-sm">Banco</h3>
                     <p class="text-[10px] text-slate-400 mt-1">6 Madeira</p>
                 </div>
-                <div id="build-chair" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
+                <div id="build-chair" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-600 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🪑</div>
-                    <h3 class="text-amber-500 font-bold text-sm">Cadeira de Madeira</h3>
+                    <h3 class="text-amber-500 font-bold text-sm">Cadeira</h3>
                     <p class="text-[10px] text-slate-400 mt-1">4 Madeira</p>
                 </div>
-                <div id="build-furnace" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-red-400 transition-all text-center group">
+                <div id="build-furnace" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-red-400 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🌋</div>
                     <h3 class="text-red-400 font-bold text-sm">Forja</h3>
                     <p class="text-[10px] text-slate-400 mt-1">10 Pedra, 5 Madeira</p>
                 </div>
-                <div id="build-anvil" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-slate-300 transition-all text-center group">
+                <div id="build-anvil" data-category="utilitarios" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-slate-300 transition-all text-center group">
                     <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">⚒️</div>
                     <h3 class="text-slate-300 font-bold text-sm">Bigorna</h3>
                     <p class="text-[10px] text-slate-400 mt-1">12 Pedra, 4 Madeira</p>
+                </div>
+                <div id="build-mud_tile" data-category="pisos" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-700 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🟫</div>
+                    <h3 class="text-amber-700 font-bold text-sm">Piso de Lama</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">2 Terra</p>
+                </div>
+                <div id="build-stone_tile" data-category="pisos" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-slate-400 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">⬜</div>
+                    <h3 class="text-slate-300 font-bold text-sm">Piso de Pedra</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">2 Pedra</p>
+                </div>
+                <div id="build-wood_tile" data-category="pisos" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-amber-500 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🟨</div>
+                    <h3 class="text-amber-400 font-bold text-sm">Piso de Madeira</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">2 Madeira</p>
+                </div>
+                <div id="build-granite_tile" data-category="pisos" class="build-card bg-slate-800/80 hover:bg-slate-700 p-4 rounded-2xl cursor-pointer border-2 border-transparent hover:border-cyan-400 transition-all text-center group">
+                    <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">🟦</div>
+                    <h3 class="text-cyan-300 font-bold text-sm">Piso de Granito</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">3 Granito</p>
                 </div>
             </div>
 
@@ -490,7 +518,7 @@
 
     <!-- Build Mode Hint -->
     <div id="build-hint" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] bg-yellow-400 text-slate-900 px-6 py-2 rounded-full font-bold shadow-lg animate-bounce pointer-events-none">
-        Mirar no chão e pressionar [R] para Construir
+        Mirar no chão • [Scroll] Rotacionar • [R] Construir
     </div>
 
 <!-- Hotbar (1-5) -->

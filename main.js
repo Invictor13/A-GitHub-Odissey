@@ -343,6 +343,29 @@ window.addEventListener('keydown', (e) => {
                     window.hubBuildingState = 'UI_OPEN';
                     controls.enabled = false;
 
+                    // Wire up category filter tabs
+                    const catBtns = document.querySelectorAll('#build-category-tabs .cat-btn');
+                    catBtns.forEach(btn => {
+                        btn.onclick = () => {
+                            catBtns.forEach(b => {
+                                b.classList.remove('active', 'bg-yellow-400', 'text-slate-900');
+                                b.classList.add('bg-slate-800', 'text-slate-300');
+                            });
+                            btn.classList.add('active', 'bg-yellow-400', 'text-slate-900');
+                            btn.classList.remove('bg-slate-800', 'text-slate-300');
+
+                            const cat = btn.getAttribute('data-cat');
+                            const cards = document.querySelectorAll('#build-cards-container .build-card');
+                            cards.forEach(card => {
+                                if (cat === 'all' || card.getAttribute('data-category') === cat) {
+                                    card.style.display = 'block';
+                                } else {
+                                    card.style.display = 'none';
+                                }
+                            });
+                        };
+                    });
+
                     // Wire up the build buttons just like Eros interaction does
                     if (currentEnvironment) {
                         const buildItems = [
@@ -353,7 +376,11 @@ window.addEventListener('keydown', (e) => {
                             { id: 'build-bench', type: 'bench' },
                             { id: 'build-chair', type: 'chair' },
                             { id: 'build-furnace', type: 'furnace' },
-                            { id: 'build-anvil', type: 'anvil' }
+                            { id: 'build-anvil', type: 'anvil' },
+                            { id: 'build-mud_tile', type: 'mud_tile' },
+                            { id: 'build-stone_tile', type: 'stone_tile' },
+                            { id: 'build-wood_tile', type: 'wood_tile' },
+                            { id: 'build-granite_tile', type: 'granite_tile' }
                         ];
                         buildItems.forEach(item => {
                             const btn = document.getElementById(item.id);
@@ -605,8 +632,8 @@ function animate() {
                 controls.maxPolarAngle = Math.PI;
 
                 if (window.hubBuildingState === 'INSIDE_TENT') {
-                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 4.5, 6.2));
-                    targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.2, -0.5));
+                    targetCamPos = playerPos.clone().add(new THREE.Vector3(0, 3.2, 5.2));
+                    targetLookAt = playerPos.clone().add(new THREE.Vector3(0, 1.0, -1.0));
                 } else if (window.hubBuildingState === 'BUILDING') {
                     targetCamPos = new THREE.Vector3(2.5, 7.0, 7.0);
                     targetLookAt = new THREE.Vector3(2.5, 0.5, 0.5);

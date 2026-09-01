@@ -132,10 +132,22 @@ export class HubEnvironment {
         this.onMouseMove = this.onMouseMove.bind(this);
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onKeyDown = this.onKeyDown.bind(this);
+        this.onWheel = this.onWheel.bind(this);
 
         window.addEventListener('mousemove', this.onMouseMove);
         window.addEventListener('mousedown', this.onMouseDown);
         window.addEventListener('keydown', this.onKeyDown);
+        window.addEventListener('wheel', this.onWheel, { passive: true });
+    }
+
+    onWheel(e) {
+        if (window.hubBuildingState === 'BUILDING_GRID' && this.previewMesh) {
+            const dir = Math.sign(e.deltaY);
+            this.previewRotationY += dir * (Math.PI / 4);
+            if (this.previewMesh) {
+                this.previewMesh.rotation.y = this.previewRotationY;
+            }
+        }
     }
 
     onMouseMove(e) {
@@ -587,10 +599,20 @@ export class HubEnvironment {
         platform.position.y = 0.125;
         this.tentInteriorGroup.add(platform);
 
-        // Canopy Roof Shell
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(5.2, 4.2, 8, 1, true), canvasMat);
+        // Canopy Roof Shell (Cut open on +Z front side so inside is clearly visible to camera)
+        const roofGeo = new THREE.ConeGeometry(5.4, 4.2, 12, 1, true, Math.PI * 0.75, Math.PI * 1.5);
+        const roof = new THREE.Mesh(roofGeo, canvasMat);
         roof.position.y = 2.2;
         this.tentInteriorGroup.add(roof);
+
+        // Front Support Pillars
+        const pole1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.8), woodMat);
+        pole1.position.set(-3.2, 1.9, 3.2);
+        this.tentInteriorGroup.add(pole1);
+
+        const pole2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.8), woodMat);
+        pole2.position.set(3.2, 1.9, 3.2);
+        this.tentInteriorGroup.add(pole2);
 
         // Central Carpet Rug
         const centralRug = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.03, 2.2), rugMat);
@@ -752,7 +774,7 @@ export class HubEnvironment {
             }
 
             if (window.penitent && window.penitent.group) {
-                window.penitent.group.position.set(200, 0.2, 201);
+                window.penitent.group.position.set(200, 0.25, 201);
                 window.penitent.group.visible = true;
             }
 
@@ -884,6 +906,7 @@ export class HubEnvironment {
         window.removeEventListener('mousemove', this.onMouseMove);
         window.removeEventListener('mousedown', this.onMouseDown);
         window.removeEventListener('keydown', this.onKeyDown);
+        window.removeEventListener('wheel', this.onWheel);
 
         if (this.terraformingSystem) {
             this.terraformingSystem.cleanup();
@@ -1272,11 +1295,6 @@ export class HubEnvironment {
             return false;
         }
         if (!this.terrain) return false;
-
-        // Prevent falling out of bounds (expanded hub limits)
-        if (Math.abs(pos.x) >= 28 || Math.abs(pos.z) >= 28) {
-            return true;
-        }
 
         // Define player bounding box
         const playerBox = new THREE.Box3();
