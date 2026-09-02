@@ -369,6 +369,7 @@ window.addEventListener('keydown', (e) => {
                     // Wire up the build buttons just like Eros interaction does
                     if (currentEnvironment) {
                         const buildItems = [
+                            { id: 'build-portal', type: 'portal' },
                             { id: 'build-tent', type: 'tent' },
                             { id: 'build-campfire', type: 'campfire' },
                             { id: 'build-fence', type: 'fence' },
