@@ -6,6 +6,8 @@ import { HubTerrain } from './hub_terrain.js';
 import { HubResources } from './hub_resources.js';
 import { foliageBuilder } from './FoliageBuilder.js';
 import { TerraformingSystem } from '../constructions/TerraformingSystem.js';
+import { AttachedIslandsManager } from './AttachedIslandsManager.js';
+import { DistanceCuller } from '../systems/DistanceCuller.js';
 import { disposeHierarchy, globalUniforms } from '../core/GraphicsUtils.js';
 import CurvatureEffect from '../shaders/CurvatureEffect.js';
 import { cleanupAndSealBase, fixTerrainAndBase } from './IslandCleanup.js';
@@ -90,6 +92,11 @@ export class HubEnvironment {
 
         // Initialize Terraforming & Blueprint Hologram System
         this.terraformingSystem = new TerraformingSystem(this.scene, this.terrain);
+
+        // Persistent Modular Anchoring & Distance Culler
+        this.attachedIslandsManager = new AttachedIslandsManager(this.scene);
+        this.attachedIslandsManager.restoreFromSave();
+        this.distanceCuller = new DistanceCuller(160, 220);
 
         this.setupEnvironment();
         this.setupEros();
@@ -884,6 +891,10 @@ export class HubEnvironment {
             this.terraformingSystem.cleanup();
         }
 
+        if (this.attachedIslandsManager) {
+            this.attachedIslandsManager.cleanup();
+        }
+
         if (this.terrain && typeof this.terrain.cleanup === 'function') {
             this.terrain.cleanup();
         }
@@ -1087,6 +1098,14 @@ export class HubEnvironment {
             this.terraformingSystem.update(delta);
         }
 
+        if (this.attachedIslandsManager) {
+            this.attachedIslandsManager.update(delta, safePos);
+        }
+
+        if (this.distanceCuller && this.attachedIslandsManager) {
+            this.distanceCuller.update(safePos, this.attachedIslandsManager, camera);
+        }
+
         // Raycasting for Voxel Interaction
         this.targetBlock = null;
         this.targetNormal = null;
@@ -1250,6 +1269,12 @@ export class HubEnvironment {
         if (window.hubBuildingState === 'INSIDE_TENT' || (pos && Math.abs(pos.x - 200) < 15 && Math.abs(pos.z - 200) < 15)) {
             return 0.25;
         }
+
+        if (this.attachedIslandsManager) {
+            const attachedFloor = this.attachedIslandsManager.getFloorY(pos);
+            if (attachedFloor !== null) return attachedFloor;
+        }
+
         if (!this.terrain) return 0;
         return this.terrain.getHeightAt(pos.x, pos.z);
     }
@@ -1282,6 +1307,10 @@ export class HubEnvironment {
         // Add a small epsilon to min Y to ignore the floor directly beneath the player's feet
         playerBox.min.set(pos.x - r, pos.y + 0.1, pos.z - r);
         playerBox.max.set(pos.x + r, pos.y + h, pos.z + r);
+
+        if (this.attachedIslandsManager && this.attachedIslandsManager.checkCollision(pos, radius)) {
+            return true;
+        }
 
         let colliders = this.terrain.getColliders();
         if (this.resources) {

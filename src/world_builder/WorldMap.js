@@ -588,7 +588,24 @@ export class WorldMap {
                 this.closeModal();
                 if (this.activeIslandData) {
                     const selectedBiome = this.activeIslandData.biomeId || 'floresta';
-                    window.changeGameState('ROGUELIKE', { biome: selectedBiome, islandData: this.activeIslandData });
+                    const islandId = `rogue_${selectedBiome}_${this.activeIslandData.gridX}_${this.activeIslandData.gridZ}`;
+                    const seed = Math.floor(Math.random() * 90000) + 1000;
+
+                    const islandData = {
+                        id: islandId,
+                        biomeId: selectedBiome,
+                        seed: seed,
+                        anchored: true,
+                        cleared: false,
+                        gridX: this.activeIslandData.gridX,
+                        gridZ: this.activeIslandData.gridZ
+                    };
+
+                    // Re-randomize seed for remaining unchosen nodes on World Map
+                    this.rerollUnchosenNodes(this.activeIslandData);
+
+                    // Attach chosen island permanently to player Sandbox Hub
+                    window.changeGameState('HUB', { attachedIsland: islandData });
                 }
             };
             btnEntrar.addEventListener('click', this._onBtnEntrar);
@@ -618,6 +635,35 @@ export class WorldMap {
     closeModal() {
         const modalEl = document.getElementById('rpg-modal');
         if (modalEl) modalEl.style.display = 'none';
+    }
+
+    rerollUnchosenNodes(chosenData) {
+        import('../core/GameState.js').then(({ default: gameState }) => {
+            if (!gameState.worldNodes) gameState.worldNodes = [];
+
+            this.interactableObjects.forEach(obj => {
+                const d = obj.userData;
+                if (d && (d.gridX !== chosenData.gridX || d.gridZ !== chosenData.gridZ)) {
+                    d.seed = Math.floor(Math.random() * 90000) + 1000;
+                    const nodeKey = `${d.gridX},${d.gridZ}`;
+                    const idx = gameState.worldNodes.findIndex(n => n.id === nodeKey);
+                    if (idx >= 0) {
+                        gameState.worldNodes[idx].seed = d.seed;
+                    } else {
+                        gameState.worldNodes.push({ id: nodeKey, gridX: d.gridX, gridZ: d.gridZ, seed: d.seed });
+                    }
+                } else if (d && d.gridX === chosenData.gridX && d.gridZ === chosenData.gridZ) {
+                    const nodeKey = `${d.gridX},${d.gridZ}`;
+                    const idx = gameState.worldNodes.findIndex(n => n.id === nodeKey);
+                    if (idx >= 0) {
+                        gameState.worldNodes[idx].anchored = true;
+                    } else {
+                        gameState.worldNodes.push({ id: nodeKey, gridX: d.gridX, gridZ: d.gridZ, anchored: true, seed: d.seed || 1042 });
+                    }
+                }
+            });
+            gameState.save();
+        });
     }
 
     initWorld() {
