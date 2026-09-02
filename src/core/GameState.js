@@ -59,6 +59,12 @@ class GameState {
         this.pendingUnlocks = null; // Track if we need to unlock adjacent islands upon returning to WorldMap
         this.portalCount = 0; // Tracks runs in rogue-like mode
 
+        // Persistent World Graph State
+        this.playerWorld = {
+            initialIsland: { id: "hub_sandbox", type: "sandbox" },
+            attachedIslands: []
+        };
+
         // Hub State
         this.hubState = {
             dayCount: 1,
@@ -80,6 +86,7 @@ class GameState {
             completedNodes: this.completedNodes,
             pendingUnlocks: this.pendingUnlocks,
             portalCount: this.portalCount,
+            playerWorld: this.playerWorld,
             hubState: this.hubState
         };
         try {
@@ -105,6 +112,7 @@ class GameState {
                 if (parsedData.completedNodes) this.completedNodes = parsedData.completedNodes;
                 if (parsedData.pendingUnlocks !== undefined) this.pendingUnlocks = parsedData.pendingUnlocks;
                 if (parsedData.portalCount !== undefined) this.portalCount = parsedData.portalCount;
+                if (parsedData.playerWorld) this.playerWorld = parsedData.playerWorld;
                 if (parsedData.hubState) this.hubState = parsedData.hubState;
                 console.log('Game state loaded successfully.');
                 return true;

@@ -940,6 +940,10 @@ window.changeGameState = function(newState, params) {
     if (GAME_STATE === 'HUB') {
         currentEnvironment = new HubEnvironment(scene, camera);
 
+        // Check if an attached island was passed during state transition
+        if (params && params.attachedIsland && currentEnvironment.attachedIslandsManager) {
+            currentEnvironment.attachedIslandsManager.attachIsland(params.attachedIsland);
+        }
 
         const hubUI = document.getElementById('hub-status-ui');
         if(hubUI) {
