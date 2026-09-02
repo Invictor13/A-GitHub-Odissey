@@ -449,6 +449,8 @@ window.addEventListener('keydown', (e) => {
                 currentEnvironment.cancelGridPlacement();
             } else if (window.hubBuildingState === 'BUILDING') {
                 document.getElementById('btn-close-build').click();
+            } else if (window.hubBuildingState === 'INSIDE_TENT' && currentEnvironment && typeof currentEnvironment.exitTent === 'function') {
+                currentEnvironment.exitTent();
             } else if (!document.getElementById('journal-ui').classList.contains('hidden')) {
                 document.getElementById('btn-close-journal').click();
             }
@@ -625,6 +627,24 @@ function animate() {
         if (penitent.group && penitent.group.visible) {
             const playerPos = penitent.group.position;
 
+            if (GAME_STATE === 'HUB') {
+                if (window.lastHubBuildingState !== window.hubBuildingState) {
+                    if (window.hubBuildingState === 'EXPLORING') {
+                        controls.enabled = (!window.inventoryUI || !window.inventoryUI.isOpen) && (!window.codexUI || !window.codexUI.isOpen);
+                        window.dynamicCameraOffset = new THREE.Vector3(14, 18, 14);
+                        controls.target.copy(playerPos);
+                        camera.position.copy(playerPos).add(window.dynamicCameraOffset);
+                        controls.minPolarAngle = 0.1;
+                        controls.maxPolarAngle = Math.PI / 2.1;
+                    } else if (window.hubBuildingState === 'BUILDING_GRID' || window.hubBuildingState === 'UI_OPEN' || window.hubBuildingState === 'BUILDING') {
+                        controls.enabled = false;
+                    } else if (window.hubBuildingState === 'INSIDE_TENT') {
+                        controls.enabled = true;
+                    }
+                    window.lastHubBuildingState = window.hubBuildingState;
+                }
+            }
+
             let targetCamPos, targetLookAt;
 
             if (GAME_STATE === 'HUB' && window.hubBuildingState && window.hubBuildingState !== 'EXPLORING') {
@@ -710,7 +730,7 @@ function animate() {
         ? penitent.group.position
         : new THREE.Vector3(0, 0, 0);
 
-    const curvatureFactor = (GAME_STATE === 'HUB') ? 0.0015 : 0.0;
+    const curvatureFactor = (GAME_STATE === 'HUB' && window.hubBuildingState !== 'INSIDE_TENT') ? 0.0015 : 0.0;
     CurvatureEffect.updateCurvatureUniforms(scene, playerPos, curvatureFactor);
 
     if (currentEnvironment && typeof currentEnvironment.update === 'function') {
