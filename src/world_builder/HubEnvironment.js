@@ -241,8 +241,11 @@ export class HubEnvironment {
 
             // Exit build mode
             window.hubBuildingState = 'EXPLORING';
-            this.scene.remove(this.previewMesh);
-            this.previewMesh = null;
+            if (this.previewMesh) {
+                this.scene.remove(this.previewMesh);
+                disposeHierarchy(this.previewMesh);
+                this.previewMesh = null;
+            }
             const hint = document.getElementById('build-hint');
             if (hint) hint.classList.add('hidden');
 
@@ -531,6 +534,7 @@ export class HubEnvironment {
         window.hubBuildingState = 'EXPLORING';
         if (this.previewMesh) {
             this.scene.remove(this.previewMesh);
+            disposeHierarchy(this.previewMesh);
             this.previewMesh = null;
         }
         const hint = document.getElementById('build-hint');
@@ -579,6 +583,10 @@ export class HubEnvironment {
         const rugBorder = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.03, 1.6), borderMat);
         rugBorder.position.set(0, 0.25, 3.5);
         this.tentInteriorGroup.add(rugBorder);
+
+        // Interior Ambient Light
+        const tentAmbient = new THREE.AmbientLight(0xfff8e7, 0.9);
+        this.tentInteriorGroup.add(tentAmbient);
 
         // Hanging Ceiling Lantern
         const lanternFrame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.35), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 }));
@@ -704,7 +712,17 @@ export class HubEnvironment {
                 window.penitent.group.position.copy(exitPos);
                 window.penitent.group.visible = true;
 
-                this.camera.position.copy(exitPos).add(new THREE.Vector3(14, 18, 14));
+                if (this.camera) {
+                    this.camera.position.copy(exitPos).add(new THREE.Vector3(14, 18, 14));
+                }
+            }
+
+            if (window.controls) {
+                window.controls.target.copy(exitPos);
+                window.controls.enabled = true;
+            }
+            if (window.dynamicCameraOffset) {
+                window.dynamicCameraOffset.set(14, 18, 14);
             }
 
             if (this.exteriorInteractiveObjects) {
@@ -715,6 +733,8 @@ export class HubEnvironment {
                 window.showFloatingText("Saiu da Barraca", exitPos.clone().add(new THREE.Vector3(0, 2, 0)), '#facc15');
             }
         };
+
+        this.exitTent = exitTent;
 
         const enterTent = () => {
             window.hubBuildingState = 'INSIDE_TENT';
@@ -735,7 +755,7 @@ export class HubEnvironment {
                     name: 'TapeteSaida',
                     mesh: null,
                     position: new THREE.Vector3(200, 0.2, 203.5),
-                    radius: 2.5,
+                    radius: 3.5,
                     action: exitTent,
                     prompt: 'Pressione E para Sair da Barraca'
                 },
@@ -743,7 +763,7 @@ export class HubEnvironment {
                     name: 'SacoDormir',
                     mesh: null,
                     position: new THREE.Vector3(202.6, 0.2, 199.2),
-                    radius: 2.5,
+                    radius: 3.5,
                     action: handleSleepInTent,
                     prompt: 'Pressione E para Dormir (Recuperar HP e Tempo)'
                 },
@@ -751,7 +771,7 @@ export class HubEnvironment {
                     name: 'Diario',
                     mesh: null,
                     position: new THREE.Vector3(197.2, 0.2, 198.2),
-                    radius: 2.5,
+                    radius: 3.5,
                     action: handleJournalInteraction,
                     prompt: 'Pressione E para Abrir e Salvar no Diário'
                 },
@@ -759,7 +779,7 @@ export class HubEnvironment {
                     name: 'MesaTatica',
                     mesh: null,
                     position: new THREE.Vector3(200, 0.2, 197.5),
-                    radius: 2.5,
+                    radius: 3.5,
                     action: () => this.openExpeditionUI(),
                     prompt: 'Pressione E para Examinar Mapa Tático'
                 }
@@ -1243,7 +1263,13 @@ export class HubEnvironment {
     }
 
     checkCollision(pos, radius) {
-        if (window.hubBuildingState === 'INSIDE_TENT' || (pos && Math.abs(pos.x - 200) < 15 && Math.abs(pos.z - 200) < 15)) {
+        if (window.hubBuildingState === 'INSIDE_TENT') {
+            if (pos && Math.hypot(pos.x - 200, pos.z - 200) > 4.2) {
+                return true;
+            }
+            return false;
+        }
+        if (pos && Math.abs(pos.x - 200) < 15 && Math.abs(pos.z - 200) < 15) {
             return false;
         }
         if (!this.terrain) return false;
