@@ -146,16 +146,29 @@ export class ErosCompanion {
 
                 // Re-wire just in case
                 if (window.currentEnvironment && window.currentEnvironment.startGridPlacement) {
-                    document.getElementById('build-tent').onclick = () => {
-                        window.currentEnvironment.startGridPlacement('tent');
-                        tabMenu.classList.add('hidden');
-                        document.getElementById('build-hint').classList.remove('hidden');
-                    };
-                    document.getElementById('build-campfire').onclick = () => {
-                        window.currentEnvironment.startGridPlacement('campfire');
-                        tabMenu.classList.add('hidden');
-                        document.getElementById('build-hint').classList.remove('hidden');
-                    };
+                    const buildItems = [
+                        { id: 'build-portal', type: 'portal' },
+                        { id: 'build-tent', type: 'tent' },
+                        { id: 'build-campfire', type: 'campfire' },
+                        { id: 'build-fence', type: 'fence' },
+                        { id: 'build-lantern', type: 'lantern' },
+                        { id: 'build-bench', type: 'bench' },
+                        { id: 'build-chair', type: 'chair' },
+                        { id: 'build-furnace', type: 'furnace' },
+                        { id: 'build-anvil', type: 'anvil' },
+                        { id: 'build-mud_tile', type: 'mud_tile' },
+                        { id: 'build-stone_tile', type: 'stone_tile' },
+                        { id: 'build-wood_tile', type: 'wood_tile' },
+                        { id: 'build-granite_tile', type: 'granite_tile' }
+                    ];
+                    buildItems.forEach(item => {
+                        const btn = document.getElementById(item.id);
+                        if (btn) btn.onclick = () => {
+                            window.currentEnvironment.startGridPlacement(item.type);
+                            tabMenu.classList.add('hidden');
+                            document.getElementById('build-hint').classList.remove('hidden');
+                        };
+                    });
                 }
             }
         } else {

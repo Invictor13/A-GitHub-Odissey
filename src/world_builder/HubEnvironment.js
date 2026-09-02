@@ -93,7 +93,6 @@ export class HubEnvironment {
 
         this.setupEnvironment();
         this.setupEros();
-        this.setupPortal();
 
         this.setupWeatherParticles();
 
@@ -124,6 +123,9 @@ export class HubEnvironment {
 
                 if (structData.type === 'tent' || structData.type === 'barraca') {
                     this.setupTentInteraction(mesh);
+                }
+                if (structData.type === 'portal' || structData.type === 'portal_expedicao') {
+                    this.setupPortalInteraction(mesh);
                 }
             });
         }
@@ -232,6 +234,9 @@ export class HubEnvironment {
 
             if (this.selectedBuildType === 'tent' || this.selectedBuildType === 'barraca') {
                 this.setupTentInteraction(finalMesh);
+            }
+            if (this.selectedBuildType === 'portal' || this.selectedBuildType === 'portal_expedicao') {
+                this.setupPortalInteraction(finalMesh);
             }
 
             // Exit build mode
@@ -455,70 +460,17 @@ export class HubEnvironment {
         }
     }
 
-    setupPortal() {
-        const portalGroup = new THREE.Group();
-        const x = 0, z = -8.0;
-        let y = 2.0;
-        if (this.terrain) {
-            const h = this.terrain.getHeightAt(x, z);
-            if (h > -10) y = h;
-        }
-        portalGroup.position.set(x, y, z);
+    setupPortalInteraction(portalMesh) {
+        if (!portalMesh) return;
+        portalMesh.userData.interactable = true;
+        portalMesh.userData.name = 'PortalExpedicao';
 
-        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8, flatShading: true });
-
-        // Base platform for portal
-        const platformMesh = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 1.5), stoneMat);
-        platformMesh.position.y = 0.1;
-        platformMesh.receiveShadow = true; platformMesh.castShadow = true;
-        portalGroup.add(platformMesh);
-
-        // Pillars
-        const pillarGeo = new THREE.BoxGeometry(0.8, 3.5, 0.8);
-        const leftPillar = new THREE.Mesh(pillarGeo, stoneMat);
-        leftPillar.position.set(-1.5, 1.9, 0);
-        leftPillar.receiveShadow = true; leftPillar.castShadow = true;
-        portalGroup.add(leftPillar);
-
-        const rightPillar = new THREE.Mesh(pillarGeo, stoneMat);
-        rightPillar.position.set(1.5, 1.9, 0);
-        rightPillar.receiveShadow = true; rightPillar.castShadow = true;
-        portalGroup.add(rightPillar);
-
-        // Arch (Top)
-        const archGeo = new THREE.BoxGeometry(3.8, 0.8, 0.8);
-        const arch = new THREE.Mesh(archGeo, stoneMat);
-        arch.position.set(0, 3.9, 0);
-        arch.receiveShadow = true; arch.castShadow = true;
-        portalGroup.add(arch);
-
-        // Magic Energy Center
-        const magicMat = new THREE.MeshStandardMaterial({
-            color: 0x0ea5e9, emissive: 0x0ea5e9, emissiveIntensity: 0.8,
-            transparent: true, opacity: 0.7, side: THREE.DoubleSide
-        });
-        const energyGeo = new THREE.PlaneGeometry(2.2, 3.4);
-        const energyMesh = new THREE.Mesh(energyGeo, magicMat);
-        energyMesh.position.set(0, 1.9, 0);
-        portalGroup.add(energyMesh);
-
-        const portalLight = new THREE.PointLight(0x0ea5e9, 2.0, 15);
-        portalLight.position.set(0, 1.9, 0.5);
-        portalGroup.add(portalLight);
-
-        CurvatureEffect.applyCurvature(portalGroup);
-
-        this.hubGroup.add(portalGroup);
-
-        this.portalIslandData = { x, y: y + 0.1, z, radius: 2.0 };
-
-        portalGroup.userData.interactable = true;
-        portalGroup.userData.name = 'PortalExpedicao';
+        this.portalIslandData = { x: portalMesh.position.x, y: portalMesh.position.y + 0.1, z: portalMesh.position.z, radius: 2.0 };
 
         this.interactiveObjects.push({
             name: 'PortalExpedicao',
-            mesh: portalGroup,
-            position: new THREE.Vector3(x, y + 0.6, z),
+            mesh: portalMesh,
+            position: new THREE.Vector3(portalMesh.position.x, portalMesh.position.y + 0.6, portalMesh.position.z),
             radius: 4.5,
             action: () => this.openExpeditionUI(),
             prompt: 'Pressione E para Ativar o Portal de Expedição'

@@ -15,8 +15,50 @@ export class StructureBuilder {
         if (type === 'tocha' || type === 'lanterna') type = 'lantern';
         if (type === 'forja' || type === 'forge') type = 'furnace';
         if (type === 'bigorna') type = 'anvil';
+        if (type === 'portal_expedicao') type = 'portal';
 
         // 1. INTERIORES
+        if (type === 'portal') {
+            const stoneMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x64748b, roughness: 0.8, flatShading: true, transparent, opacity });
+
+            // Base platform for portal
+            const platformMesh = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 1.5), stoneMat);
+            platformMesh.position.y = 0.1;
+            group.add(platformMesh);
+
+            // Pillars
+            const pillarGeo = new THREE.BoxGeometry(0.8, 3.5, 0.8);
+            const leftPillar = new THREE.Mesh(pillarGeo, stoneMat);
+            leftPillar.position.set(-1.5, 1.9, 0);
+            group.add(leftPillar);
+
+            const rightPillar = new THREE.Mesh(pillarGeo, stoneMat);
+            rightPillar.position.set(1.5, 1.9, 0);
+            group.add(rightPillar);
+
+            // Arch (Top)
+            const archGeo = new THREE.BoxGeometry(3.8, 0.8, 0.8);
+            const arch = new THREE.Mesh(archGeo, stoneMat);
+            arch.position.set(0, 3.9, 0);
+            group.add(arch);
+
+            // Magic Energy Center
+            const magicMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9, emissive: 0x0ea5e9, emissiveIntensity: isPreview ? 0.4 : 0.8,
+                transparent: true, opacity: isPreview ? opacity : 0.7, side: THREE.DoubleSide
+            });
+            const energyGeo = new THREE.PlaneGeometry(2.2, 3.4);
+            const energyMesh = new THREE.Mesh(energyGeo, magicMat);
+            energyMesh.position.set(0, 1.9, 0);
+            group.add(energyMesh);
+
+            if (!isPreview) {
+                const portalLight = new THREE.PointLight(0x0ea5e9, 2.0, 15);
+                portalLight.position.set(0, 1.9, 0.5);
+                group.add(portalLight);
+            }
+        }
+        else
         if (type === 'barraca') {
             const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.8, transparent, opacity });
             const canvasMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0xddc088, roughness: 0.7, transparent, opacity, side: THREE.DoubleSide });
