@@ -67,12 +67,19 @@ export class BridgePrefab {
         const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6);
         const postMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.9 });
 
-        const postLeft = new THREE.Mesh(postGeo, postMat);
-        const postRight = new THREE.Mesh(postGeo, postMat);
-        postLeft.position.copy(this.startPos).add(new THREE.Vector3(-1.8 * Math.cos(angle), 0.6, 1.8 * Math.sin(angle)));
-        postRight.position.copy(this.startPos).add(new THREE.Vector3(1.8 * Math.cos(angle), 0.6, -1.8 * Math.sin(angle)));
-        this.group.add(postLeft);
-        this.group.add(postRight);
+        const postStartLeft = new THREE.Mesh(postGeo, postMat);
+        const postStartRight = new THREE.Mesh(postGeo, postMat);
+        postStartLeft.position.copy(this.startPos).add(new THREE.Vector3(-1.8 * Math.cos(angle), 0.6, 1.8 * Math.sin(angle)));
+        postStartRight.position.copy(this.startPos).add(new THREE.Vector3(1.8 * Math.cos(angle), 0.6, -1.8 * Math.sin(angle)));
+        this.group.add(postStartLeft);
+        this.group.add(postStartRight);
+
+        const postEndLeft = new THREE.Mesh(postGeo, postMat);
+        const postEndRight = new THREE.Mesh(postGeo, postMat);
+        postEndLeft.position.copy(this.endPos).add(new THREE.Vector3(-1.8 * Math.cos(angle), 0.6, 1.8 * Math.sin(angle)));
+        postEndRight.position.copy(this.endPos).add(new THREE.Vector3(1.8 * Math.cos(angle), 0.6, -1.8 * Math.sin(angle)));
+        this.group.add(postEndLeft);
+        this.group.add(postEndRight);
 
         // Setup bridge area box (for floor height check, NOT obstacle collision)
         const minX = Math.min(this.startPos.x, this.endPos.x) - bridgeWidth / 2;
@@ -117,7 +124,16 @@ export class BridgePrefab {
     }
 
     getFloorY(pos) {
-        return this.startPos.y + 0.2;
+        if (!pos) return this.startPos.y + 0.2;
+        const bridgeVec = new THREE.Vector3().subVectors(this.endPos, this.startPos);
+        const lenSq = bridgeVec.lengthSq();
+        if (lenSq < 0.001) return this.startPos.y + 0.2;
+
+        const playerVec = new THREE.Vector3().subVectors(pos, this.startPos);
+        let t = playerVec.dot(bridgeVec) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+
+        return THREE.MathUtils.lerp(this.startPos.y, this.endPos.y, t) + 0.2;
     }
 
     getColliders() {

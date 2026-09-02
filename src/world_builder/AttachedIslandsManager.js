@@ -4,10 +4,10 @@ import { ProceduralMap } from './ProceduralMap.js';
 import gameState from '../core/GameState.js';
 
 export const SOCKET_OFFSETS = {
-    dock_north: { socketPos: new THREE.Vector3(0, 0, -34), islandOffset: new THREE.Vector3(0, 0, -134), dockSide: 'north' },
-    dock_south: { socketPos: new THREE.Vector3(0, 0, 34), islandOffset: new THREE.Vector3(0, 0, 134), dockSide: 'south' },
-    dock_east: { socketPos: new THREE.Vector3(34, 0, 0), islandOffset: new THREE.Vector3(134, 0, 0), dockSide: 'east' },
-    dock_west: { socketPos: new THREE.Vector3(-34, 0, 0), islandOffset: new THREE.Vector3(-134, 0, 0), dockSide: 'west' }
+    dock_north: { socketPos: new THREE.Vector3(0, 1.2, -26), entryOffset: new THREE.Vector3(0, 1.2, 42), islandOffset: new THREE.Vector3(0, 0, -134), dockSide: 'north' },
+    dock_south: { socketPos: new THREE.Vector3(0, 1.2, 26), entryOffset: new THREE.Vector3(0, 1.2, -42), islandOffset: new THREE.Vector3(0, 0, 134), dockSide: 'south' },
+    dock_east: { socketPos: new THREE.Vector3(26, 1.2, 0), entryOffset: new THREE.Vector3(-42, 1.2, 0), islandOffset: new THREE.Vector3(134, 0, 0), dockSide: 'east' },
+    dock_west: { socketPos: new THREE.Vector3(-26, 1.2, 0), entryOffset: new THREE.Vector3(42, 1.2, 0), islandOffset: new THREE.Vector3(-134, 0, 0), dockSide: 'west' }
 };
 
 export class AttachedIslandsManager {
@@ -51,12 +51,12 @@ export class AttachedIslandsManager {
 
         // Bridge positions: from hub socket edge to satellite island entry edge
         const bridgeStart = socketConfig.socketPos.clone();
-        const bridgeEnd = socketConfig.islandOffset.clone();
-        bridgeEnd.y = bridgeStart.y;
+        const bridgeEnd = socketConfig.islandOffset.clone().add(socketConfig.entryOffset);
 
         const bridge = new BridgePrefab(this.scene, bridgeStart, bridgeEnd, sideName);
 
         // Instantiate procedural map for satellite island
+        islandData.dockSide = sideName;
         const proceduralMap = new ProceduralMap(this.scene);
         proceduralMap.generateGrid(100, islandData);
         proceduralMap.build3DGeometry(islandData.biomeId || 'floresta');

@@ -138,13 +138,48 @@ export class ProceduralMap {
         let attempts = 0;
 
         class Room {
-            constructor(x, y, w, h, id, targetRooms) {
+            constructor(x, y, w, h, id, targetRooms, fixedElev = null) {
                 this.x = x; this.y = y; this.w = w; this.h = h;
                 this.cx = Math.floor(x + w/2); this.cy = Math.floor(y + h/2);
                 this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.35);
-                this.elev = this.isLake ? 0 : Math.floor(Math.random() * 2) + 1;
+                this.elev = fixedElev !== null ? fixedElev : (this.isLake ? 0 : Math.floor(Math.random() * 2) + 1);
             }
             intersects(other) { return (this.x <= other.x + other.w + 2 && this.x + this.w + 2 >= other.x && this.y <= other.y + other.h + 2 && this.y + this.h + 2 >= other.y); }
+        }
+
+        // Determine dock entry location facing the central Hub
+        const dockSide = islandData?.dockSide || 'north';
+        let entranceCx = 50, entranceCy = 82;
+        let corrMinX = 44, corrMaxX = 56, corrMinZ = 74, corrMaxZ = 98;
+
+        if (dockSide === 'south') {
+            entranceCx = 50; entranceCy = 18;
+            corrMinX = 44; corrMaxX = 56; corrMinZ = 2; corrMaxZ = 26;
+        } else if (dockSide === 'east') {
+            entranceCx = 18; entranceCy = 50;
+            corrMinX = 2; corrMaxX = 26; corrMinZ = 44; corrMaxZ = 56;
+        } else if (dockSide === 'west') {
+            entranceCx = 82; entranceCy = 50;
+            corrMinX = 74; corrMaxX = 98; corrMinZ = 44; corrMaxZ = 56;
+        }
+
+        // Room 0: Entrance Room facing bridge
+        const entranceRoom = new Room(entranceCx - 8, entranceCy - 8, 16, 16, 0, targetRooms, 1);
+        this.rooms.push(entranceRoom);
+
+        for (let ix = entranceRoom.x; ix < entranceRoom.x + entranceRoom.w; ix++) {
+            for (let iy = entranceRoom.y; iy < entranceRoom.y + entranceRoom.h; iy++) {
+                this.grid[ix][iy].type = this.TILE_FLOOR;
+                this.grid[ix][iy].elev = 1;
+            }
+        }
+
+        // Carve landing corridor from bridge edge into entrance room
+        for (let ix = corrMinX; ix <= corrMaxX; ix++) {
+            for (let iy = corrMinZ; iy <= corrMaxZ; iy++) {
+                this.grid[ix][iy].type = this.TILE_TRAIL;
+                this.grid[ix][iy].elev = 1;
+            }
         }
 
         while(this.rooms.length < targetRooms && attempts < 700) {
@@ -163,7 +198,7 @@ export class ProceduralMap {
                             if (this.grid[ix][iy].type === this.TILE_WATER && rType !== this.TILE_WATER && r.elev > 0) {
                                 this.grid[ix][iy].type = this.TILE_BRIDGE;
                                 this.grid[ix][iy].elev = r.elev;
-                            } else if (this.grid[ix][iy].type !== this.TILE_BRIDGE) {
+                            } else if (this.grid[ix][iy].type !== this.TILE_BRIDGE && this.grid[ix][iy].type !== this.TILE_TRAIL) {
                                 this.grid[ix][iy].type = rType;
                                 this.grid[ix][iy].elev = r.elev;
                             }
