@@ -133,25 +133,25 @@ export class CanyonBiome extends BiomeBase {
     }
 
     spawnEnemies(enemiesArray) {
-        const numEnemies = Math.floor(Math.random() * 5) + 6;
+        const numEnemies = Math.floor(Math.random() * 3) + 3;
         let enemiesCreated = 0;
 
-        if (this.map.rooms && this.map.rooms.length > 1) {
-            for (let rIdx = 1; rIdx < this.map.rooms.length; rIdx++) {
-                if (enemiesCreated >= numEnemies) break;
-                const r = this.map.rooms[rIdx];
-                const spawnX = r.x + Math.floor(Math.random() * r.w);
-                const spawnZ = r.y + Math.floor(Math.random() * r.h);
+        for (let attempts = 0; attempts < 100 && enemiesCreated < numEnemies; attempts++) {
+            const spawnX = Math.floor(Math.random() * (this.gridSize - 8)) + 4;
+            const spawnZ = Math.floor(Math.random() * (this.gridSize - 8)) + 4;
 
-                if (this.grid[spawnX] && this.grid[spawnX][spawnZ] && this.grid[spawnX][spawnZ].type === this.TILE_FLOOR) {
-                    const px = spawnX - this.gridSize / 2;
-                    const pz = spawnZ - this.gridSize / 2;
-                    const py = this.grid[spawnX][spawnZ].elev * this.STEP_HEIGHT;
+            if (this.grid[spawnX] && this.grid[spawnX][spawnZ] && this.grid[spawnX][spawnZ].type === this.TILE_FLOOR) {
+                const px = spawnX - this.gridSize / 2;
+                const pz = spawnZ - this.gridSize / 2;
+                const py = this.grid[spawnX][spawnZ].elev * this.STEP_HEIGHT;
 
-                    const enemy = Math.random() < 0.6 ? new Lizardman(this.scene, new THREE.Vector3(px, py, pz)) : new Kobold(this.scene, new THREE.Vector3(px, py, pz));
-                    enemiesArray.push(enemy);
-                    enemiesCreated++;
+                const enemy = Math.random() < 0.6 ? new Lizardman(this.scene, new THREE.Vector3(px, py, pz)) : new Kobold(this.scene, new THREE.Vector3(px, py, pz));
+                if (this.map && this.map.mapGroup && enemy.group) {
+                    this.map.mapGroup.add(enemy.group);
                 }
+
+                enemiesArray.push(enemy);
+                enemiesCreated++;
             }
         }
     }

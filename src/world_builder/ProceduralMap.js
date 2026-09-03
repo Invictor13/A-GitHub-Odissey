@@ -125,168 +125,83 @@ export class ProceduralMap {
         this.scene.add(this.weatherParticles);
     }
 
-    generateGrid(size, islandData = null) {
+    generateGrid(size = 48, islandData = null) {
         this.currentIslandData = islandData;
-        size = 100; // Force size 100 as per requirement
+        size = 48; // Compact high-quality island grid (48x48)
         this.gridSize = size;
-        console.log(`Generating procedural grid of size ${size}`);
+        console.log(`Generating compact procedural grid of size ${size}`);
 
-        this.grid = new Array(size).fill(0).map(() => new Array(size).fill(0).map(() => ({ type: this.TILE_SOLID, elev: 0, distToPath: 999 })));
+        this.grid = new Array(size).fill(0).map(() => new Array(size).fill(0).map(() => ({ type: this.TILE_EMPTY, elev: 0, distToPath: 999 })));
 
-        const targetRooms = Math.floor(Math.random() * 3) + 12; // 12 to 14 rooms
-        this.rooms = [];
-        let attempts = 0;
+        const center = size / 2; // 24
+        const maxRadius = 20;
 
-        class Room {
-            constructor(x, y, w, h, id, targetRooms, fixedElev = null) {
-                this.x = x; this.y = y; this.w = w; this.h = h;
-                this.cx = Math.floor(x + w/2); this.cy = Math.floor(y + h/2);
-                this.isLake = (id > 0 && id < targetRooms-1 && Math.random() < 0.35);
-                this.elev = fixedElev !== null ? fixedElev : (this.isLake ? 0 : Math.floor(Math.random() * 2) + 1);
+        // Base circular/organic compact island terrain
+        for (let x = 0; x < size; x++) {
+            for (let z = 0; z < size; z++) {
+                const dx = x - center;
+                const dz = z - center;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                // Add slight noise variation to island edge
+                const angle = Math.atan2(dz, dx);
+                const noiseRadius = maxRadius + Math.sin(angle * 5) * 2.5 + Math.cos(angle * 3) * 1.5;
+
+                if (dist <= noiseRadius) {
+                    let elev = 1;
+                    if (dist < 8) elev = 3;
+                    else if (dist < 14) elev = 2;
+
+                    // Central room area
+                    this.grid[x][z].type = this.TILE_FLOOR;
+                    this.grid[x][z].elev = elev;
+                    this.grid[x][z].distToPath = Math.floor(dist);
+                }
             }
-            intersects(other) { return (this.x <= other.x + other.w + 2 && this.x + this.w + 2 >= other.x && this.y <= other.y + other.h + 2 && this.y + this.h + 2 >= other.y); }
         }
 
-        // Determine dock entry location facing the central Hub
-        const dockSide = islandData?.dockSide || 'north';
-        let entranceCx = 50, entranceCy = 82;
-        let corrMinX = 44, corrMaxX = 56, corrMinZ = 74, corrMaxZ = 98;
+        // Main clearing room (Room 0) for enemy and portal placement
+        this.rooms = [{
+            x: 14, y: 14, w: 20, h: 20,
+            cx: 24, cy: 24,
+            elev: 1,
+            isLake: false
+        }];
+
+        // Carve landing corridor facing the bridge socket
+        const rawDockSide = islandData?.dockSide || 'north';
+        const dockSide = rawDockSide.replace('dock_', '');
+        let corrMinX = 22, corrMaxX = 26, corrMinZ = 38, corrMaxZ = 47;
 
         if (dockSide === 'south') {
-            entranceCx = 50; entranceCy = 18;
-            corrMinX = 44; corrMaxX = 56; corrMinZ = 2; corrMaxZ = 26;
+            corrMinX = 22; corrMaxX = 26; corrMinZ = 0; corrMaxZ = 10;
         } else if (dockSide === 'east') {
-            entranceCx = 18; entranceCy = 50;
-            corrMinX = 2; corrMaxX = 26; corrMinZ = 44; corrMaxZ = 56;
+            corrMinX = 0; corrMaxX = 10; corrMinZ = 22; corrMaxZ = 26;
         } else if (dockSide === 'west') {
-            entranceCx = 82; entranceCy = 50;
-            corrMinX = 74; corrMaxX = 98; corrMinZ = 44; corrMaxZ = 56;
+            corrMinX = 38; corrMaxX = 47; corrMinZ = 22; corrMaxZ = 26;
         }
 
-        // Room 0: Entrance Room facing bridge
-        const entranceRoom = new Room(entranceCx - 8, entranceCy - 8, 16, 16, 0, targetRooms, 1);
-        this.rooms.push(entranceRoom);
-
-        for (let ix = entranceRoom.x; ix < entranceRoom.x + entranceRoom.w; ix++) {
-            for (let iy = entranceRoom.y; iy < entranceRoom.y + entranceRoom.h; iy++) {
-                this.grid[ix][iy].type = this.TILE_FLOOR;
-                this.grid[ix][iy].elev = 1;
-            }
-        }
-
-        // Carve landing corridor from bridge edge into entrance room
         for (let ix = corrMinX; ix <= corrMaxX; ix++) {
             for (let iy = corrMinZ; iy <= corrMaxZ; iy++) {
-                this.grid[ix][iy].type = this.TILE_TRAIL;
-                this.grid[ix][iy].elev = 1;
-            }
-        }
-
-        while(this.rooms.length < targetRooms && attempts < 700) {
-            let w = Math.floor(Math.random() * 18) + 18;
-            let h = Math.floor(Math.random() * 18) + 18;
-            let x = Math.floor(Math.random() * (size - w - 2)) + 1;
-            let y = Math.floor(Math.random() * (size - h - 2)) + 1;
-
-            let r = new Room(x, y, w, h, this.rooms.length, targetRooms);
-
-            if (!this.rooms.some(other => r.intersects(other))) {
-                let rType = r.elev === 0 ? this.TILE_WATER : this.TILE_FLOOR;
-                for(let ix = x; ix < x+w; ix++) {
-                    for(let iy = y; iy < y+h; iy++) {
-                        if(Math.random() < 0.99) {
-                            if (this.grid[ix][iy].type === this.TILE_WATER && rType !== this.TILE_WATER && r.elev > 0) {
-                                this.grid[ix][iy].type = this.TILE_BRIDGE;
-                                this.grid[ix][iy].elev = r.elev;
-                            } else if (this.grid[ix][iy].type !== this.TILE_BRIDGE && this.grid[ix][iy].type !== this.TILE_TRAIL) {
-                                this.grid[ix][iy].type = rType;
-                                this.grid[ix][iy].elev = r.elev;
-                            }
-                        }
-                    }
-                }
-                this.rooms.push(r);
-            }
-            attempts++;
-        }
-
-        // Connect rooms
-        for (let i = 1; i < this.rooms.length; i++) {
-            let r1 = this.rooms[i-1], r2 = this.rooms[i];
-            let cx = r1.cx, cy = r1.cy;
-            let path = [{x: cx, z: cy}];
-            while (cx !== r2.cx || cy !== r2.cy) {
-                if (cx !== r2.cx) cx += Math.sign(r2.cx - cx);
-                else if (cy !== r2.cy) cy += Math.sign(r2.cy - cy);
-                path.push({x: cx, z: cy});
-            }
-            for (let j = 0; j < path.length; j++) {
-                let t = j / (path.length - 1 || 1);
-                let elev = Math.round(r1.elev * (1 - t) + r2.elev * t);
-                let px = path[j].x, pz = path[j].z;
-                let cType = elev === 0 ? this.TILE_WATER : this.TILE_TRAIL;
-
-                for(let dx=-2; dx<=2; dx++) {
-                    for(let dz=-2; dz<=2; dz++) {
-                        if (Math.abs(dx) + Math.abs(dz) <= 3) {
-                            let nx = px+dx, nz = pz+dz;
-                            if (nx >= 0 && nx < size && nz >= 0 && nz < size) {
-                                if (this.grid[nx][nz].type === this.TILE_WATER) {
-                                    // If crossing existing water with an elevated path, place a bridge along the centerline
-                                    if (cType !== this.TILE_WATER && elev > 0 && Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                                        this.grid[nx][nz].type = this.TILE_BRIDGE;
-                                        this.grid[nx][nz].elev = elev;
-                                    }
-                                    // Leave surrounding water intact!
-                                } else if (this.grid[nx][nz].type !== this.TILE_BRIDGE) {
-                                    this.grid[nx][nz].type = cType;
-                                    this.grid[nx][nz].elev = elev;
-                                }
-                            }
-                        }
-                    }
+                if (ix >= 0 && ix < size && iy >= 0 && iy < size) {
+                    this.grid[ix][iy].type = this.TILE_TRAIL;
+                    this.grid[ix][iy].elev = 1;
+                    this.grid[ix][iy].distToPath = 0;
                 }
             }
         }
 
-        let dilation = Array.from({length: size}, () => Array(size).fill(999));
-        let queue = [];
+        // Add some rock/solid boundary nodes around edges
         for (let x = 0; x < size; x++) {
             for (let z = 0; z < size; z++) {
-                if (this.grid[x][z].type !== this.TILE_SOLID) { dilation[x][z] = 0; queue.push({x: x, z: z}); }
-            }
-        }
-
-        let head = 0;
-        while (head < queue.length) {
-            let p = queue[head++]; let d = dilation[p.x][p.z];
-            if (d >= 8) continue;
-            let dirs = [[0,1], [1,0], [0,-1], [-1,0]];
-            for (let dir of dirs) {
-                let nx = p.x + dir[0], nz = p.z + dir[1];
-                if (nx >= 0 && nx < size && nz >= 0 && nz < size && dilation[nx][nz] > d + 1) {
-                    dilation[nx][nz] = d + 1; queue.push({x: nx, z: nz});
-                }
-            }
-        }
-
-        for (let x = 0; x < size; x++) {
-            for (let z = 0; z < size; z++) {
-                if (this.grid[x][z].type === this.TILE_SOLID) {
-                    if (dilation[x][z] > 8) {
-                        this.grid[x][z].type = this.TILE_EMPTY;
-                    } else {
-                        let maxElev = 0;
-                        for(let dx=-2; dx<=2; dx++) {
-                            for(let dz=-2; dz<=2; dz++) {
-                                let nx = x+dx, nz = z+dz;
-                                if(nx>=0 && nx<size && nz>=0 && nz<size && this.grid[nx][nz].type >= 0 && this.grid[nx][nz].type !== this.TILE_SOLID) {
-                                    maxElev = Math.max(maxElev, this.grid[nx][nz].elev);
-                                }
-                            }
-                        }
-                        this.grid[x][z].elev = maxElev + Math.floor(dilation[x][z]*0.5);
-                        this.grid[x][z].distToPath = dilation[x][z];
+                if (this.grid[x][z].type === this.TILE_FLOOR) {
+                    const dx = x - center;
+                    const dz = z - center;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist > 16 && Math.random() < 0.25) {
+                        this.grid[x][z].type = this.TILE_SOLID;
+                        this.grid[x][z].elev = 2;
+                        this.grid[x][z].distToPath = 1;
                     }
                 }
             }

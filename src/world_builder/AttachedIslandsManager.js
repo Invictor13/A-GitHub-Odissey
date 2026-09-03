@@ -4,10 +4,10 @@ import { ProceduralMap } from './ProceduralMap.js';
 import gameState from '../core/GameState.js';
 
 export const SOCKET_OFFSETS = {
-    dock_north: { socketPos: new THREE.Vector3(0, 1.2, -26), entryOffset: new THREE.Vector3(0, 1.2, 42), islandOffset: new THREE.Vector3(0, 0, -134), dockSide: 'north' },
-    dock_south: { socketPos: new THREE.Vector3(0, 1.2, 26), entryOffset: new THREE.Vector3(0, 1.2, -42), islandOffset: new THREE.Vector3(0, 0, 134), dockSide: 'south' },
-    dock_east: { socketPos: new THREE.Vector3(26, 1.2, 0), entryOffset: new THREE.Vector3(-42, 1.2, 0), islandOffset: new THREE.Vector3(134, 0, 0), dockSide: 'east' },
-    dock_west: { socketPos: new THREE.Vector3(-26, 1.2, 0), entryOffset: new THREE.Vector3(42, 1.2, 0), islandOffset: new THREE.Vector3(-134, 0, 0), dockSide: 'west' }
+    dock_north: { socketPos: new THREE.Vector3(0, 1.2, -26), entryOffset: new THREE.Vector3(0, 1.2, 20), islandOffset: new THREE.Vector3(0, 0, -68), dockSide: 'north' },
+    dock_south: { socketPos: new THREE.Vector3(0, 1.2, 26), entryOffset: new THREE.Vector3(0, 1.2, -20), islandOffset: new THREE.Vector3(0, 0, 68), dockSide: 'south' },
+    dock_east: { socketPos: new THREE.Vector3(26, 1.2, 0), entryOffset: new THREE.Vector3(-20, 1.2, 0), islandOffset: new THREE.Vector3(68, 0, 0), dockSide: 'east' },
+    dock_west: { socketPos: new THREE.Vector3(-26, 1.2, 0), entryOffset: new THREE.Vector3(20, 1.2, 0), islandOffset: new THREE.Vector3(-68, 0, 0), dockSide: 'west' }
 };
 
 export class AttachedIslandsManager {
@@ -58,7 +58,7 @@ export class AttachedIslandsManager {
         // Instantiate procedural map for satellite island
         islandData.dockSide = sideName;
         const proceduralMap = new ProceduralMap(this.scene);
-        proceduralMap.generateGrid(100, islandData);
+        proceduralMap.generateGrid(48, islandData);
         proceduralMap.build3DGeometry(islandData.biomeId || 'floresta');
 
         // Position procedural map group at islandOffset
@@ -77,7 +77,7 @@ export class AttachedIslandsManager {
             proceduralMap,
             bridge,
             center: socketConfig.islandOffset.clone(),
-            radius: 50,
+            radius: 32,
             state: 'Sleeping'
         };
 
@@ -156,7 +156,7 @@ export class AttachedIslandsManager {
                 return record.bridge.getFloorY(pos);
             }
 
-            if (record.proceduralMap && pos.distanceTo(record.center) < 55) {
+            if (record.proceduralMap && pos.distanceTo(record.center) < 36) {
                 const localPos = pos.clone().sub(record.center);
                 const y = record.proceduralMap.getFloorY(localPos);
                 if (y !== undefined && !isNaN(y) && y > -40) {
@@ -171,7 +171,7 @@ export class AttachedIslandsManager {
         if (!pos) return false;
 
         for (const record of this.attachedIslands.values()) {
-            if (record.state === 'Active' && record.proceduralMap && pos.distanceTo(record.center) < 55) {
+            if (record.state === 'Active' && record.proceduralMap && pos.distanceTo(record.center) < 36) {
                 const localPos = pos.clone().sub(record.center);
                 if (record.proceduralMap.checkCollision(localPos, radius)) {
                     return true;
