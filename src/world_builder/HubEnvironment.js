@@ -1193,6 +1193,44 @@ export class HubEnvironment {
             this.resources.update(delta);
         }
 
+        // Animate Workbench Table Banner Cloth & Mystical Tome Book
+        if (this.placedStructures && this.placedStructures.children) {
+            this.placedStructures.children.forEach(struct => {
+                // Find banner cloth and tome book
+                struct.traverse(child => {
+                    if (child.userData && child.userData.isBannerCloth && child.geometry) {
+                        const posAttr = child.geometry.attributes.position;
+                        if (posAttr) {
+                            for (let i = 0; i < posAttr.count; i++) {
+                                const y = posAttr.getY(i);
+                                const wave = Math.sin(time * 2.2 + y * 4.0) * 0.015 + Math.cos(time * 1.5 + y * 2.0) * 0.008;
+                                posAttr.setZ(i, wave);
+                            }
+                            posAttr.needsUpdate = true;
+                        }
+                    }
+                    if (child.userData && child.userData.isTomeBook) {
+                        child.position.y = 0.90 + Math.sin(time * 2.0) * 0.025;
+                        if (child.userData.light) {
+                            child.userData.light.intensity = 2.2 + Math.sin(time * 3.5) * 0.6;
+                        }
+                    }
+                    if (child.userData && child.userData.isPressMachine) {
+                        const { plate, wheel } = child.userData;
+                        // Smooth full-range pressing cycle: 0.0 (top) to 1.0 (full compression onto table/pages)
+                        const pressCycle = (Math.sin(time * 1.5) + 1.0) / 2.0; // Normalized 0 to 1
+                        if (plate) {
+                            // Plate lowers smoothly from top resting height (0.45) down to page compression level (0.08)
+                            plate.position.y = THREE.MathUtils.lerp(0.45, 0.08, pressCycle);
+                        }
+                        if (wheel) {
+                            wheel.rotation.z = time * 3.0; // Rotate wheel as screw turns
+                        }
+                    }
+                });
+            });
+        }
+
         if(window.hubBuildingState !== 'INSIDE_TENT') {
             this.skyClouds.forEach(c => { c.position.x -= c.userData.speed * delta * 2; if(c.position.x < -140) c.position.x = 140; });
             this.islandBottomClouds.forEach(c => { c.position.x -= c.userData.speed * delta * 1.5; if(c.position.x < -80) c.position.x = 80; });
