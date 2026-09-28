@@ -412,6 +412,48 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
+// Wiring Dock Hotbar and PDF Actions Modal
+const dockBtnActions = document.getElementById('dock-btn-actions');
+const pdfActionsModal = document.getElementById('pdf-actions-modal');
+const btnClosePdfActions = document.getElementById('btn-close-pdf-actions');
+
+if (dockBtnActions && pdfActionsModal) {
+    dockBtnActions.addEventListener('click', () => {
+        pdfActionsModal.classList.remove('hidden');
+    });
+}
+
+if (btnClosePdfActions && pdfActionsModal) {
+    btnClosePdfActions.addEventListener('click', () => {
+        pdfActionsModal.classList.add('hidden');
+    });
+}
+
+const dockBtnPress = document.getElementById('dock-btn-press');
+const actionCardCompress = document.getElementById('action-card-compress');
+
+const triggerPressAnimation = () => {
+    if (window.showToast) {
+        window.showToast("⚡ Prensa Hidráulica Ativada! Comprimindo Tomo PDF...", "text-amber-300", "fa-solid fa-box-archive");
+    }
+    if (pdfActionsModal) pdfActionsModal.classList.add('hidden');
+};
+
+if (dockBtnPress) {
+    dockBtnPress.addEventListener('click', triggerPressAnimation);
+}
+
+if (actionCardCompress) {
+    actionCardCompress.addEventListener('click', triggerPressAnimation);
+}
+
+const dockBtnOptions = document.getElementById('dock-btn-options');
+if (dockBtnOptions) {
+    dockBtnOptions.addEventListener('click', () => {
+        if (window.inventoryUI) window.inventoryUI.toggle();
+    });
+}
+
 // Manage key states for continuous movement
 window.keyStates = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 

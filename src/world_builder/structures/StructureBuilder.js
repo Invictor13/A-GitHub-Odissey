@@ -205,12 +205,145 @@ export class StructureBuilder {
                 group.add(fireLight);
             }
         } else if (type === 'workbench') {
-            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x78350f, roughness: 0.9, transparent, opacity });
-            const top = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, 0.8), woodMat); top.position.y = 0.8; group.add(top);
-            const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg1.position.set(-0.7, 0.4, -0.3); group.add(leg1);
-            const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg2.position.set(0.7, 0.4, -0.3); group.add(leg2);
-            const leg3 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg3.position.set(-0.7, 0.4, 0.3); group.add(leg3);
-            const leg4 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg4.position.set(0.7, 0.4, 0.3); group.add(leg4);
+            const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x5c2b0c, roughness: 0.85, transparent, opacity });
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, 0.9), woodMat); top.position.y = 0.8; group.add(top);
+            const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg1.position.set(-0.8, 0.4, -0.35); group.add(leg1);
+            const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg2.position.set(0.8, 0.4, -0.35); group.add(leg2);
+            const leg3 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg3.position.set(-0.8, 0.4, 0.35); group.add(leg3);
+            const leg4 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), woodMat); leg4.position.set(0.8, 0.4, 0.35); group.add(leg4);
+
+            // "Severino PDF" Elegant Banner / Table Cloth
+            if (!isPreview) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+
+                // Regal dark red crimson background with ornate golden filigree
+                ctx.fillStyle = '#800f14';
+                ctx.fillRect(0, 0, 512, 512);
+
+                // Outer border
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 14;
+                ctx.strokeRect(18, 18, 476, 476);
+                ctx.lineWidth = 4;
+                ctx.strokeRect(28, 28, 456, 456);
+
+                // Corner gold emblems
+                ctx.fillStyle = '#f59e0b';
+                const drawCornerDiamond = (cx, cy) => {
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy - 20); ctx.lineTo(cx + 20, cy);
+                    ctx.lineTo(cx, cy + 20); ctx.lineTo(cx - 20, cy);
+                    ctx.closePath(); ctx.fill();
+                };
+                drawCornerDiamond(40, 40); drawCornerDiamond(472, 40);
+                drawCornerDiamond(40, 472); drawCornerDiamond(472, 472);
+
+                // Main Title: SEVERINO PDF
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 52px serif';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 4;
+                ctx.fillText('SEVERINO PDF', 256, 220);
+
+                // Subtitle: ACERVO DOCUMENTAL
+                ctx.fillStyle = '#fef08a';
+                ctx.font = '600 24px sans-serif';
+                ctx.letterSpacing = '4px';
+                ctx.fillText('✦ ACERVO DOCUMENTAL ✦', 256, 280);
+
+                const clothTex = new THREE.CanvasTexture(canvas);
+                clothTex.wrapS = THREE.RepeatWrapping;
+                clothTex.wrapT = THREE.RepeatWrapping;
+
+                const clothMat = new THREE.MeshStandardMaterial({
+                    map: clothTex,
+                    roughness: 0.6,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide
+                });
+
+                // Top table runner surface
+                const topClothGeo = new THREE.PlaneGeometry(1.3, 0.92);
+                topClothGeo.rotateX(-Math.PI / 2);
+                const topCloth = new THREE.Mesh(topClothGeo, clothMat);
+                topCloth.position.set(0, 0.881, 0);
+                group.add(topCloth);
+
+                // Front draping apron - offset forward (+Z = 0.465) to completely clear table front beam
+                const frontClothGeo = new THREE.PlaneGeometry(1.3, 0.72, 16, 16);
+                const frontCloth = new THREE.Mesh(frontClothGeo, clothMat);
+                frontCloth.position.set(0, 0.52, 0.465);
+                frontCloth.userData = { isBannerCloth: true };
+                group.add(frontCloth);
+
+                // 3D Ancient PDF Tome resting gracefully on the table cloth
+                const bookGroup = new THREE.Group();
+                bookGroup.position.set(0, 0.90, -0.05);
+
+                const coverMat = new THREE.MeshStandardMaterial({ color: 0x31103f, roughness: 0.3, metalness: 0.3 });
+                const coverBottom = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.03, 0.42), coverMat);
+                coverBottom.position.y = 0.015;
+                bookGroup.add(coverBottom);
+
+                const coverTop = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.03, 0.42), coverMat);
+                coverTop.position.y = 0.095;
+                coverTop.userData = { isBookCoverTop: true };
+                bookGroup.add(coverTop);
+
+                // Glowing magical parchment pages
+                const pagesMat = new THREE.MeshStandardMaterial({ color: 0xfffbeb, emissive: 0xfacc15, emissiveIntensity: 0.4, roughness: 0.7 });
+                const pages = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.06, 0.38), pagesMat);
+                pages.position.set(0.01, 0.055, 0);
+                bookGroup.add(pages);
+
+                // Gold Spine & Filigree Accents
+                const goldTrimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.15 });
+                const spine = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.10, 0.42), goldTrimMat);
+                spine.position.set(-0.27, 0.055, 0);
+                bookGroup.add(spine);
+
+                // Mystical Light Aura
+                const bookLight = new THREE.PointLight(0xfacc15, 2.5, 6.0);
+                bookLight.position.set(0, 0.3, 0);
+                bookGroup.add(bookLight);
+
+                bookGroup.userData = { isTomeBook: true, light: bookLight, pagesMesh: pages };
+                group.add(bookGroup);
+
+                // Hydraulic Screw Press Mechanism attached directly to Workbench
+                const pressGroup = new THREE.Group();
+                pressGroup.position.set(0.55, 0.88, -0.05);
+
+                const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+                const brassMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.2 });
+
+                // Frame Pillars
+                const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.85), metalMat); pL.position.set(-0.25, 0.425, 0); pressGroup.add(pL);
+                const pR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.85), metalMat); pR.position.set(0.25, 0.425, 0); pressGroup.add(pR);
+
+                // Top Crossbar & Screw
+                const crossbar = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.08, 0.12), metalMat); crossbar.position.set(0, 0.82, 0); pressGroup.add(crossbar);
+                const screwThread = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.65), brassMat); screwThread.position.set(0, 0.50, 0); pressGroup.add(screwThread);
+
+                // Heavy Pressing Plate (Plateau)
+                const pressPlate = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.05, 0.38), metalMat);
+                pressPlate.position.set(0, 0.35, 0);
+                pressGroup.add(pressPlate);
+
+                // Top Wheel Handle
+                const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 8, 16), brassMat);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.position.set(0, 0.86, 0);
+                pressGroup.add(wheel);
+
+                pressGroup.userData = { isPressMachine: true, plate: pressPlate, screw: screwThread, wheel: wheel };
+                group.add(pressGroup);
+            }
         } else if (type === 'anvil') {
             const metalMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x333333, metalness: 0.8, roughness: 0.4, transparent, opacity });
             const woodMat = new THREE.MeshStandardMaterial({ color: isPreview ? 0xfacc15 : 0x4a2e16, roughness: 0.9, transparent, opacity });
