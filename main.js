@@ -14,6 +14,7 @@ import { RadialMenu } from './src/ui/RadialMenu.js';
 import { HubBounds } from './src/world_builder/HubBounds.js';
 import CurvatureEffect from './src/shaders/CurvatureEffect.js';
 import { globalUniforms } from './src/core/GraphicsUtils.js';
+import { SeverinoSentinelaUI } from './src/ui/SeverinoSentinelaUI.js';
 
 window.inventoryManager = inventoryManager;
 
@@ -305,7 +306,7 @@ import('./src/ui/InventoryUI.js').then(module => {
     console.warn("Could not dynamically import InventoryUI", e);
 }
 
-// Initialize Codex UI
+// Initialize Codex UI & Severino Sentinela UI
 let codexUI = null;
 try {
     import('./src/ui/codex_ui.js').then(module => {
@@ -316,6 +317,12 @@ try {
     });
 } catch (e) {
     console.warn("Could not dynamically import CodexUI", e);
+}
+
+try {
+    window.severinoSentinelaUI = new SeverinoSentinelaUI();
+} catch (e) {
+    console.warn("Could not instantiate SeverinoSentinelaUI", e);
 }
 
 
